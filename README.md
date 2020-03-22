@@ -6,8 +6,8 @@ by Mike Weltevrede (SNR 1257560)
 
 A thesis submitted in partial fulfillment of the requirements for the degree of Master in Econometrics and Mathematical Economics.
 
-Tilburg School of Economics and Management, Tilburg University
+Tilburg School of Economics and Management (Tilburg University)
 
-Supervised by:
-dr. Otilia Boldea (Tilburg University)
+Supervised by:\
+dr. Otilia Boldea (Tilburg University)\
 dr. George Knox (Tilburg University)
