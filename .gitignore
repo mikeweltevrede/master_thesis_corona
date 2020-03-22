@@ -4,6 +4,7 @@ images/
 literature/
 
 .Rhistory
+journal.md
 thesis.pdf
 
 *.aux
