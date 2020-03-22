@@ -1,0 +1,15 @@
+.Rproj.user/
+data/
+images/
+literature/
+
+.Rhistory
+thesis.pdf
+
+*.aux
+*.bbl
+*.bib
+*.blg
+*.log
+*.synctex.gz
+*.toc
