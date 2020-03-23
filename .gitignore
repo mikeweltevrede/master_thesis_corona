@@ -6,6 +6,7 @@ renv/
 
 .Rhistory
 .Rprofile
+explore.R
 journal.md
 thesis.pdf
 
