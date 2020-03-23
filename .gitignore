@@ -2,8 +2,10 @@
 data/
 images/
 literature/
+renv/
 
 .Rhistory
+.Rprofile
 journal.md
 thesis.pdf
 
