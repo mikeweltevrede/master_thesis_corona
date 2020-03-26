@@ -11,3 +11,10 @@ Tilburg School of Economics and Management (Tilburg University)
 Supervised by:\
 dr. Otilia Boldea (Tilburg University)\
 dr. George Knox (Tilburg University)
+
+# Restoring the R-environment
+
+1. Open the R project.
+2. Make sure you have the R package `renv` installed: `install.packages("renv")`
+3. Activate the `renv` package: `library(renv)`
+4. Restore the environment with `renv::restore()`
