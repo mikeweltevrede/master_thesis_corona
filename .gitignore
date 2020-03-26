@@ -8,12 +8,14 @@ renv/
 .Rprofile
 explore.R
 journal.md
-thesis.pdf
+notes.tex
+thesis.tex
 
 *.aux
 *.bbl
 *.bib
 *.blg
 *.log
+*.out
 *.synctex.gz
 *.toc
