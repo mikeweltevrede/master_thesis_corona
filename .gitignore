@@ -1,12 +1,13 @@
+.ipynb_checkpoints/
 .Rproj.user/
-data/
+data/COVID-19/
 images/
 literature/
 renv/
 
 .Rhistory
 .Rprofile
-explore.R
+explore.*
 journal.md
 notes.tex
 thesis.tex
