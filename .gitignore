@@ -7,7 +7,7 @@ renv/
 
 .Rhistory
 .Rprofile
-explore.*
+#explore.*
 journal.md
 notes.tex
 thesis.tex
