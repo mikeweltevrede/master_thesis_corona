@@ -65,9 +65,10 @@ df_region = df_wide %>%
 sma_obj = SMA(df_region$Growth_Rate, n=3) # Simple Moving Average
 ema_obj = EMA(df_region$Growth_Rate, n=3) # Exponential Moving Average (note: unstable in the short-term)
 
-myts = ts(df_region[2:ncol(df_region)])
-growth_rate = myts[, "Growth_Rate"]
-growth_rate = growth_rate[!is.na(growth_rate)]
+ts_region = ts(df_region[2:ncol(df_region)])
+growth_rate = ts_region[, "Growth_Rate"]
+na_growth = is.na(growth_rate)
+growth_rate = growth_rate[!na_growth]
 
 Box.test(growth_rate, lag=14, type="Lj") # p-value = 2.543e-07
 ggAcf(df_region$Growth_Rate, na.action = na.pass)
@@ -76,14 +77,63 @@ ar_obj = ar(df_region$Growth_Rate, na.action = na.pass)
 gr_naive = naive(growth_rate, h=3)
 autoplot(gr_naive)
 
-fc = naive(growth_rate)
-autoplot(fc, series="Data") +
-  autolayer(fitted(fc), series="Fitted")
+# Naive
+fc = naive(growth_rate, h=3)
 checkresiduals(fc) # Not Normal; also lack of data; so be careful with prediction intervals
-
-fc = ses(growth_rate, h=3)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
+
+# Simple Exponential Smoothing
+fc = ses(growth_rate, h=3)
+checkresiduals(fc)
+autoplot(fc, series="Data") +
+  autolayer(fitted(fc), series="Fitted")
+
+# Holt's trend method
+fc = holt(growth_rate, h=3)
+checkresiduals(fc)
+autoplot(fc, series="Data") +
+  autolayer(fitted(fc), series="Fitted")
+
+# Dampened trend method
+fc = holt(growth_rate, h=3, damped=TRUE)
+checkresiduals(fc)
+autoplot(fc, series="Data") +
+  autolayer(fitted(fc), series="Fitted")
+
+# Holt-Winters' methods are not applicable because we do not have seasonality
+
+# General model: ETS(M,Ad,N): Multiplicative errors, dampened trend, no seasonality
+ets(growth_rate)
+fc = growth_rate %>%
+  ets() %>%
+  forecast(h=3)
+checkresiduals(fc)
+autoplot(fc, series="Data") +
+  autolayer(fitted(fc), series="Fitted")
+
+# ARIMA model - ARIMA(0,2,2); so we take 2 differences to create stationarity and include 2 lagged errors
+BoxCox.lambda(growth_rate) # -0.5473554
+auto.arima(growth_rate)
+fc = growth_rate %>%
+  auto.arima() %>%
+  forecast(h=3)
+checkresiduals(fc)
+autoplot(fc, series="Data") +
+  autolayer(fitted(fc), series="Fitted")
+
+#### Advanced models ####
+# Dynamic regression
+df_restrictions = readxl::read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
+                                     sheet="NationwideRestrictions")
+df_restrictions = drop_na(df_restrictions)
+df_restrictions = df_restrictions[!na_growth,]
+
+ts_restrictions = ts(df_restrictions[2:ncol(df_restrictions)])
+auto.arima(growth_rate, xreg=ts_restrictions[, "SchoolsClosed"])
+
+# xreg = -0.0098 -> growth_rate changes by -0.98 percentage point as
+# SchoolsClosed changes by 1 percentage point (how to interpret?)
 
 #### Import Eurostat files ####
 
@@ -105,3 +155,5 @@ df_eurostat = df_eurostat[sapply(df_eurostat$region,
 df_eurostat_region = df_eurostat[which(df_eurostat$region == region_full), ] %>%
   select(-c("region")) %>%
   slice(rep(1:n(), each = nrow(df_wide)))
+
+
