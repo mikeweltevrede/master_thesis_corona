@@ -3,6 +3,7 @@ rm(list=ls())
 library(tidyverse, verbose=FALSE)
 library(tidyquant, verbose=FALSE)
 library(reticulate, verbose=FALSE)
+library(forecast, verbose=FALSE)
 
 data_path = "data"
 
@@ -65,12 +66,24 @@ sma_obj = SMA(df_region$Growth_Rate, n=3) # Simple Moving Average
 ema_obj = EMA(df_region$Growth_Rate, n=3) # Exponential Moving Average (note: unstable in the short-term)
 
 myts = ts(df_region[2:ncol(df_region)])
+growth_rate = myts[, "Growth_Rate"]
+growth_rate = growth_rate[!is.na(growth_rate)]
 
-Box.test(myts[, "Growth_Rate"], lag=14, type="Lj") # p-value = 2.543e-07
-acf(df_region$Growth_Rate, na.action = na.pass)
+Box.test(growth_rate, lag=14, type="Lj") # p-value = 2.543e-07
+ggAcf(df_region$Growth_Rate, na.action = na.pass)
 ar_obj = ar(df_region$Growth_Rate, na.action = na.pass)
 
+gr_naive = naive(growth_rate, h=3)
+autoplot(gr_naive)
 
+fc = naive(growth_rate)
+autoplot(fc, series="Data") +
+  autolayer(fitted(fc), series="Fitted")
+checkresiduals(fc) # Not Normal; also lack of data; so be careful with prediction intervals
+
+fc = ses(growth_rate, h=3)
+autoplot(fc, series="Data") +
+  autolayer(fitted(fc), series="Fitted")
 
 #### Import Eurostat files ####
 
