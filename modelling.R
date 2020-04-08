@@ -1,7 +1,8 @@
 rm(list=ls())
 
-library(tidyverse)
-library(reticulate)
+library(tidyverse, verbose=FALSE)
+library(tidyquant, verbose=FALSE)
+library(reticulate, verbose=FALSE)
 
 data_path = "data"
 
@@ -18,13 +19,12 @@ df_wide = readr::read_csv(
   paste0(data_path, "/italy_wikipedia_cleaned.csv"),
   col_types = do.call(cols, list(Date=col_date(format="%Y-%m-%d"))))
 
-# We first are only interested in one region.
+# We first are only interested in one region
 region = "LOM"
 region_full = df_meta$Region[which(df_meta$Code == region)]
 
 region_cols = colnames(df_wide)[
   sapply(colnames(df_wide), function(x){grepl(region, x, fixed=TRUE)})]
-df_region = df_wide %>% select(c("Date", region_cols))
 
 # We do not have the number of active cases per region and this is difficult to
 # compute since there is no data on the number of recoveries per region. For
@@ -35,7 +35,8 @@ df_region = df_wide %>% select(c("Date", region_cols))
 # confirmed cases on that day (or with a certain lag), it gets 40% of the
 # nationwide recoveries).
 
-df_region = df_region %>%
+df_region = df_wide %>%
+  select(c("Date", region_cols)) %>%
   bind_cols(
     # Add total confirmed cases for this region (cumulative sum)
     df_region %>%
@@ -55,7 +56,23 @@ df_region = df_region %>%
     df_region %>%
       select(paste0(region, "_Confirmed")) / .$Active
     ) %>%
-  rename("Growth_Rate" = paste0(region, "_Confirmed1"))
+  rename("Growth_Rate" = paste0(region, "_Confirmed1")) %>%
+  mutate(Growth_Rate_MA3 = rollapply(Growth_Rate, 3, mean, align='right',
+                                     fill=NaN))
+
+#### Simple time series models ####
+sma_obj = SMA(df_region$Growth_Rate, n=3) # Simple Moving Average
+ema_obj = EMA(df_region$Growth_Rate, n=3) # Exponential Moving Average (note: unstable in the short-term)
+
+myts = ts(df_region[2:ncol(df_region)])
+
+Box.test(myts[, "Growth_Rate"], lag=14, type="Lj") # p-value = 2.543e-07
+acf(df_region$Growth_Rate, na.action = na.pass)
+ar_obj = ar(df_region$Growth_Rate, na.action = na.pass)
+
+
+
+#### Import Eurostat files ####
 
 # To merge all Eurostat zip files, uncomment the next line if the file does not
 # yet exist.
