@@ -1,3 +1,4 @@
+#### Setup ####
 rm(list=ls())
 
 library(tidyverse, verbose=FALSE)
@@ -7,12 +8,28 @@ library(forecast, verbose=FALSE)
 
 data_path = "data"
 
+# Activate the Conda environment. If it does not exist yet, create it with the
+# required packages.
+env_name = "r-thesis_corona"
+
+tryCatch(use_condaenv(env_name),
+         error=function(e){
+           requirements = scan(file="requirements.txt", what=character(),
+                               quiet=TRUE) 
+           conda_create(env_name, packages=requirements)
+           })
+
 # Read in metadata
 df_meta = readxl::read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
                              sheet="Metadata")
 
-# We need to clean the Wikipedia data before being able to process it in R.
-# Uncomment the next line to do so (you may need to install Miniconda).
+# Read in the data containing per region aggregated statistics
+df_region_aggregated = readxl::read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
+                                          sheet="Extra")
+
+# We need to clean the Wikipedia data before being able to process it in R, also
+# to include new dates. Uncomment the next line to do so (you may need to
+# install Miniconda as a Python interpreter).
 # py_run_file("clean_wide.py")
 
 # Read in the cleaned Wikipedia data
@@ -20,24 +37,48 @@ df_wide = readr::read_csv(
   paste0(data_path, "/italy_wikipedia_cleaned.csv"),
   col_types = do.call(cols, list(Date=col_date(format="%Y-%m-%d"))))
 
-# We first are only interested in one region
+# We now add missing dates to the data for equal spacing. # The following dates
+# will be filled in:
+all_dates = seq.Date(min(df_wide$Date), max(df_wide$Date), by="day")
+missing_dates = all_dates[which(!all_dates %in% df_wide$Date)][-1]
+sprintf("The following %d dates are missing and will be added: %s",
+        length(missing_dates), paste(missing_dates, collapse=", "))
+
+# For the non-aggregated variables, we enter 0. For the totals, we use the
+# previous value.
+cols_replace_0 = c(colnames(df_wide)[
+  2:(which(colnames(df_wide) == "Confirmed_New")-1)], "Confirmed_New",
+  "Deaths_New")
+named_cols_replace_0 = set_names(as.list(rep(0, length(cols_replace_0))),
+                                cols_replace_0)
+
+# The columns to backfill are the remaining columns minus "Date".
+cols_fill = colnames(df_wide)[
+  which(!colnames(df_wide) %in% cols_replace_0)][-1]
+
+df_wide = df_wide %>%
+  complete(Date = seq.Date(min(Date), max(Date), by="day")) %>%
+  replace_na(named_cols_replace_0) %>%
+  fill(all_of(cols_fill))
+
+#### One region ####
 region = "LOM"
 region_full = df_meta$Region[which(df_meta$Code == region)]
-
-region_cols = colnames(df_wide)[
-  sapply(colnames(df_wide), function(x){grepl(region, x, fixed=TRUE)})]
 
 # We do not have the number of active cases per region and this is difficult to
 # compute since there is no data on the number of recoveries per region. For
 # now, we will assume that the number of recoveries is 0.
 
-# We can then later assume that the number of recoveries per region is
-# proportional to the number of confirmed cases (e.g. if Lombardy has 40% of the
-# confirmed cases on that day (or with a certain lag), it gets 40% of the
-# nationwide recoveries).
+# We later assume that the number of recoveries per region is proportional to
+# the number of confirmed cases (e.g. if Lombardy has 10% of their total
+# confirmed cases on March 1, then the number of recoveries on March 1 is set to
+# be 10% of the total recoveries in Lombardy).
+region_cols = colnames(df_wide)[
+  sapply(colnames(df_wide), function(x){grepl(region, x, fixed=TRUE)})]
 
 df_region = df_wide %>%
-  select(c("Date", region_cols)) %>%
+  select(c("Date", region_cols)) 
+df_region = df_region %>%
   bind_cols(
     # Add total confirmed cases for this region (cumulative sum)
     df_region %>%
@@ -57,46 +98,41 @@ df_region = df_wide %>%
     df_region %>%
       select(paste0(region, "_Confirmed")) / .$Active
     ) %>%
-  rename("Growth_Rate" = paste0(region, "_Confirmed1")) %>%
-  mutate(Growth_Rate_MA3 = rollapply(Growth_Rate, 3, mean, align='right',
-                                     fill=NaN))
+  rename("Growth_Rate" = paste0(region, "_Confirmed1"))
 
 #### Simple time series models ####
-sma_obj = SMA(df_region$Growth_Rate, n=3) # Simple Moving Average
-ema_obj = EMA(df_region$Growth_Rate, n=3) # Exponential Moving Average (note: unstable in the short-term)
-
 ts_region = ts(df_region[2:ncol(df_region)])
-growth_rate = ts_region[, "Growth_Rate"]
-na_growth = is.na(growth_rate)
-growth_rate = growth_rate[!na_growth]
+ts_variable = ts_region[, "Growth_Rate"]
+na_growth = is.na(ts_variable)
+ts_variable = ts_variable[!na_growth]
 
-Box.test(growth_rate, lag=14, type="Lj") # p-value = 2.543e-07
+Box.test(ts_variable, lag=14, type="Lj") # p-value = 2.543e-07
 ggAcf(df_region$Growth_Rate, na.action = na.pass)
 ar_obj = ar(df_region$Growth_Rate, na.action = na.pass)
 
-gr_naive = naive(growth_rate, h=3)
+gr_naive = naive(ts_variable, h=3)
 autoplot(gr_naive)
 
 # Naive
-fc = naive(growth_rate, h=3)
+fc = naive(ts_variable, h=3)
 checkresiduals(fc) # Not Normal; also lack of data; so be careful with prediction intervals
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
 # Simple Exponential Smoothing
-fc = ses(growth_rate, h=3)
+fc = ses(ts_variable, h=3)
 checkresiduals(fc)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
 # Holt's trend method
-fc = holt(growth_rate, h=3)
+fc = holt(ts_variable, h=3)
 checkresiduals(fc)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
 # Dampened trend method
-fc = holt(growth_rate, h=3, damped=TRUE)
+fc = holt(ts_variable, h=3, damped=TRUE)
 checkresiduals(fc)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
@@ -104,8 +140,8 @@ autoplot(fc, series="Data") +
 # Holt-Winters' methods are not applicable because we do not have seasonality
 
 # General model: ETS(M,Ad,N): Multiplicative errors, dampened trend, no seasonality
-ets(growth_rate)
-fc = growth_rate %>%
+ets(ts_variable)
+fc = ts_variable %>%
   ets() %>%
   forecast(h=3)
 checkresiduals(fc)
@@ -113,9 +149,9 @@ autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
 # ARIMA model - ARIMA(0,2,2); so we take 2 differences to create stationarity and include 2 lagged errors
-BoxCox.lambda(growth_rate) # -0.5473554
-auto.arima(growth_rate)
-fc = growth_rate %>%
+BoxCox.lambda(ts_variable) # -0.5473554
+auto.arima(ts_variable)
+fc = ts_variable %>%
   auto.arima() %>%
   forecast(h=3)
 checkresiduals(fc)
@@ -130,9 +166,9 @@ df_restrictions = drop_na(df_restrictions)
 df_restrictions = df_restrictions[!na_growth,]
 
 ts_restrictions = ts(df_restrictions[2:ncol(df_restrictions)])
-auto.arima(growth_rate, xreg=ts_restrictions[, "SchoolsClosed"])
+auto.arima(ts_variable, xreg=ts_restrictions[, "SchoolsClosed"])
 
-# xreg = -0.0098 -> growth_rate changes by -0.98 percentage point as
+# xreg = -0.0098 -> ts_variable changes by -0.98 percentage point as
 # SchoolsClosed changes by 1 percentage point (how to interpret?)
 
 #### Import Eurostat files ####
