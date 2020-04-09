@@ -20,12 +20,12 @@ tryCatch(use_condaenv(env_name),
            })
 
 # Read in metadata
-df_meta = readxl::read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
-                             sheet="Metadata")
+df_meta = read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
+                     sheet="Metadata")
 
 # Read in the data containing per region aggregated statistics
-df_region_aggregated = readxl::read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
-                                          sheet="Extra")
+df_region_aggregated = read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
+                                  sheet="Extra")
 
 # We need to clean the Wikipedia data before being able to process it in R, also
 # to include new dates. Uncomment the next line to do so (you may need to
@@ -33,9 +33,9 @@ df_region_aggregated = readxl::read_excel(paste0(data_path, "/italy_wikipedia.xl
 # py_run_file("clean_wide.py")
 
 # Read in the cleaned Wikipedia data
-df_wide = readr::read_csv(
-  paste0(data_path, "/italy_wikipedia_cleaned.csv"),
-  col_types = do.call(cols, list(Date=col_date(format="%Y-%m-%d"))))
+df_wide = read_csv(paste0(data_path, "/italy_wikipedia_cleaned.csv"),
+                   col_types = do.call(cols,
+                                       list(Date=col_date(format="%Y-%m-%d"))))
 
 # We now add missing dates to the data for equal spacing. # The following dates
 # will be filled in:
@@ -115,7 +115,7 @@ autoplot(gr_naive)
 
 # Naive
 fc = naive(ts_variable, h=3)
-checkresiduals(fc) # Not Normal; also lack of data; so be careful with prediction intervals
+checkresiduals(fc) # Not Normal, so be careful with prediction intervals
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
@@ -139,7 +139,8 @@ autoplot(fc, series="Data") +
 
 # Holt-Winters' methods are not applicable because we do not have seasonality
 
-# General model: ETS(M,Ad,N): Multiplicative errors, dampened trend, no seasonality
+# General model: ETS(M,Ad,N): Multiplicative errors, dampened trend, no
+# seasonality
 ets(ts_variable)
 fc = ts_variable %>%
   ets() %>%
@@ -148,7 +149,8 @@ checkresiduals(fc)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
-# ARIMA model - ARIMA(0,2,2); so we take 2 differences to create stationarity and include 2 lagged errors
+# ARIMA model - ARIMA(0,2,2); so we take 2 differences to create stationarity
+# and include 2 lagged errors
 BoxCox.lambda(ts_variable) # -0.5473554
 auto.arima(ts_variable)
 fc = ts_variable %>%
@@ -160,8 +162,8 @@ autoplot(fc, series="Data") +
 
 #### Advanced models ####
 # Dynamic regression
-df_restrictions = readxl::read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
-                                     sheet="NationwideRestrictions")
+df_restrictions = read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
+                             sheet="NationwideRestrictions")
 df_restrictions = drop_na(df_restrictions)
 df_restrictions = df_restrictions[!na_growth,]
 
@@ -177,9 +179,8 @@ auto.arima(ts_variable, xreg=ts_restrictions[, "SchoolsClosed"])
 # yet exist.
 py_run_file("eurostat_reader.py")
 
-df_eurostat = readr::read_csv(
-  paste0(data_path, "/merged_eurostat.csv"),
-  col_types = do.call(cols, list(region=col_character())))
+df_eurostat = read_csv(paste0(data_path, "/merged_eurostat.csv"),
+                       col_types = do.call(cols, list(region=col_character())))
 
 # Only keep rows where the `region` is an Italian region, not a direction or the
 # entire country.
