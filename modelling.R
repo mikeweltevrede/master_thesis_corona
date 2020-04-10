@@ -192,5 +192,3 @@ df_eurostat = df_eurostat[sapply(df_eurostat$region,
 df_eurostat_region = df_eurostat[which(df_eurostat$region == region_full), ] %>%
   select(-c("region")) %>%
   slice(rep(1:n(), each = nrow(df_wide)))
-
-
