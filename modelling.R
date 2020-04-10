@@ -1,10 +1,11 @@
 #### Setup ####
 rm(list=ls())
 
-library(tidyverse, verbose=FALSE)
-library(tidyquant, verbose=FALSE)
-library(reticulate, verbose=FALSE)
-library(forecast, verbose=FALSE)
+library(readxl, quietly=TRUE)
+library(tidyverse, quietly=TRUE)
+library(tidyquant, quietly=TRUE)
+library(reticulate, quietly=TRUE)
+library(forecast, quietly=TRUE)
 
 data_path = "data"
 
@@ -24,8 +25,10 @@ df_meta = read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
                      sheet="Metadata")
 
 # Read in the data containing per region aggregated statistics
-df_region_aggregated = read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
-                                  sheet="Extra")
+df_region_aggregated = read_excel(
+  paste0(data_path, "/italy_wikipedia.xlsx"), sheet="RegionPerDate") %>%
+  mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
+  drop_na()
 
 # We need to clean the Wikipedia data before being able to process it in R, also
 # to include new dates. Uncomment the next line to do so (you may need to
@@ -102,37 +105,39 @@ df_region = df_region %>%
 
 #### Simple time series models ####
 ts_region = ts(df_region[2:ncol(df_region)])
-ts_variable = ts_region[, "Growth_Rate"]
+ts_variable = ts_region[, paste0(region, "_ICU")]
 na_growth = is.na(ts_variable)
 ts_variable = ts_variable[!na_growth]
 
 Box.test(ts_variable, lag=14, type="Lj") # p-value = 2.543e-07
-ggAcf(df_region$Growth_Rate, na.action = na.pass)
-ar_obj = ar(df_region$Growth_Rate, na.action = na.pass)
+ggAcf(ts_variable, na.action = na.pass)
+ar_obj = ar(ts_variable, na.action = na.pass)
 
-gr_naive = naive(ts_variable, h=3)
-autoplot(gr_naive)
+# Forecast period
+h = 5
 
 # Naive
-fc = naive(ts_variable, h=3)
-checkresiduals(fc) # Not Normal, so be careful with prediction intervals
+fc = naive(ts_variable, h=h)
+checkresiduals(fc)
+# Not Normal, so be careful with prediction intervals
+# Not white noise!
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
 # Simple Exponential Smoothing
-fc = ses(ts_variable, h=3)
-checkresiduals(fc)
+fc = ses(ts_variable, h=h)
+checkresiduals(fc) # Not white noise!
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
 # Holt's trend method
-fc = holt(ts_variable, h=3)
+fc = holt(ts_variable, h=h)
 checkresiduals(fc)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
 # Dampened trend method
-fc = holt(ts_variable, h=3, damped=TRUE)
+fc = holt(ts_variable, h=h, damped=TRUE)
 checkresiduals(fc)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
@@ -144,18 +149,18 @@ autoplot(fc, series="Data") +
 ets(ts_variable)
 fc = ts_variable %>%
   ets() %>%
-  forecast(h=3)
+  forecast(h=h)
 checkresiduals(fc)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
 
 # ARIMA model - ARIMA(0,2,2); so we take 2 differences to create stationarity
 # and include 2 lagged errors
-BoxCox.lambda(ts_variable) # -0.5473554
+BoxCox.lambda(ts_variable) # 1.387894 (LOM_ICU)
 auto.arima(ts_variable)
 fc = ts_variable %>%
   auto.arima() %>%
-  forecast(h=3)
+  forecast(h=h)
 checkresiduals(fc)
 autoplot(fc, series="Data") +
   autolayer(fitted(fc), series="Fitted")
@@ -163,21 +168,22 @@ autoplot(fc, series="Data") +
 #### Advanced models ####
 # Dynamic regression
 df_restrictions = read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
-                             sheet="NationwideRestrictions")
+                             sheet="NationwideRestrictions") %>%
+  mutate(Date = as.Date(Date, format = "%Y-%m-%d"))
 df_restrictions = drop_na(df_restrictions)
 df_restrictions = df_restrictions[!na_growth,]
 
 ts_restrictions = ts(df_restrictions[2:ncol(df_restrictions)])
 auto.arima(ts_variable, xreg=ts_restrictions[, "SchoolsClosed"])
 
-# xreg = -0.0098 -> ts_variable changes by -0.98 percentage point as
-# SchoolsClosed changes by 1 percentage point (how to interpret?)
+# xreg = -1.2372
+# -> LOM_ICU changes by -1.2372 point as SchoolsClosed changes to 1
 
 #### Import Eurostat files ####
 
 # To merge all Eurostat zip files, uncomment the next line if the file does not
 # yet exist.
-py_run_file("eurostat_reader.py")
+# py_run_file("eurostat_reader.py")
 
 df_eurostat = read_csv(paste0(data_path, "/merged_eurostat.csv"),
                        col_types = do.call(cols, list(region=col_character())))
