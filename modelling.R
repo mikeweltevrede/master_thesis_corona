@@ -60,7 +60,7 @@ cols_fill = colnames(df_wide)[
   which(!colnames(df_wide) %in% cols_replace_0)][-1]
 
 df_wide = df_wide %>%
-  complete(Date = seq.Date(min(Date), max(Date), by="day")) %>%
+  complete(Date = all_dates) %>%
   replace_na(named_cols_replace_0) %>%
   fill(all_of(cols_fill))
 
