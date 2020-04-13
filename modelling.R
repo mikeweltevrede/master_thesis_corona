@@ -37,8 +37,8 @@ df_region_aggregated = read_excel(
 
 # Read in the cleaned Wikipedia data
 df_wide = read_csv(paste0(data_path, "/italy_wikipedia_cleaned.csv"),
-                   col_types = do.call(cols,
-                                       list(Date=col_date(format="%Y-%m-%d"))))
+                   col_types = do.call(
+                     cols, list(Date=col_date(format="%Y-%m-%d"))))
 
 # We now add missing dates to the data for equal spacing. # The following dates
 # will be filled in:
@@ -53,7 +53,7 @@ cols_replace_0 = c(colnames(df_wide)[
   2:(which(colnames(df_wide) == "Confirmed_New")-1)], "Confirmed_New",
   "Deaths_New")
 named_cols_replace_0 = set_names(as.list(rep(0, length(cols_replace_0))),
-                                cols_replace_0)
+                                 cols_replace_0)
 
 # The columns to backfill are the remaining columns minus "Date".
 cols_fill = colnames(df_wide)[
