@@ -1,4 +1,4 @@
-rm(list=ls())
+rm(list = ls())
 
 library(lubridate)
 
@@ -7,7 +7,7 @@ library(lubridate)
 # Google Mobility Report of March 29, 2020.
 df_changes = read_excel("data/google_transport_interpolation.xlsx") %>%
   mutate(Date = as.Date(Date, format = "%d/%m/%Y")) %>%
-  complete(Date = seq.Date(min(Date), max(Date), by="day"))
+  complete(Date = seq.Date(min(Date), max(Date), by = "day"))
 
 # We assume that the amount of passengers in 2015 is representative of the
 # amount of passengers in 2020.
@@ -15,7 +15,7 @@ df_rail = read_csv("data/eurostat/interregion_railroad_travel.csv") %>%
   filter(TIME == max(TIME))
 
 df_meta = read_excel("data/italy_wikipedia.xlsx",
-                     sheet="Metadata")
+                     sheet = "Metadata")
 
 # Initialise tibble of passengers
 df_passengers = df_changes
@@ -23,9 +23,9 @@ df_passengers = df_changes
 # Initialise empty list for baseline passengers
 baseline = vector("list")
 
-for (region_code in colnames(df_passengers)[-1]){
+for (region_code in colnames(df_passengers)[-1]) {
   region_name = df_meta[df_meta$Code == region_code, ][["Region"]]
-  
+
   # Define the baseline as the amount of passengers that arrive at and depart
   # from that region. The Google Mobility report defines this as the median
   # amount of passengers.
@@ -33,11 +33,11 @@ for (region_code in colnames(df_passengers)[-1]){
     # Add the amount of passengers that travelled FROM the region
     filter(C_LOAD == region_name) %>%
     select(-c("TIME", "C_LOAD")) %>%
-    sum(na.rm=TRUE) +
+    sum(na.rm = TRUE) +
     
     # Add the amount of passengers that travelled TO the region
     df_rail[[region_name]] %>%
-    sum(na.rm=TRUE) -
+    sum(na.rm = TRUE) -
     
     # We double counted the amount of passengers that travelled WITHIN the
     # region so we subtract this
@@ -47,7 +47,7 @@ for (region_code in colnames(df_passengers)[-1]){
   
   # The given numbers in df_rail are per year so we need daily numbers. This
   # depends on whether it is a leap year.
-  if (df_rail$TIME %>% max() %>% leap_year()){
+  if (df_rail$TIME %>% max() %>% leap_year()) {
     baseline = baseline / 366
   } else {
     baseline = baseline / 365
@@ -56,15 +56,15 @@ for (region_code in colnames(df_passengers)[-1]){
   missing_dates = df_passengers[df_passengers[, region_code] %>% is.na(),
                                 "Date"]
   
-  for (date in unlist(missing_dates)){
+  for (date in unlist(missing_dates)) {
     
     # Note that we have not specified a value for the final date in the data
     # since this is unknown. We assume that the value from March 29 stays
     # constant, rule=2 argument.
     
     df_passengers[df_passengers$Date == date, region_code] = approx(
-      df_passengers$Date, df_passengers[[region_code]], xout=date,
-      ties = "ordered", rule=2)$y
+      df_passengers$Date, df_passengers[[region_code]], xout = date,
+      ties = "ordered", rule = 2)$y
   }
   
   # Having computed all percentages, we can multiply these with the baseline
