@@ -5,7 +5,8 @@ library(lubridate)
 #### Read in the data #####
 # df_changes contains percentages of passengers on that day according to the
 # Google Mobility Report of March 29, 2020.
-df_changes = read_excel("data/google_transport_interpolation.xlsx") %>%
+df_changes = read_excel("data/google_mobility_report.xlsx",
+                        sheet = "Transit stations") %>%
   mutate(Date = as.Date(Date, format = "%d/%m/%Y")) %>%
   complete(Date = seq.Date(min(Date), max(Date), by = "day"))
 
