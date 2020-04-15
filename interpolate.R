@@ -1,18 +1,19 @@
+#### Setup ####
 rm(list = ls())
 
 library(readxl)
 library(tidyverse)
 
-file_path = "data/google_mobility_report.xlsx"
+source("config.R")
 
-df = file_path %>% 
+dfs_mobility = path_mobility_report %>% 
   excel_sheets() %>% 
   set_names() %>% 
-  map(read_excel, path = file_path)
+  map(read_excel, path = path_mobility_report)
 
-df_meta = read_excel("data/italy_wikipedia.xlsx",
-                     sheet = "Metadata")
+df_meta = read_excel(path_wiki, sheet = "Metadata")
 
+#### Interpolate proportions ####
 interpolate = function(data, metadata, only=NULL) {
   
   data = data %>%
@@ -24,6 +25,7 @@ interpolate = function(data, metadata, only=NULL) {
     only = colnames(data)[colnames(data) != "Date"]
   }
   
+  # We now run the interpolation for each column
   for (region_code in only) {
     region_name = metadata[df_meta$Code == region_code, ][["Region"]]
     missing_dates = data[data[, region_code] %>% is.na(), ][["Date"]]
@@ -33,7 +35,6 @@ interpolate = function(data, metadata, only=NULL) {
       # Note that we have not specified a value for the final date in the data
       # since this is unknown. We assume that the value from March 29 stays
       # constant, rule=2 argument.
-      
       data[data$Date == date, region_code] = approx(
         data$Date, data[[region_code]], xout = date,
         ties = "ordered", rule = 2)$y
@@ -43,24 +44,24 @@ interpolate = function(data, metadata, only=NULL) {
   return(data)
 }
 
-# Use the function
-df_interpolated = vector("list")
+# Use the function; save each interpolated sheet as a list element
+dfs_interpolated = vector("list")
 
-for (data in names(df)[-1]) {
-  df_interpolated[[data]] = interpolate(df[[data]], df_meta, only="LOM")
+for (data in names(dfs_mobility)[names(dfs_mobility) != "Overall"]) {
+  dfs_interpolated[[data]] = interpolate(dfs_mobility[[data]], df_meta,
+                                         only="LOM")
 }
 
-df_interpolated
-
-# For railway, we can multiply by the baseline value
-df_rail = read_csv("data/eurostat/interregion_railroad_travel.csv") %>%
+# For railroad transport, we can multiply by the baseline value
+df_rail = read_csv(path_railroad) %>%
   filter(TIME == max(TIME))
 
-regions = colnames(df_interpolated[["Transit stations"]])[
-  colnames(df_interpolated[["Transit stations"]]) != "Date"]
+regions = colnames(dfs_interpolated[["Transit stations"]])[
+  colnames(dfs_interpolated[["Transit stations"]]) != "Date"]
 
 for (region_code in regions) {
   region_name = df_meta[df_meta$Code == region_code, ][["Region"]]
+  
   baseline = df_rail %>%
     # Add the amount of passengers that travelled FROM the region
     filter(C_LOAD == region_name) %>%
@@ -85,8 +86,6 @@ for (region_code in regions) {
     baseline = baseline / 365
   }
   
-  df_interpolated[["Transit stations"]][[region_code]] =
-    df_interpolated[["Transit stations"]][[region_code]] * baseline
+  dfs_interpolated[["Transit stations"]][[region_code]] =
+    dfs_interpolated[["Transit stations"]][[region_code]] * baseline
 }
-
-
