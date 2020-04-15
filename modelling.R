@@ -137,22 +137,3 @@ auto.arima(ts_variable, xreg=ts_restrictions[, "SchoolsClosed"])
 
 # xreg = -1.2372
 # -> LOM_ICU changes by -1.2372 point as SchoolsClosed changes to 1
-
-#### Import Eurostat files ####
-# To merge all Eurostat zip files, uncomment the next line if the file does not
-# yet exist.
-# py_run_file("eurostat_reader.py")
-
-df_eurostat = read_csv(path_full_eurostat, col_types = do.call(
-  cols, list(region=col_character())))
-
-# Only keep rows where the `region` is an Italian region, not a direction or the
-# entire country.
-df_eurostat = df_eurostat[sapply(df_eurostat$region,
-                                 function(x){x %in% df_meta$Region}), ]
-
-# Select the region we are interested in and replicate the data to have the same
-# amount of rows as the time series data
-df_eurostat_region = df_eurostat[which(df_eurostat$region == region_full), ] %>%
-  select(-c("region")) %>%
-  slice(rep(1:n(), each = nrow(df_wide)))
