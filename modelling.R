@@ -7,11 +7,11 @@ library(tidyquant, quietly=TRUE)
 library(reticulate, quietly=TRUE)
 library(forecast, quietly=TRUE)
 
-data_path = "data"
+# Import standard variables
+source("config.R")
 
 # Activate the Conda environment. If it does not exist yet, create it with the
 # required packages.
-env_name = "r-thesis_corona"
 
 tryCatch(use_condaenv(env_name),
          error=function(e){
@@ -21,48 +21,18 @@ tryCatch(use_condaenv(env_name),
            })
 
 # Read in metadata
-df_meta = read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
-                     sheet="Metadata")
+df_meta = read_excel(path_wiki, sheet="Metadata")
 
 # Read in the data containing per region aggregated statistics
-df_region_aggregated = read_excel(
-  paste0(data_path, "/italy_wikipedia.xlsx"), sheet="RegionPerDate") %>%
+df_region_aggregated = read_excel(path_wiki, sheet="RegionPerDate") %>%
   mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
   drop_na()
 
 # We need to clean the Wikipedia data before being able to process it in R, also
-# to include new dates. Uncomment the next line to do so (you may need to
-# install Miniconda as a Python interpreter).
-# py_run_file("clean_wide.py")
-
-# Read in the cleaned Wikipedia data
-df_wide = read_csv(paste0(data_path, "/italy_wikipedia_cleaned.csv"),
-                   col_types = do.call(
-                     cols, list(Date=col_date(format="%Y-%m-%d"))))
-
-# We now add missing dates to the data for equal spacing. # The following dates
-# will be filled in:
-all_dates = seq.Date(min(df_wide$Date), max(df_wide$Date), by="day")
-missing_dates = all_dates[which(!all_dates %in% df_wide$Date)][-1]
-sprintf("The following %d dates are missing and will be added: %s",
-        length(missing_dates), paste(missing_dates, collapse=", "))
-
-# For the non-aggregated variables, we enter 0. For the totals, we use the
-# previous value.
-cols_replace_0 = c(colnames(df_wide)[
-  2:(which(colnames(df_wide) == "Confirmed_New")-1)], "Confirmed_New",
-  "Deaths_New")
-named_cols_replace_0 = set_names(as.list(rep(0, length(cols_replace_0))),
-                                 cols_replace_0)
-
-# The columns to backfill are the remaining columns minus "Date".
-cols_fill = colnames(df_wide)[
-  which(!colnames(df_wide) %in% cols_replace_0)][-1]
-
-df_wide = df_wide %>%
-  complete(Date = all_dates) %>%
-  replace_na(named_cols_replace_0) %>%
-  fill(all_of(cols_fill))
+# to include new dates. For this, run `clean_wide_full.R` to create the file
+# imported on the next line.
+df_wide = read_csv(path_full_wide, col_types = do.call(
+  cols, list(Date=col_date(format="%Y-%m-%d"))))
 
 #### One region ####
 region = "LOM"
@@ -103,11 +73,11 @@ df_region = df_region %>%
     ) %>%
   rename("Growth_Rate" = paste0(region, "_Confirmed1"))
 
-#### Simple time series models ####
+#### Simple forecasting models ####
 ts_region = ts(df_region[2:ncol(df_region)])
 ts_variable = ts_region[, paste0(region, "_ICU")]
-na_growth = is.na(ts_variable)
-ts_variable = ts_variable[!na_growth]
+na_tsvar = is.na(ts_variable)
+ts_variable = ts_variable[!na_tsvar]
 
 Box.test(ts_variable, lag=14, type="Lj") # p-value = 2.543e-07
 ggAcf(ts_variable, na.action = na.pass)
@@ -167,11 +137,10 @@ autoplot(fc, series="Data") +
 
 #### Advanced models ####
 # Dynamic regression
-df_restrictions = read_excel(paste0(data_path, "/italy_wikipedia.xlsx"),
-                             sheet="NationwideRestrictions") %>%
-  mutate(Date = as.Date(Date, format = "%Y-%m-%d"))
-df_restrictions = drop_na(df_restrictions)
-df_restrictions = df_restrictions[!na_growth,]
+df_restrictions = read_excel(path_wiki, sheet="NationwideRestrictions") %>%
+  mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
+  drop_na()
+df_restrictions = df_restrictions[!na_tsvar,]
 
 ts_restrictions = ts(df_restrictions[2:ncol(df_restrictions)])
 auto.arima(ts_variable, xreg=ts_restrictions[, "SchoolsClosed"])
@@ -180,13 +149,12 @@ auto.arima(ts_variable, xreg=ts_restrictions[, "SchoolsClosed"])
 # -> LOM_ICU changes by -1.2372 point as SchoolsClosed changes to 1
 
 #### Import Eurostat files ####
-
 # To merge all Eurostat zip files, uncomment the next line if the file does not
 # yet exist.
 # py_run_file("eurostat_reader.py")
 
-df_eurostat = read_csv(paste0(data_path, "/merged_eurostat.csv"),
-                       col_types = do.call(cols, list(region=col_character())))
+df_eurostat = read_csv(path_full_eurostat, col_types = do.call(
+  cols, list(region=col_character())))
 
 # Only keep rows where the `region` is an Italian region, not a direction or the
 # entire country.
