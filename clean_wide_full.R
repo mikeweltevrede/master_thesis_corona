@@ -44,8 +44,10 @@ df_wide = df_wide %>%
 # Convert the data to long and join it with the extra data (containing the
 # amount of active ICU patients, recoveries, tested people, and positively
 # tested people)
+df_wide = df_wide %>%
+  select(Date:SAR_Deaths)
+
 df_long = df_wide %>%
-  select(Date:SAR_Deaths) %>%
   pivot_longer(cols = -Date,
                names_to = c("group", ".value"),
                names_sep = "_")
@@ -60,6 +62,41 @@ df_extra_long = df_extra %>% pivot_longer(cols = -Date,
 
 df_wide_full = full_join(df_wide, df_extra, by="Date")
 df_long_full = full_join(df_long, df_extra_long, by=c("Date", "group"))
+
+# Note that, for example, cumsum(ABR_Confirmed) != ABR_TestedPositive. However,
+# we do assume that the missing values, i.e. those before March 2, are correctly
+# imputed by the cumsum of the confirmed cases, as long as the final element in
+# the cumsum is less than the first non-missing element of TestedPositive.
+# Unfortunately, we cannot impute _Tested.
+df_meta = read_excel(path_wiki, sheet = "Metadata")
+
+for (region in df_meta$Code){
+  # For completeness sake, even though the NAs (should) align, we find them per
+  # region
+  which_NA = df_wide_full %>%
+    select(!!paste0(region, "_TestedPositive")) %>%
+    is.na() %>%
+    which()
+  
+  csum = df_wide_full %>%
+    select(!!paste0(region, "_Confirmed")) %>%
+    cumsum() %>%
+    .[which_NA, ]
+  
+  first_elt = df_wide_full %>%
+    select(!!paste0(region, "_TestedPositive")) %>%
+    na.omit() %>%
+    first()
+  
+  # Check if the final element in the cumsum is lower than
+  if (tail(csum, 1) <= first_elt) {
+    df_wide_full[which_NA, paste0(region, "_TestedPositive")] = csum
+  } else {
+    print(paste0("For region ", region, ", the final element of csum (",
+                 tail(csum, 1), ") was not lower than the first NA element (",
+                 first_elt, "). We cannot impute values for this region."))
+  }
+}
 
 # Save the tibbles to a file
 write_csv(df_wide_full, path_full_wide)
