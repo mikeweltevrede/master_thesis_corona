@@ -10,16 +10,6 @@ library(forecast, quietly=TRUE)
 # Import standard variables
 source("config.R")
 
-# Activate the Conda environment. If it does not exist yet, create it with the
-# required packages.
-
-tryCatch(use_condaenv(env_name),
-         error=function(e){
-           requirements = scan(file="requirements.txt", what=character(),
-                               quiet=TRUE) 
-           conda_create(env_name, packages=requirements)
-           })
-
 # Read in metadata
 df_meta = read_excel(path_wiki, sheet="Metadata")
 
@@ -30,7 +20,7 @@ df_region_aggregated = read_excel(path_wiki, sheet="RegionPerDate") %>%
 
 # We need to clean the Wikipedia data before being able to process it in R, also
 # to include new dates. For this, run `clean_wide_full.R` to create the file
-# imported on the next line.
+# `path_full_wide` imported on the next line.
 df_wide = read_csv(path_full_wide, col_types = do.call(
   cols, list(Date=col_date(format="%Y-%m-%d"))))
 
