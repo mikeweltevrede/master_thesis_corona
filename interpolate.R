@@ -48,8 +48,7 @@ interpolate = function(data, metadata, only=NULL) {
 dfs_interpolated = vector("list")
 
 for (data in names(dfs_mobility)[names(dfs_mobility) != "Overall"]) {
-  dfs_interpolated[[data]] = interpolate(dfs_mobility[[data]], df_meta,
-                                         only="LOM")
+  dfs_interpolated[[data]] = interpolate(dfs_mobility[[data]], df_meta)
 }
 
 # For railroad transport, we can multiply by the baseline value
@@ -89,3 +88,5 @@ for (region_code in regions) {
   dfs_interpolated[["Transit stations"]][[region_code]] =
     dfs_interpolated[["Transit stations"]][[region_code]] * baseline
 }
+
+write_csv(dfs_interpolated[["Transit stations"]], path_interpolated_rail)
