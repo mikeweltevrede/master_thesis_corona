@@ -13,11 +13,6 @@ source("config.R")
 # Read in metadata
 df_meta = read_excel(path_wiki, sheet="Metadata")
 
-# Read in the data containing per region aggregated statistics
-df_region_aggregated = read_excel(path_wiki, sheet="RegionPerDate") %>%
-  mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
-  drop_na()
-
 # We need to clean the Wikipedia data before being able to process it in R, also
 # to include new dates. For this, run `clean_wide_full.R` to create the file
 # `path_full_wide` imported on the next line.
