@@ -5,9 +5,11 @@ data_path = "data"
 df_wide = pd.read_excel(f"{data_path}/italy_wikipedia.xlsx", sheet_name='Wide',
                         parse_dates=['Date'], dayfirst=True)
 
-# We fill NAs by the average of the value directly before and directly after
+# We fill NAs by either 0 or the average of the value directly before and directly after
 for col in df_wide.columns[df_wide.isna().any(axis=0)]:
-    df_wide[col] = df_wide[col].fillna((df_wide[col].shift() + df_wide[col].shift(-1))/2)
+    # fill_value = (df_wide[col].shift() + df_wide[col].shift(-1))/2
+    fill_value = 0
+    df_wide[col] = df_wide[col].fillna(fill_value)
 
 # We will not allow for negative values. These are defined as corrections due to cases that were
 # subsequently declared negative. So, we will go backwards to subtract these corrections from the
@@ -18,7 +20,7 @@ neg_cols = neg_cols.index[neg_cols]
 for col in neg_cols:
     # Find rows in which the value is negative
     indices = df_wide.index[df_wide[col] < 0]
-    
+
     # Look at indices in reverse
     for index in indices[::-1]:
         df_wide.loc[index-1, col] = df_wide.loc[index-1, col] + df_wide.loc[index, col]
