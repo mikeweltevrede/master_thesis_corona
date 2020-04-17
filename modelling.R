@@ -44,15 +44,50 @@ df_eurostat = df_eurostat[sapply(df_eurostat$region,
                                  function(x){x %in% df_meta$Region}), ]
 
 eurostat_variables = c("air_passengers_arrived", "air_passengers_departed",
-                       "tourist_arrivals", "broadband_access", "available_beds",
+                       "tourist_arrivals", "broadband_access",
+                       "death_rate_diabetes", "death_rate_influenza",
+                       "death_rate_chd", "death_rate_cancer", 
+                       "death_rate_pneumonia", "available_beds",
                        "maritime_passengers_disembarked",
                        "maritime_passengers_embarked",
                        "risk_of_poverty_or_social_exclusion")
-X = df_eurostat[, eurostat_variables]
+X = df_eurostat[, c("region", "population_density", eurostat_variables)]
+
+# Impute columns based on nearest neighbors tourists or population
+na_cols = sapply(X, function(x){x %>% is.na() %>% any()}) %>%
+  .[.] %>%
+  names()
+
+for (na_col in na_cols) {
+  if (grepl("passenger", na_col, fixed=TRUE)) {
+    diff_col = "tourist_arrivals"
+  } else {
+    diff_col = "population_density"
+  }
+  
+  na_check = X[[na_col]] %>% is.na()
+  
+  # Loop over regions/rows that are NA
+  for (r in which(na_check)) {
+    imputation = vector()
+    
+    X_full = X[!na_check, ]
+    x = abs(X_full[[diff_col]] - X[[diff_col]][w])
+    mins = sort(x)[1:2]
+    
+    for (m in mins) {
+      ratio = m / X[[diff_col]][w]
+      imputation = c(imputation,
+                     X_full[[na_col]][which(x == m)] *
+                       ratio)
+    }
+    
+    X[r, na_col] = mean(imputation)
+  }
+}
 
 X %>%
   mutate(tourist_arrivals = tourist_arrivals/sum(tourist_arrivals))
-
 
 # TODO: Process the Eurostat data so that we can use these as regressors.
 df_rail_travel = read_csv(path_interpolated_rail, col_types = do.call(
