@@ -4,6 +4,7 @@ path_requirements = "requirements.txt"
 
 # Activate the Conda environment. If it does not exist yet, create it with the
 # required packages.
+library(reticulate)
 tryCatch(use_condaenv(env_name),
          error=function(e){
            requirements = scan(file=path_requirements, what=character(),
@@ -21,3 +22,4 @@ path_full_eurostat = paste0(data_path, "/merged_eurostat.csv")
 path_mobility_report = paste0(data_path, "/google_mobility_report.xlsx")
 path_railroad = paste0(data_path, "/eurostat/interregion_railroad_travel.csv")
 path_interpolated_rail = paste0(data_path, "/interpolated_railroad_travel.csv")
+path_distances = paste0(data_path, "/distances.RData")
