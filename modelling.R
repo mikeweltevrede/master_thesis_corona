@@ -86,9 +86,6 @@ for (na_col in na_cols) {
   }
 }
 
-X %>%
-  mutate(tourist_arrivals = tourist_arrivals/sum(tourist_arrivals))
-
 # TODO: Process the Eurostat data so that we can use these as regressors.
 df_rail_travel = read_csv(path_interpolated_rail, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
