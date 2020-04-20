@@ -9,15 +9,15 @@ library(reticulate, quietly=TRUE)
 source("config.R")
 
 # Read in metadata
-df_meta = read_excel(path_wiki, sheet = "Metadata")
+df_meta = readxl::read_excel(path_wiki, sheet = "Metadata")
 
 # We need to clean the Wikipedia data before being able to process it in R, also
 # to include new dates. Run the next line to do so (you may need to
 # install Miniconda as a Python interpreter).
-# py_run_file("clean_wide.py")
+reticulate::py_run_file("clean_wide.py")
 
 # Read in the cleaned Wikipedia data
-df_wide = read_csv(path_cleaned_wide, col_types = do.call(
+df_wide = readr::read_csv(path_cleaned_wide, col_types = do.call(
   cols, list(Date=col_date(format="%Y-%m-%d"))))
 
 # We now add missing dates to the data for equal spacing.
@@ -51,7 +51,7 @@ df_wide = df_wide %>%
 # Add the population numbers per region. We know the amount of people on January
 # 1, 2019 as defined in df_eurostat. We only keep rows where the `region` is an
 # Italian region, not a direction/NUTS-1 region or the entire country.
-df_eurostat = read_csv(path_full_eurostat, col_types = do.call(
+df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character()))) %>%
   select(c("region", "population_numbers")) %>%
   right_join(df_meta %>% select(c("Region", "Code")), by=c("region"="Region"))
@@ -186,5 +186,5 @@ df_long_full = df_wide_full %>%
   pivot_longer(cols = -Date, names_to = c("Region", ".value"), names_sep = "_")
 
 # Save the tibbles to a file
-write_csv(df_wide_full, path_full_wide)
-write_csv(df_long_full, path_full_long)
+readr::write_csv(df_wide_full, path_full_wide)
+readr::write_csv(df_long_full, path_full_long)
