@@ -4,23 +4,24 @@ rm(list=ls())
 library(readxl, quietly=TRUE)
 library(tidyverse, quietly=TRUE)
 library(splm, quietly=TRUE)
+library(plm, quietly=TRUE)
 
 # Import standard variables
 source("config.R")
 
 # Read in metadata
-df_meta = read_excel(path_wiki, sheet = "Metadata")
+df_meta = readxl::read_excel(path_wiki, sheet = "Metadata")
 
 # Run `clean_full.R` to create the file at `path_full_long` imported on the
 # next line.
-df_long = read_csv(path_full_long, col_types = do.call(
+df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
 
 # Weighting matrix: distance between the largest cities
 if (file.exists(path_distances)) {
   load(path_distances)
 } else {
-  df_distance = read_excel(path_wiki, sheet = "Distances") %>%
+  df_distance = readxl::read_excel(path_wiki, sheet = "Distances") %>%
     left_join(df_meta[, c("Code", "LargestCity")],
               by=c("Distance (km)"="LargestCity")) %>%
     column_to_rownames("Code") %>%
@@ -35,7 +36,7 @@ if (file.exists(path_distances)) {
 # yet exist or if new data gets added.
 # py_run_file("eurostat_reader.py")
 
-df_eurostat = read_csv(path_full_eurostat, col_types = do.call(
+df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character())))
 
 # Only keep rows where the `region` is an Italian region, not a direction or the
@@ -87,7 +88,7 @@ for (na_col in na_cols) {
 }
 
 # TODO: Process the Eurostat data so that we can use these as regressors.
-df_rail_travel = read_csv(path_interpolated_rail, col_types = do.call(
+df_rail_travel = readr::read_csv(path_interpolated_rail, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
 
 # Select the region we are interested in and replicate the data to have the same
