@@ -1,4 +1,4 @@
-Date,Region,Confirmed,Deaths,ICU,incidenceRate,populationBaseline,Recovered,susceptiblePopulation,susceptibleRate,Tested,TestedPositive,totalPopulation
+Date,Code,Confirmed,Deaths,ICU,incidenceRate,populationBaseline,Recovered,susceptiblePopulation,susceptibleRate,Tested,TestedPositive,totalPopulation
 2020-01-31,ABR,0,0,NA,0,1309713.7848082406,NA,1309713.7848082406,1,NA,0,1309713.7848082406
 2020-01-31,BAS,0,0,NA,0,562068.1074286201,NA,562068.1074286201,1,NA,0,562068.1074286201
 2020-01-31,BZ,0,0,NA,0,530422.1997795572,NA,530422.1997795572,1,NA,0,530422.1997795572
