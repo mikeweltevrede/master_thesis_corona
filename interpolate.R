@@ -3,6 +3,7 @@ rm(list = ls())
 
 library(readxl)
 library(tidyverse)
+library(lubridate)
 
 source("config.R")
 
@@ -11,14 +12,21 @@ dfs_mobility = path_mobility_report %>%
   set_names() %>% 
   map(read_excel, path = path_mobility_report)
 
-df_meta = read_excel(path_wiki, sheet = "Metadata")
+df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 
 #### Interpolate proportions ####
-interpolate = function(data, metadata, only=NULL) {
+interpolate = function(data, metadata, max_date = NULL, only=NULL) {
   
-  data = data %>%
-    mutate(Date = as.Date(Date, format = "%d/%m/%Y")) %>%
-    complete(Date = seq.Date(min(Date), max(Date), by = "day"))
+  if (is.null(max_date)) {
+    data = data %>%
+      mutate(Date = as.Date(Date, format = "%d/%m/%Y")) %>%
+      complete(Date = seq.Date(min(Date), max(Date), by = "day"))
+  } else {
+    max_date = as.Date(max_date, format = "%d/%m/%Y")
+    data = data %>%
+      mutate(Date = as.Date(Date, format = "%d/%m/%Y")) %>%
+      complete(Date = seq.Date(min(Date), max_date, by = "day"))
+  }
   
   if (is_null(only)){
     # Take all columns except for "Date"; else, take the ones specified in only
@@ -47,8 +55,15 @@ interpolate = function(data, metadata, only=NULL) {
 # Use the function; save each interpolated sheet as a list element
 dfs_interpolated = vector("list")
 
+# We get the maximum date available in our cleaned wikipedia data
+max_date = readr::read_csv(path_cleaned_wide, col_types = do.call(
+  cols, list(Date=col_date(format="%Y-%m-%d")))) %>%
+  .[["Date"]] %>%
+  max()
+
 for (data in names(dfs_mobility)[names(dfs_mobility) != "Overall"]) {
-  dfs_interpolated[[data]] = interpolate(dfs_mobility[[data]], df_meta)
+  dfs_interpolated[[data]] = interpolate(dfs_mobility[[data]], df_meta,
+                                         max_date)
 }
 
 # For railroad transport, we can multiply by the baseline value
@@ -89,4 +104,4 @@ for (region_code in regions) {
     dfs_interpolated[["Transit stations"]][[region_code]] * baseline
 }
 
-write_csv(dfs_interpolated[["Transit stations"]], path_interpolated_rail)
+readr::write_csv(dfs_interpolated[["Transit stations"]], path_interpolated_rail)
