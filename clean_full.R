@@ -12,14 +12,15 @@ source("config.R")
 df_meta = readxl::read_excel(path_wiki, sheet = "Metadata")
 
 # We need to clean the Wikipedia data before being able to process it in R, also
-# to include new dates. Run the next line to do so (you may need to
-# install Miniconda as a Python interpreter).
+# to include new dates. Run the next line to do so (you may need to install
+# Miniconda as a Python interpreter).
 reticulate::py_run_file("clean_wide.py")
 
 # Read in the cleaned Wikipedia data
 df_wide = readr::read_csv(path_cleaned_wide, col_types = do.call(
   cols, list(Date=col_date(format="%Y-%m-%d"))))
 
+#### Handle missing values ####
 # We now add missing dates to the data for equal spacing.
 all_dates = seq.Date(min(df_wide$Date), max(df_wide$Date), by="day")
 missing_dates = all_dates[which(!all_dates %in% df_wide$Date)][-1]
@@ -44,39 +45,53 @@ df_wide = df_wide %>%
   replace_na(named_cols_replace_0) %>%
   fill(all_of(cols_fill))
 
+#### Create population variables ####
 # We are currently only interested in regional (non-aggregated) data
 df_wide = df_wide %>%
   select(Date:SAR_Deaths)
 
-# Add the population numbers per region. We know the amount of people on January
-# 1, 2019 as defined in df_eurostat. We only keep rows where the `region` is an
-# Italian region, not a direction/NUTS-1 region or the entire country.
+# To merge all Eurostat zip files, uncomment the next line if the file does not
+# yet exist or if new data gets added.
+# reticulate::py_run_file("eurostat_reader.py")
+
+# We know the amount of people on January 1, 2019 as defined in df_eurostat. We
+# only keep rows where the `region` is an Italian region, not a direction/NUTS-1
+# region or the entire country by right joining with df_meta, since df_meta only
+# contains NUTS-2 regions.
+
 df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character()))) %>%
-  select(c("region", "population_numbers")) %>%
   right_join(df_meta %>% select(c("Region", "Code")), by=c("region"="Region"))
 
-# From https://www.worldometers.info/world-population/italy-population/, we see
-# that the yearly growth rate for Italy in 2019 was -0.13% and for 2020 it is
+# From https://www.worldometers.info/world-population/italy-population/, we find
+# that the yearly growth rate for Italy in 2019 was -0.13% and for 2020 it was
 # estimated to be -0.15% (not taking the coronacrisis into account). We assume
 # that these rates are constant for all regions, for lack of a better metric.
 growth_rate_pop_2019 = -0.0013
 growth_rate_pop_2020 = -0.0015
 
-date_diff = as.integer(df_wide$Date[1] - as.Date("2020-01-01", "%Y-%m-%d"))
+# Find day number in 2020 of the day before the first date in the data. We take
+# the day before because then we can factor in the amount of reported deaths due
+# to COVID-19.
+date_diff = as.integer(df_wide$Date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 
 for (regio in df_eurostat$Code) {
+  # Only select the data for this region
   df_region = df_wide %>%
     select(starts_with(regio))
   
   # Initialize the baseline values at time t=1
   pop_region = df_eurostat %>%
     filter(Code == regio) %>%
-    .[["population_numbers"]]
+    .[["populationNumbers"]]
+  
+  # We divide by 366 on the next line because 2020 is a leap year
   pop_base = pop_region * (1+growth_rate_pop_2019) *
-    (1+growth_rate_pop_2020)^(date_diff/366) # 366 because 2020 is a leap year
-  total_pop = pop_base
-  suscept = pop_base - df_region[[paste0(regio, "_Confirmed")]][1]
+    (1+growth_rate_pop_2020)^(date_diff/366) - 
+    df_region[[paste0(regio, "_Deaths")]][1] 
+  total_pop = pop_base - df_region[[paste0(regio, "_Deaths")]][1]
+  suscept = pop_base - df_region[[paste0(regio, "_Confirmed")]][1] -
+    df_region[[paste0(regio, "_Deaths")]][1]
   
   # The variables below are assumed to happen on day t at 5pm, namely the time
   # at which new data is reported. That is, the new cases, deaths, and
@@ -138,7 +153,9 @@ df_wide_full = read_excel(path_wiki, sheet="Extra") %>%
 # we do assume that the missing values, i.e. those before March 2, are correctly
 # imputed by the cumsum of the confirmed cases, as long as the final element in
 # the cumsum is less than the first non-missing element of TestedPositive.
-# Unfortunately, we cannot (reasonably) impute _ICU, _Recovered, and _Tested.
+# Unfortunately, we cannot (reasonably) impute _ICU. If the first known value
+# for _Recovered and _Tested is 0, then we could potentially backpropagate this.
+
 for (regio in df_eurostat$Code){
   # For completeness sake, even though the NAs (should) align, we find them per
   # region. It does not take much computing time
@@ -185,6 +202,110 @@ df_wide_full = df_wide_full[, c("Date", sort(colnames(df_wide_full)[-1]))]
 df_long_full = df_wide_full %>%
   pivot_longer(cols = -Date, names_to = c("Code", ".value"), names_sep = "_")
 
+#### Process Eurostat regressors (import on line 60) ####
+# Define the variables we are interested in
+eurostat_variables = c("airPassengersArrived", "airPassengersDeparted",
+                       "touristArrivals", "broadbandAccess",
+                       "deathRateDiabetes", "deathRateInfluenza",
+                       "deathRateChd", "deathRateCancer", 
+                       "deathRatePneumonia", "availableBeds",
+                       "maritimePassengersDisembarked",
+                       "maritimePassengersEmbarked",
+                       "riskOfPovertyOrSocialExclusion")
+
+# Only keep rows where the `region` is an Italian region, not a direction or the
+# entire country.
+df_eurostat = df_eurostat[sapply(df_eurostat$region,
+                                 function(x){x %in% df_meta$Region}), ] %>%
+  select(c("region", "populationDensity", all_of(eurostat_variables))) %>%
+  right_join(df_meta %>% select(c("Region", "Code")), by=c("region"="Region"))
+
+# Impute columns based on nearest neighbors tourists or population
+na_cols = sapply(df_eurostat, function(x){x %>% is.na() %>% any()}) %>%
+  .[.] %>%
+  names()
+
+num_neighbors = 1 # Amount of neighbors to take into account when imputing
+
+for (na_col in na_cols) {
+  if (grepl("passenger", na_col, fixed=TRUE)) {
+    diff_col = "touristArrivals"
+  } else {
+    diff_col = "populationDensity"
+  }
+  
+  na_check = df_eurostat[[na_col]] %>% is.na()
+  
+  # Loop over regions/rows that are NA
+  for (r in which(na_check)) {
+    imputation = vector()
+    
+    df_eurostat_full = df_eurostat[!na_check, ]
+    diffs = abs(df_eurostat_full[[diff_col]] - df_eurostat[[diff_col]][r])
+    mins = sort(diffs)[1:num_neighbors]
+    
+    for (m in mins) {
+      ratio = m / df_eurostat[[diff_col]][r]
+      imputation = c(imputation,
+                     df_eurostat_full[[na_col]][which(diffs == m)] *
+                       ratio)
+    }
+    
+    # We take the mean of the scaled 
+    df_eurostat[r, na_col] = mean(imputation)
+  }
+}
+
+# TODO: Transform variables to proportions
+
+# We need to expand the time-constant variables to the same scale as df_long
+iddat = expand.grid(Date = unique(df_long_full$Date),
+                    Code = unique(df_long_full$Code))
+iddat = iddat[order(iddat$Date, iddat$Code), ]
+rownames(iddat) <- NULL
+df_eurostat_panel = left_join(iddat, df_eurostat, by = "Code") %>%
+  as_tibble()
+
+# Import railway travellers data. This is interpolated from the Google Mobility
+# Report (by eye and hand).
+df_rail_travel = readr::read_csv(path_interpolated_rail, col_types = do.call(
+  cols, list(Date = col_date(format = "%Y-%m-%d")))) %>%
+  pivot_longer(cols = -Date, names_to = "Code", values_to = "railTravelers")
+
+# Join the expanded eurostat data and the railway data with the long data.
+df_long_full = df_long_full %>%
+  left_join(df_eurostat_panel, by = c("Date", "Code")) %>%
+  left_join(df_rail_travel, by = c("Date", "Code"))
+
+#### Final processing ####
+# Pivot the long data to wide data
+df_wide_full = df_long_full %>%
+  pivot_wider(names_from = Code,
+              values_from = all_of(colnames(df_long_full)[-c(1,2)]))
+
+# Colnames are now of the form "variable_regionCode". We want to have them of
+# the form "regionCode_variable".
+colnames(df_wide_full) = colnames(df_wide_full) %>%
+  sapply(function(s) {
+    s %>% str_split("_", simplify = TRUE) %>% rev() %>% paste(collapse="_")
+    }, USE.NAMES=FALSE)
+
+#### Export to file ####
 # Save the tibbles to a file
 readr::write_csv(df_wide_full, path_full_wide)
 readr::write_csv(df_long_full, path_full_long)
+
+#### Unused code - keep for future ####
+# Weighting matrix: distance between the largest cities - currently unused
+# if (file.exists(path_distances)) {
+#   load(path_distances)
+# } else {
+#   df_distance = readxl::read_excel(path_wiki, sheet = "Distances") %>%
+#     left_join(df_meta[, c("Code", "LargestCity")],
+#               by=c("Distance (km)"="LargestCity")) %>%
+#     column_to_rownames("Code") %>%
+#     select(-"Distance (km)") %>%
+#     data.matrix()
+#   colnames(df_distance) = rownames(df_distance)
+#   save(df_distance, file = path_distances)
+# }
