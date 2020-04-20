@@ -9,7 +9,7 @@ library(reticulate, quietly=TRUE)
 source("config.R")
 
 # Read in metadata
-df_meta = readxl::read_excel(path_wiki, sheet = "Metadata")
+df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 
 # We need to clean the Wikipedia data before being able to process it in R, also
 # to include new dates. Run the next line to do so (you may need to install
@@ -143,7 +143,7 @@ for (regio in df_eurostat$Code) {
 
 # Join the data with the extra data (containing the amount of active ICU
 # patients, recoveries, tested people, and positively tested people)
-df_wide_full = read_excel(path_wiki, sheet="Extra") %>%
+df_wide_full = read_xlsx(path_wiki, sheet="Extra") %>%
   mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
   drop_na() %>%
   full_join(df_wide, by="Date") %>%
@@ -300,7 +300,7 @@ readr::write_csv(df_long_full, path_full_long)
 # if (file.exists(path_distances)) {
 #   load(path_distances)
 # } else {
-#   df_distance = readxl::read_excel(path_wiki, sheet = "Distances") %>%
+#   df_distance = readxl::read_xlsx(path_wiki, sheet = "Distances") %>%
 #     left_join(df_meta[, c("Code", "LargestCity")],
 #               by=c("Distance (km)"="LargestCity")) %>%
 #     column_to_rownames("Code") %>%
