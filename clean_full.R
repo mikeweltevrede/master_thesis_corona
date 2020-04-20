@@ -183,7 +183,7 @@ df_wide_full = df_wide_full[, c("Date", sort(colnames(df_wide_full)[-1]))]
 
 # Convert the data to long format.
 df_long_full = df_wide_full %>%
-  pivot_longer(cols = -Date, names_to = c("Region", ".value"), names_sep = "_")
+  pivot_longer(cols = -Date, names_to = c("Code", ".value"), names_sep = "_")
 
 # Save the tibbles to a file
 readr::write_csv(df_wide_full, path_full_wide)
