@@ -2,7 +2,6 @@
 rm(list=ls())
 
 library(plm, quietly=TRUE)
-library(readxl, quietly=TRUE)
 library(tidyverse, quietly=TRUE)
 
 # Import standard variables
@@ -24,6 +23,17 @@ regressors = c("airPassengersArrived", "airPassengersDeparted",
 # TODO: Transform variables to proportions (in clean_full.R or here?)
 make_prop = function(x, na.rm = FALSE) { x / sum(x, na.rm = na.rm) }
 
+regressors_prop = c("airPassengersArrived", "airPassengersDeparted",
+                    "touristArrivals", "deathRateDiabetes",
+                    "deathRateInfluenza", "deathRateChd", "deathRateCancer",
+                    "deathRatePneumonia", "availableBeds",
+                    "maritimePassengersDisembarked",
+                    "maritimePassengersEmbarked")
+
+df_long = df_long %>% 
+  group_by(Date) %>% 
+  mutate_at(regressors_prop, make_prop) %>% 
+  ungroup
 
 # TODO: Run models
 # Create formula to be the product of the regressors with the lagged incidence
