@@ -7,8 +7,9 @@ library(tidyverse, quietly=TRUE)
 # Import standard variables
 source("config.R")
 
-# Run `clean_full.R` to create the file at `path_full_long` imported on the
-# next line.
+# Each day, the data should be recleaned
+# source("clean_full.R")
+
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
 
@@ -38,12 +39,51 @@ df_long = df_long %>%
 # TODO: Run models
 # Create formula to be the product of the regressors with the lagged incidence
 # and susceptible rates
-fm = paste("incidenceRate ~",
-           "dplyr::lag(incidenceRate, 1):dplyr::lag(susceptibleRate, 1):" %>%
-  paste0(regressors) %>%
-  paste(collapse="+")) %>%
+
+# TODO: Add week/weekend effect
+df_long = df_long %>%
+  mutate(weekNumber = lubridate::week(df_long$Date)) %>%
+  mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
+         %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
+
+X_regressors = c("weekend", "weekNumber")
+base_vars = c("Date", "Code", "incidenceRate", "susceptibleRate", X_regressors)
+
+lag = 1
+
+# Construct formulae
+base_fm = paste("incidenceRate ~",
+                
+                # The eurostat regressors are multiplied by the lagged Inc and S
+                paste0(glue("dplyr::lag(incidenceRate, {lag})", 
+                            ":dplyr::lag(susceptibleRate, {lag}):")) %>%
+                  paste0(glue("dplyr::lag({regressors}, {lag})")) %>%
+                  paste(collapse="+"), "+", 
+                
+                # These include the weekend and weekNumber effect
+                paste(X_regressors, collapse="+"))
+
+fm = as.formula(base_fm)
+fm_lsdv = base_fm %>%
+  paste("+factor(Code)") %>%
   as.formula()
 
-plmo_pooled = plm(fm, data = df_long, model = "pooling")
-plmo_fe = plm(fm, data = df_long, model = "within")
-pooltest(plmo_pooled, plmo_fe) # p-value < 2.2e-16 => H1: unstability => FE
+df_long_pd = pdata.frame(df_long %>%
+                           select(all_of(c(base_vars, regressors))) %>%
+                           arrange(Code),
+                         index=c("Code","Date"), drop.index=TRUE,
+                         row.names=TRUE)
+
+plmo_pooled = plm(fm, data = df_long_pd, model = "pooling")
+plmo_fe = plm(fm, data = df_long_pd, model = "within")
+lsdv = lm(fm_lsdv, data=df_long)
+
+pooltest(plmo_pooled, plmo_fe) # p-value = 5.463e-10 => H1: unstability => FE
+summary(plmo_pooled)
+summary(plmo_fe)
+summary(lsdv)
+
+# Check NAs
+df_long %>% is.na %>% apply(2, which)
+
+# TODO: Model validation, e.g. walk-forward approach
