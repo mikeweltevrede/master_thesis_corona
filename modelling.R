@@ -3,6 +3,7 @@ rm(list=ls())
 
 library(plm, quietly=TRUE)
 library(tidyverse, quietly=TRUE)
+library(glue)
 
 # Import standard variables
 source("config.R")
@@ -13,23 +14,20 @@ source("config.R")
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
 
-regressors = c("airPassengersArrived", "airPassengersDeparted",
-               "touristArrivals", "broadbandAccess", "deathRateDiabetes",
-               "deathRateInfluenza", "deathRateChd", "deathRateCancer",
-               "deathRatePneumonia", "availableBeds",
-               "maritimePassengersDisembarked", "maritimePassengersEmbarked",
+regressors = c("airPassengersArrived", "touristArrivals", "broadbandAccess",
+               "deathRateDiabetes", "deathRateInfluenza", "deathRateChd",
+               "deathRateCancer", "deathRatePneumonia", "availableBeds",
+               "maritimePassengersDisembarked",
                "riskOfPovertyOrSocialExclusion", "railTravelers")
 
 #### Transform variables into proportions ####
 # TODO: Transform variables to proportions (in clean_full.R or here?)
 make_prop = function(x, na.rm = FALSE) { x / sum(x, na.rm = na.rm) }
 
-regressors_prop = c("airPassengersArrived", "airPassengersDeparted",
-                    "touristArrivals", "deathRateDiabetes",
-                    "deathRateInfluenza", "deathRateChd", "deathRateCancer",
-                    "deathRatePneumonia", "availableBeds",
-                    "maritimePassengersDisembarked",
-                    "maritimePassengersEmbarked")
+regressors_prop = c("airPassengersArrived", "touristArrivals",
+                    "deathRateDiabetes", "deathRateInfluenza", "deathRateChd",
+                    "deathRateCancer", "deathRatePneumonia", "availableBeds",
+                    "maritimePassengersDisembarked")
 
 df_long = df_long %>% 
   group_by(Date) %>% 
