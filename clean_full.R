@@ -265,35 +265,10 @@ rownames(iddat) <- NULL
 df_eurostat_panel = left_join(iddat, df_eurostat, by = "Code") %>%
   as_tibble()
 
-# Import railway travellers data. This is interpolated from the Google Mobility
-# Report (by eye and hand).
-df_rail_travel = readr::read_csv(path_interpolated_rail, col_types = do.call(
-  cols, list(Date = col_date(format = "%Y-%m-%d")))) %>%
-  pivot_longer(cols = -Date, names_to = "Code", values_to = "railTravelers")
-
-# Join the expanded eurostat data and the railway data with the long data.
-df_long_full = df_long_full %>%
-  left_join(df_eurostat_panel, by = c("Date", "Code")) %>%
-  left_join(df_rail_travel, by = c("Date", "Code"))
-
-#### Final processing ####
-# Pivot the long data to wide data
-df_wide_full = df_long_full %>%
-  pivot_wider(names_from = Code,
-              values_from = all_of(colnames(df_long_full)[-c(1,2)]))
-
-# Colnames are now of the form "variable_regionCode". We want to have them of
-# the form "regionCode_variable".
-colnames(df_wide_full) = colnames(df_wide_full) %>%
-  sapply(function(s) {
-    s %>% str_split("_", simplify = TRUE) %>% rev() %>% paste(collapse="_")
-    }, USE.NAMES=FALSE)
-
-#### Export to file ####
-readr::write_csv(df_wide_full, path_full_wide)
-readr::write_csv(df_long_full, path_full_long)
-
 #### Interpolate Google Mobility Report ####
+# Import railway travellers data. This is interpolated from the Google Mobility
+# Report (by eye and hand). Google recently released the actual data and this
+# will be used soon instead.
 dfs_mobility = path_mobility_report %>% 
   excel_sheets() %>% 
   set_names() %>% 
@@ -388,7 +363,29 @@ for (region_code in regions) {
     dfs_interpolated[["Transit stations"]][[region_code]] * baseline
 }
 
-readr::write_csv(dfs_interpolated[["Transit stations"]], path_interpolated_rail)
+# Join the expanded eurostat data and the railway data with the long data.
+df_long_full = df_long_full %>%
+  left_join(df_eurostat_panel, by = c("Date", "Code")) %>%
+  left_join(dfs_interpolated[["Transit stations"]] %>%
+              pivot_longer(cols = -Date, names_to = "Code",
+                           values_to = "railTravelers"), by = c("Date", "Code"))
+
+#### Final processing ####
+# Pivot the long data to wide data
+df_wide_full = df_long_full %>%
+  pivot_wider(names_from = Code,
+              values_from = all_of(colnames(df_long_full)[-c(1,2)]))
+
+# Colnames are now of the form "variable_regionCode". We want to have them of
+# the form "regionCode_variable".
+colnames(df_wide_full) = colnames(df_wide_full) %>%
+  sapply(function(s) {
+    s %>% str_split("_", simplify = TRUE) %>% rev() %>% paste(collapse="_")
+    }, USE.NAMES=FALSE)
+
+#### Export to file ####
+readr::write_csv(df_wide_full, path_full_wide)
+readr::write_csv(df_long_full, path_full_long)
 
 #### Unused code - keep for future ####
 # Weighting matrix: distance between the largest cities - currently unused
