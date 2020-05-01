@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 
-def eurostat_reader(file_path, na_proportion=0.8, keep_time=False,
+def eurostat_reader(file_path, na_proportion=0.8,
                     cols_to_drop={"all": {'UNIT'},
                                   "arrivals_at_tourist_accommodation_establishments.zip": {'C_RESID'},
                                   "average_length_of_stay_at_hospitals.zip": {'SEX', 'AGE', 'ICD10'},
@@ -55,6 +55,7 @@ def eurostat_reader(file_path, na_proportion=0.8, keep_time=False,
             del df.columns.name
         except AttributeError:
             pass
+
     # Select only the latest data for which all data is known
     test = (df.groupby('TIME').apply(lambda x: len(x) - x.isna().sum()) > 0).all(axis=1)
     max_year = test[test].index.max()
@@ -78,6 +79,7 @@ def eurostat_reader(file_path, na_proportion=0.8, keep_time=False,
 
 
 dfs = []
+keep_time=False
 
 for file in glob.glob("data/eurostat/*.zip"):
     if 'by_rail_by_loading_unloading_region' in file:
@@ -134,10 +136,10 @@ dict_rename = {
     'In-patient average length of stay (in days)': 'hospitalStay',
     'broadband_access': 'broadbandAccess',
     'Malignant neoplasms (C00-C97)': 'deathRateCancer',
-    'Diabetes mellitus': 'deathRateDiabetes',
+    'Diabetes mellitus_x': 'deathRateDiabetes',
     'Ischaemic heart diseases': 'deathRateChd',
     'Influenza (including swine flu)': 'deathRateInfluenza',
-    'Pneumonia': 'deathRatePneumonia',
+    'Pneumonia_x': 'deathRatePneumonia',
     'Disposable income, net': 'disposableIncome',
     'gdp_per_inhabitant': 'gdpPerInhabitant',
     'Medical doctors': 'medicalDoctors',
@@ -148,6 +150,13 @@ dict_rename = {
     'Other beds in hospitals (HP.1)': 'otherBeds',
     'Psychiatric care beds in hospitals (HP.1)': 'psychiatricCareBeds',
     'Rehabilitative care beds in hospitals (HP.1)': 'rehabilitativeCareBeds',
+    'Diabetes mellitus_y': 'dischargeRateDiabetes',
+    'Neoplasms': 'dischargeRateCancer',
+    'Hypertensive diseases': 'dischargeRateHypertension',
+    'Diseases of the respiratory system (J00-J99)': 'dischargeRateRespiratory',
+    'Other ischaemic heart disease': 'dischargeRateChd',
+    'Pneumonia_y': 'dischargeRatePneumonia',
+    'Tuberculosis': 'dischargeRateTB',
     'Internet use: interaction with public authorities (last 12 months)': 'internetContactAuthorities',
     'Electrified railway lines': 'lengthElectrifiedRailway',
     'Motorways': 'lengthMotorways',
