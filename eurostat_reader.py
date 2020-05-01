@@ -6,17 +6,16 @@ from functools import reduce
 import pandas as pd
 import numpy as np
 
-keep_time = False
 
-
-def eurostat_reader(file_path, na_proportion=0.8,
+def eurostat_reader(file_path, na_proportion=0.8, keep_time=False,
                     cols_to_drop={"all": {'UNIT'},
                                   "arrivals_at_tourist_accommodation_establishments.zip": {'C_RESID'},
                                   "average_length_of_stay_at_hospitals.zip": {'SEX', 'AGE', 'ICD10'},
                                   "crude_death_rate.zip": {'SEX', 'AGE'},
                                   "disposable_income_per_inhabitant.zip": {'DIRECT'},
                                   "percentage_education_attainment.zip": {'SEX', 'AGE'},
-                                  "population_numbers.zip": {'SEX', 'AGE'}}):
+                                  "population_numbers.zip": {'SEX', 'AGE'},
+                                  "hospital_discharges_per_100k_inhabitants.zip": {'AGE', 'INDIC_HE', 'SEX'}}):
 
     with zipfile.ZipFile(file_path, 'r') as zip_file:
         for file in zip_file.namelist():

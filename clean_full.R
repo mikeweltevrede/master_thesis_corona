@@ -53,7 +53,7 @@ df_wide = df_wide %>%
 
 # To merge all Eurostat zip files, uncomment the next line if the file does not
 # yet exist or if new data gets added.
-# reticulate::py_run_file("eurostat_reader.py")
+reticulate::py_run_file("eurostat_reader.py")
 
 # We know the amount of people on January 1, 2019 as defined in df_eurostat. We
 # only keep rows where the `region` is an Italian region, not a direction/NUTS-1
