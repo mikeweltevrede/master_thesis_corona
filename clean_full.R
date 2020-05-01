@@ -213,13 +213,13 @@ eurostat_variables = c("airPassengersArrived", "airPassengersDeparted",
                        "maritimePassengersDisembarked",
                        "maritimePassengersEmbarked",
                        "riskOfPovertyOrSocialExclusion")
+eurostat_variables = colnames(df_eurostat)
 
 # Only keep rows where the `region` is an Italian region, not a direction or the
 # entire country.
 df_eurostat = df_eurostat[sapply(df_eurostat$region,
                                  function(x){x %in% df_meta$Region}), ] %>%
-  select(c("region", "populationDensity", all_of(eurostat_variables))) %>%
-  right_join(df_meta %>% select(c("Region", "Code")), by=c("region"="Region"))
+  select(c("region", "populationDensity", all_of(eurostat_variables)))
 
 # Impute columns based on nearest neighbors tourists or population
 na_cols = sapply(df_eurostat, function(x){x %>% is.na() %>% any()}) %>%
