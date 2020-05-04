@@ -20,7 +20,7 @@ regressors = c("airPassengersArrived", "touristArrivals", "broadbandAccess",
                "dischargeRateHypertension", "dischargeRateCancer",
                "dischargeRateChd", "dischargeRatePneumonia", "dischargeRateTB",
                "availableBeds", "maritimePassengersDisembarked",
-               "riskOfPovertyOrSocialExclusion", "railTravelers")
+               "riskOfPovertyOrSocialExclusion", "railTravelers", "medianAge")
 
 #### Transform variables into proportions ####
 # TODO: Transform variables to proportions (in clean_full.R or here?)
@@ -105,7 +105,7 @@ rownames_tbl = c("(Intercept)", "weekend1", "weekNumber", "BAS",
                  "dischargeRateChd", "dischargeRatePneumonia",
                  "dischargeRateTB", "availableBeds",
                  "maritimePassengersDisembarked",
-                 "riskOfPovertyOrSocialExclusion", "railTravelers")
+                 "riskOfPovertyOrSocialExclusion", "railTravelers", "medianAge")
 
 coefs_tbl = tibble(variable=rownames_tbl)
 lags = vector()
