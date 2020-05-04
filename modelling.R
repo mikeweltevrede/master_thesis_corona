@@ -57,9 +57,10 @@ df_long_pd = pdata.frame(df_long %>%
                          index=c("Code","Date"), drop.index=TRUE,
                          row.names=TRUE)
 
-lags = 1:14 # Incubation period
+lags = 1:5 # Incubation period
 lsdv_results = vector("list")
 
+pdf(glue("{output_path}/residuals_plots.pdf"))
 for (lag in lags){
   print("--------------------")
   print(glue("Running models for incubation period {lag}"))
@@ -82,13 +83,29 @@ for (lag in lags){
     as.formula()
   
   # Run models
-  plmo_pooled = plm(fm, data = df_long_pd, model = "pooling")
-  
-  plmo_fe = plm(fm, data = df_long_pd, model = "within")
+  # plmo_pooled = plm(fm, data = df_long_pd, model = "pooling")
+  # plmo_fe = plm(fm, data = df_long_pd, model = "within")
   
   lsdv = lm(fm_lsdv, data=df_long)
   lsdv_results[[as.character(lag)]] = lsdv
+  dw_results = dwtest(fm_lsdv, data=df_long)
+  
+  residuals = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
+  t_results = t.test(residuals)
+  temp = tibble(index=1:length(residuals), res=residuals)
+  
+  g = ggplot(temp) +
+    theme(plot.title = element_text(face = "bold")) +
+    geom_point(aes(x=index, y=residuals), alpha=0.6, color='firebrick') +
+    labs(title=glue("Residuals for lag {lag}"),
+         subtitle=glue(
+           "Durbin-Watson: {signif(dw_results$statistic, digits=5)}",
+           " (p={signif(dw_results$p.value, digits=5)})",
+           "\n t-statistic for mean 0: {signif(t_results$statistic, digits=5)}", 
+           " (p={signif(t_results$p.value, digits=5)})"))
+  print(g)
 }
+dev.off()
 
 # Create HTML table of LSDV results
 rownames_tbl = c("(Intercept)", "weekend1", "weekNumber", "BAS",
@@ -135,9 +152,12 @@ for (item in lsdv_results){
   }
   
   coefs_tbl = coefs_tbl %>%
-    add_column(!!glue("({lag})") := glue("{coefs}{stars}\n({tvals})"))
+    add_column(!!glue("({lag})") := glue("{signif(coefs, digits=5)}{stars}\n",
+                                         "({signif(tvals, digits=5)})"))
 }
 
-coefs_tbl %>% gt() %>% gtsave(glue("{output_path}/table_lsdv.html"))
+# Save to HTML table -> path= does not work.
+# coefs_tbl %>% gt() %>% gtsave("table_lsdv.html", path = output_path)
+coefs_tbl %>% gt() %>% gtsave("table_lsdv.html")
 
 # TODO: Model validation, e.g. walk-forward approach
