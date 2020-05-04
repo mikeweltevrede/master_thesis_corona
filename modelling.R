@@ -83,17 +83,14 @@ for (lag in lags){
   
   # Run models
   plmo_pooled = plm(fm, data = df_long_pd, model = "pooling")
-  print(summary(plmo_pooled))
   
   plmo_fe = plm(fm, data = df_long_pd, model = "within")
-  print(summary(plmo_fe))
   
   lsdv = lm(fm_lsdv, data=df_long)
   lsdv_results[[as.character(lag)]] = lsdv
-  print(summary(lsdv))
 }
 
-# Create HTML table
+# Create HTML table of LSDV results
 rownames_tbl = c("(Intercept)", "weekend1", "weekNumber", "BAS",
                  "BZ", "CAL", "CAM", "EMR", "FVG", "LAZ", "LIG",
                  "LOM", "MAR", "MOL", "PIE", "PUG", "SAR", "SIC",
@@ -141,6 +138,6 @@ for (item in lsdv_results){
     add_column(!!glue("({lag})") := glue("{coefs}{stars}\n({tvals})"))
 }
 
-coefs_tbl %>% gt() %>% gtsave("table_lsdv.html")
+coefs_tbl %>% gt() %>% gtsave(glue("{output_path}/table_lsdv.html"))
 
 # TODO: Model validation, e.g. walk-forward approach

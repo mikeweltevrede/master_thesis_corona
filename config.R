@@ -14,6 +14,7 @@ tryCatch(use_condaenv(env_name),
 
 # Path variables for data
 data_path = "data"
+output_path = "output"
 path_wiki = paste0(data_path, "/italy_wikipedia.xlsx")
 path_cleaned_wide = paste0(data_path, "/italy_wikipedia_cleaned.csv")
 path_full_wide = paste0(data_path, "/italy_wikipedia_full_wide.csv")
