@@ -5,6 +5,7 @@ library(plm, quietly=TRUE)
 library(tidyverse, quietly=TRUE)
 library(glue)
 library(gt)
+library(lmtest)
 
 # Import standard variables
 source("config.R")
@@ -57,10 +58,16 @@ df_long_pd = pdata.frame(df_long %>%
                          index=c("Code","Date"), drop.index=TRUE,
                          row.names=TRUE)
 
-lags = 1:5 # Incubation period
+lags = 1:6 # Incubation period
 lsdv_results = vector("list")
 
-pdf(glue("{output_path}/residuals_plots.pdf"))
+resids_col = vector()
+lag_col = vector()
+dw_col = vector()
+dw_p_col = vector()
+t_col = vector()
+t_p_col = vector()
+
 for (lag in lags){
   print("--------------------")
   print(glue("Running models for incubation period {lag}"))
@@ -90,22 +97,44 @@ for (lag in lags){
   lsdv_results[[as.character(lag)]] = lsdv
   dw_results = dwtest(fm_lsdv, data=df_long)
   
-  residuals = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
-  t_results = t.test(residuals)
-  temp = tibble(index=1:length(residuals), res=residuals)
+  residual = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
   
-  g = ggplot(temp) +
-    theme(plot.title = element_text(face = "bold")) +
-    geom_point(aes(x=index, y=residuals), alpha=0.6, color='firebrick') +
-    labs(title=glue("Residuals for lag {lag}"),
-         subtitle=glue(
-           "Durbin-Watson: {signif(dw_results$statistic, digits=5)}",
-           " (p={signif(dw_results$p.value, digits=5)})",
-           "\n t-statistic for mean 0: {signif(t_results$statistic, digits=5)}", 
-           " (p={signif(t_results$p.value, digits=5)})"))
-  print(g)
+  resids_col = c(resids_col, residual)
+  lag_col = c(lag_col, rep(lag, length(residual)))
+  dw_col = c(dw_col, rep(dw_results$statistic, length(residual)))
+  dw_p_col = c(dw_p_col, rep(dw_results$p.value, length(residual)))
+  
+  residuals = c(residual, rep(NA, lag))
+  t_results = t.test(residuals)
+  
+  t_col = c(t_col, rep(dw_results$statistic, length(residual)))
+  t_p_col = c(t_p_col, rep(t_results$p.value, length(residual)))
 }
-dev.off()
+
+# Test
+lag_col_counts = table(lag_col)
+index = vector()
+for (len in lag_col_counts){
+  index = c(index, 1:len)
+}
+
+tbl = tibble(index, residuals = resids_col, lag=lag_col, dw_col, dw_p_col,
+             t_col, t_p_col)
+tbl$lag = factor(tbl$lag, levels=unique(tbl$lag),
+                 labels=paste0("Lag: ", lags,
+                               "\n Durbin-Watson statistic: ",
+                               signif(unique(tbl$dw_col), 5),
+                               " (p=", signif(unique(tbl$dw_p_col), 5), ")",
+                               "\n t-statistic for mean 0: ",
+                               signif(unique(tbl$t_col), 5),
+                               " (p=", signif(unique(tbl$t_p_col), 5), ")"))
+
+ggplot(tbl, aes(x=index, y=residuals)) +
+  facet_wrap(~lag) +
+  theme(plot.title = element_text(face = "bold")) +
+  geom_point(alpha=0.6, color='firebrick')
+ggsave("residuals_plot_lag_1_6.png", path=output_path)
+
 
 # Create HTML table of LSDV results
 rownames_tbl = c("(Intercept)", "weekend1", "weekNumber", "BAS",
