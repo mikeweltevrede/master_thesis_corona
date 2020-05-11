@@ -1,40 +1,33 @@
+#### Setup ####
 rm(list=ls())
 
-library(rvest)
-library(tidyverse)
+library(readxl, quietly=TRUE)
+library(tidyverse, quietly=TRUE)
+library(lubridate, quietly=TRUE)
+library(reticulate, quietly=TRUE)
+library(corrr)
 
-url_nl = "https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_the_Netherlands"
-xpath_nl = '//*[@id="mw-content-text"]/div/table[4]' # New COVID-19 cases in the Netherlands by province
+# Import standard variables
+source("config.R")
 
-#### Read the data ####
-scrape_table = function(url, xpath) {
-  tbl = url %>%
-    read_html() %>%
-    html_nodes(xpath=xpath) %>%
-    html_table(fill=T) %>%
-    `[[`(1)
-  
-  return(tbl)
-}
+# Read in metadata
+df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 
-table_nl = scrape_table(url_nl, xpath_nl)
+# To merge all Eurostat zip files, uncomment the next line if the file does not
+# yet exist or if new data gets added.
+# reticulate::py_run_file("eurostat_reader.py")
 
-# Set column names to Date, province names, Unknown, Total
-colnames(table_nl) = table_nl[1, ]
-colnames(table_nl) = c("Date", colnames(table_nl)[
-  sapply(colnames(table_nl), function(x){nchar(x) == 2})], "Unknown", "Total")
+# We know the amount of people on January 1, 2019 as defined in df_eurostat. We
+# only keep rows where the `region` is an Italian region, not a direction/NUTS-1
+# region or the entire country by right joining with df_meta, since df_meta only
+# contains NUTS-2 regions.
 
-# Subset the data to keep only the province-level data and total
-table_nl = table_nl[2:(nrow(table_nl)-2), 1:15] # 1 date column, 12 provinces, 1 unknown, 1 total
+df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
+  cols, list(region=col_character()))) %>%
+  right_join(df_meta %>% select(c("Region", "Code")), by=c("region"="Region"))
 
-#### Clean the data ####
-## Step 1: Remove the source indicators from Wikipedia: [e], for instance
-table_nl = data.frame(lapply(table_nl,
-                             function(x) { str_replace(x, "\\[\\w+\\]", "") }))
+dischargeRates = df_eurostat %>% select(starts_with("dischargeRate"))
 
-## Step 2: Change the data type from character to numeric
-table_nl[2:ncol(table_nl)] = lapply(table_nl[2:ncol(table_nl)],
-                                    function(x) as.numeric(as.character(x)))
-
-## Step 3: Change the data type for the Date column from character to Date
-table_nl$Date = as.Date.factor(table_nl$Date, "%Y-%m-%d")
+corrs = correlate(dischargeRates)
+corrs %>% rplot(print_cor = TRUE)
+corrs %>% xtable %>% print(booktabs=TRUE)
