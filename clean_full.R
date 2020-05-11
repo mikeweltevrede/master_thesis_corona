@@ -146,7 +146,7 @@ for (regio in df_eurostat$Code) {
 # patients, recoveries, tested people, and positively tested people)
 df_wide_full = read_xlsx(path_wiki, sheet="Extra") %>%
   mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
-  drop_na() %>%
+  drop_na %>%
   full_join(df_wide, by="Date") %>%
   arrange(Date) # Sort by Date
 
@@ -162,19 +162,19 @@ for (regio in df_eurostat$Code){
   # region. It does not take much computing time
   which_NA = df_wide_full %>%
     select(!!paste0(regio, "_TestedPositive")) %>%
-    is.na() %>%
-    which()
+    is.na %>%
+    which
   
   csum = df_wide_full %>%
     select(!!paste0(regio, "_Confirmed")) %>%
-    cumsum() %>%
+    cumsum %>%
     .[which_NA, ]
   
   first_elt = df_wide_full %>%
     select(!!paste0(regio, "_TestedPositive")) %>%
-    na.omit() %>%
-    unlist() %>%
-    first()
+    na.omit %>%
+    unlist %>%
+    first
   
   # Check if the final element in the cumsum is lower than
   if (tail(csum, 1) <= first_elt) {
@@ -224,7 +224,7 @@ df_eurostat = df_eurostat[sapply(df_eurostat$region,
 # Impute columns based on nearest neighbors tourists or population
 na_cols = sapply(df_eurostat, function(x){x %>% is.na() %>% any()}) %>%
   .[.] %>%
-  names()
+  names
 
 num_neighbors = 1 # Amount of neighbors to take into account when imputing
 
@@ -263,15 +263,15 @@ iddat = expand.grid(Date = unique(df_long_full$Date),
 iddat = iddat[order(iddat$Date, iddat$Code), ]
 rownames(iddat) <- NULL
 df_eurostat_panel = left_join(iddat, df_eurostat, by = "Code") %>%
-  as_tibble()
+  as_tibble
 
 #### Interpolate Google Mobility Report ####
 # Import railway travellers data. This is interpolated from the Google Mobility
 # Report (by eye and hand). Google recently released the actual data and this
 # will be used soon instead.
 dfs_mobility = path_mobility_report %>% 
-  excel_sheets() %>% 
-  set_names() %>% 
+  excel_sheets %>% 
+  set_names %>% 
   map(read_excel, path = path_mobility_report)
 
 interpolate = function(data, metadata, max_date = NULL, only=NULL) {
@@ -318,7 +318,7 @@ dfs_interpolated = vector("list")
 max_date = readr::read_csv(path_cleaned_wide, col_types = do.call(
   cols, list(Date=col_date(format="%Y-%m-%d")))) %>%
   .[["Date"]] %>%
-  max()
+  max
 
 for (data in names(dfs_mobility)[names(dfs_mobility) != "Overall"]) {
   dfs_interpolated[[data]] = interpolate(dfs_mobility[[data]], df_meta,
