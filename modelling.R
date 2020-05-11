@@ -18,9 +18,10 @@ df_long = readr::read_csv(path_full_long, col_types = do.call(
 
 regressors = c("airPassengersArrived", "touristArrivals", "broadbandAccess",
                "dischargeRateDiabetes", "dischargeRateRespiratory",
-               "dischargeRateHypertension", "dischargeRateCancer",
-               "dischargeRateChd", "dischargeRatePneumonia", "dischargeRateTB",
-               "availableBeds", "maritimePassengersDisembarked",
+               "dischargeRateHypertension", #"dischargeRateCancer",
+               "dischargeRateChd", #"dischargeRatePneumonia",
+               "dischargeRateTB", "availableBeds",
+               "maritimePassengersDisembarked",
                "riskOfPovertyOrSocialExclusion", "railTravelers", "medianAge")
 
 #### Transform variables into proportions ####
@@ -29,8 +30,8 @@ make_prop = function(x, na.rm = FALSE) { x / sum(x, na.rm = na.rm) }
 
 regressors_prop = c("airPassengersArrived", "touristArrivals",
                     "dischargeRateDiabetes", "dischargeRateRespiratory",
-                    "dischargeRateHypertension", "dischargeRateCancer",
-                    "dischargeRateChd", "dischargeRatePneumonia",
+                    "dischargeRateHypertension", #"dischargeRateCancer",
+                    "dischargeRateChd", #"dischargeRatePneumonia",
                     "dischargeRateTB", "availableBeds",
                     "maritimePassengersDisembarked", "railTravelers")
 
@@ -87,7 +88,7 @@ for (lag in lags){
   fm = as.formula(base_fm)
   fm_lsdv = base_fm %>%
     paste("+factor(Code)") %>%
-    as.formula()
+    as.formula
   
   # Run models
   # plmo_pooled = plm(fm, data = df_long_pd, model = "pooling")
@@ -144,8 +145,8 @@ rownames_tbl = c("(Intercept)", "weekend1", "weekNumber", "BAS",
                  "airPassengersArrived", "touristArrivals",
                  "broadbandAccess", "dischargeRateDiabetes",
                  "dischargeRateRespiratory",
-                 "dischargeRateHypertension", "dischargeRateCancer",
-                 "dischargeRateChd", "dischargeRatePneumonia",
+                 "dischargeRateHypertension", #"dischargeRateCancer",
+                 "dischargeRateChd", #"dischargeRatePneumonia",
                  "dischargeRateTB", "availableBeds",
                  "maritimePassengersDisembarked",
                  "riskOfPovertyOrSocialExclusion", "railTravelers", "medianAge")
@@ -156,7 +157,7 @@ lags = vector()
 for (item in lsdv_results){
   stars = vector()
   
-  lag = item$coefficients %>% names() %>% tail(1) %>% str_extract("\\d{1,2}")
+  lag = item$coefficients %>% names %>% tail(1) %>% str_extract("\\d{1,2}")
   lags = c(lags, lag)
   
   coefs = item$coefficients
@@ -185,8 +186,8 @@ for (item in lsdv_results){
                                          "({signif(tvals, digits=5)})"))
 }
 
-# Save to HTML table -> path= does not work.
-# coefs_tbl %>% gt() %>% gtsave("table_lsdv.html", path = output_path)
-coefs_tbl %>% gt() %>% gtsave("table_lsdv.html")
+# Save to HTML table
+# coefs_tbl %>% gt() %>% gtsave("table_lsdv.html", path = output_path) # path= does not work.
+coefs_tbl %>% gt %>% gtsave("table_lsdv_rmComorbid.html")
 
 # TODO: Model validation, e.g. walk-forward approach
