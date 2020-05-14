@@ -1,7 +1,6 @@
 #### Setup ####
 rm(list=ls())
 
-library(plm, quietly=TRUE)
 library(tidyverse, quietly=TRUE)
 library(glue)
 library(gt)
@@ -64,42 +63,39 @@ for (lag in lags){
   print("--------------------")
   print(glue("Running models for incubation period {lag}"))
   
-  # Construct formulae
-  base_fm = paste("incidenceRate ~",
-                  
-                  # The eurostat regressors are multiplied by the lagged Inc and S
-                  paste0(glue("dplyr::lag(incidenceRate, {lag})", 
-                              ":dplyr::lag(susceptibleRate, {lag}):")) %>%
-                    paste0(glue("dplyr::lag({regressors}, {lag})")) %>%
-                    paste(collapse="+"), "+", 
-                  
-                  # These include the weekend and weekNumber effect
-                  paste(X_regressors, collapse="+"))
-  
-  fm = as.formula(base_fm)
-  fm_lsdv = base_fm %>%
+  # Construct formula
+  fm = paste("incidenceRate ~",
+             
+             # The eurostat regressors are multiplied by the lagged Inc and S
+             # TODO: Investigate more closely if some variables should not be
+             # multiplied in this way
+             paste0(glue("dplyr::lag(incidenceRate, {lag})",
+                         ":dplyr::lag(susceptibleRate, {lag}):")) %>%
+               paste0(glue("dplyr::lag({regressors}, {lag})")) %>%
+               paste(collapse="+"), "+",
+             
+             # These include the weekend and weekNumber effect
+             paste(X_regressors, collapse="+")) %>%
     paste("+factor(Code)") %>%
     as.formula
   
-  # Run models
-  # plmo_pooled = plm(fm, data = df_long_pd, model = "pooling")
-  # plmo_fe = plm(fm, data = df_long_pd, model = "within")
+  # Run model
+  lsdv = lm(fm, data=df_long)
   
-  lsdv = lm(fm_lsdv, data=df_long)
   lsdv_results[[as.character(lag)]] = lsdv
-  dw_results = dwtest(fm_lsdv, data=df_long)
-  
   residual = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
-  
-  resids_col = c(resids_col, residual)
   lag_col = c(lag_col, rep(lag, length(residual)))
+  resids_col = c(resids_col, residual)
+  
+  # TODO: Replace DW test by another unit root test
+  dw_results = dwtest(fm, data=df_long)
+  
   dw_col = c(dw_col, rep(dw_results$statistic, length(residual)))
   dw_p_col = c(dw_p_col, rep(dw_results$p.value, length(residual)))
   
-  residuals = c(residual, rep(NA, lag))
-  t_results = t.test(residuals)
+  t_results = t.test(residual)
+  t_col = c(t_col, rep(t_results$statistic, length(residual)))
   
-  t_col = c(t_col, rep(dw_results$statistic, length(residual)))
   t_p_col = c(t_p_col, rep(t_results$p.value, length(residual)))
 }
 
@@ -121,12 +117,11 @@ tbl$lag = factor(tbl$lag, levels=unique(tbl$lag),
                                signif(unique(tbl$t_col), 5),
                                " (p=", signif(unique(tbl$t_p_col), 5), ")"))
 
-ggplot(tbl, aes(x=index, y=residuals)) +
+ggplot(tbl, aes(x=index, y=resids_col)) +
   facet_wrap(~lag) +
   theme(plot.title = element_text(face = "bold")) +
   geom_point(alpha=0.6, color='firebrick')
 ggsave("residuals_plot_lag_1_6.png", path=output_path)
-
 
 # Create HTML table of LSDV results
 rownames_tbl = c("(Intercept)", "weekend1", "weekNumber", "BAS",
@@ -136,8 +131,8 @@ rownames_tbl = c("(Intercept)", "weekend1", "weekNumber", "BAS",
                  "airPassengersArrived", "touristArrivals",
                  "broadbandAccess", "dischargeRateDiabetes",
                  "dischargeRateRespiratory",
-                 "dischargeRateHypertension", #"dischargeRateCancer",
-                 "dischargeRateChd", #"dischargeRatePneumonia",
+                 "dischargeRateHypertension", "dischargeRateCancer",
+                 "dischargeRateChd", "dischargeRatePneumonia",
                  "dischargeRateTB", "availableBeds",
                  "maritimePassengersDisembarked",
                  "riskOfPovertyOrSocialExclusion", "railTravelers", "medianAge")
@@ -178,7 +173,7 @@ for (item in lsdv_results){
 }
 
 # Save to HTML table
-# coefs_tbl %>% gt() %>% gtsave("table_lsdv.html", path = output_path) # path= does not work.
-coefs_tbl %>% gt %>% gtsave("table_lsdv_rmComorbid.html")
+# coefs_tbl %>% gt() %>% gtsave("table_lsdv.html", path = output_path) # path= does not work; known issue
+coefs_tbl %>% gt %>% gtsave("table_lsdv.html")
 
 # TODO: Model validation, e.g. walk-forward approach
