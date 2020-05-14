@@ -124,18 +124,8 @@ ggplot(tbl, aes(x=index, y=resids_col)) +
 ggsave("residuals_plot_lag_1_6.png", path=output_path)
 
 # Create HTML table of LSDV results
-rownames_tbl = c("(Intercept)", "weekend1", "weekNumber", "BAS",
-                 "BZ", "CAL", "CAM", "EMR", "FVG", "LAZ", "LIG",
-                 "LOM", "MAR", "MOL", "PIE", "PUG", "SAR", "SIC",
-                 "TN", "TOS", "UMB", "VDA", "VEN",
-                 "airPassengersArrived", "touristArrivals",
-                 "broadbandAccess", "dischargeRateDiabetes",
-                 "dischargeRateRespiratory",
-                 "dischargeRateHypertension", "dischargeRateCancer",
-                 "dischargeRateChd", "dischargeRatePneumonia",
-                 "dischargeRateTB", "availableBeds",
-                 "maritimePassengersDisembarked",
-                 "riskOfPovertyOrSocialExclusion", "railTravelers", "medianAge")
+rownames_tbl = c("(Intercept)", "weekend1", "weekNumber",
+                 levels(factor(df_long$Code))[-1], regressors)
 
 coefs_tbl = tibble(variable=rownames_tbl)
 lags = vector()
