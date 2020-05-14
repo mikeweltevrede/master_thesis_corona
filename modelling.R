@@ -24,8 +24,8 @@ regressors = c("airPassengersArrived", "touristArrivals", "broadbandAccess",
                "maritimePassengersDisembarked",
                "riskOfPovertyOrSocialExclusion", "railTravelers", "medianAge")
 
-#### Transform variables into proportions ####
-# TODO: Transform variables to proportions (in clean_full.R or here?)
+#### Transform variables ####
+# Transform into proportions
 make_prop = function(x, na.rm = FALSE) { x / sum(x, na.rm = na.rm) }
 
 regressors_prop = c("airPassengersArrived", "touristArrivals",
@@ -40,11 +40,7 @@ df_long = df_long %>%
   mutate_at(regressors_prop, make_prop) %>% 
   ungroup
 
-# TODO: Run models
-# Create formula to be the product of the regressors with the lagged incidence
-# and susceptible rates
-
-# TODO: Add week/weekend effect
+# Add weekend and weekday effect
 df_long = df_long %>%
   mutate(weekNumber = lubridate::week(df_long$Date)) %>%
   mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
@@ -53,12 +49,7 @@ df_long = df_long %>%
 X_regressors = c("weekend", "weekNumber")
 base_vars = c("Date", "Code", "incidenceRate", "susceptibleRate", X_regressors)
 
-df_long_pd = pdata.frame(df_long %>%
-                           select(all_of(c(base_vars, regressors))) %>%
-                           arrange(Code),
-                         index=c("Code","Date"), drop.index=TRUE,
-                         row.names=TRUE)
-
+#### Run models ####
 lags = 1:6 # Incubation period
 lsdv_results = vector("list")
 
