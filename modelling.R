@@ -18,8 +18,8 @@ df_long = readr::read_csv(path_full_long, col_types = do.call(
 
 regressors = c("airPassengersArrived", "touristArrivals", "broadbandAccess",
                "dischargeRateDiabetes", "dischargeRateRespiratory",
-               "dischargeRateHypertension", #"dischargeRateCancer",
-               "dischargeRateChd", #"dischargeRatePneumonia",
+               "dischargeRateHypertension", "dischargeRateCancer",
+               "dischargeRateChd", "dischargeRatePneumonia",
                "dischargeRateTB", "availableBeds",
                "maritimePassengersDisembarked",
                "riskOfPovertyOrSocialExclusion", "railTravelers", "medianAge")
@@ -30,8 +30,8 @@ make_prop = function(x, na.rm = FALSE) { x / sum(x, na.rm = na.rm) }
 
 regressors_prop = c("airPassengersArrived", "touristArrivals",
                     "dischargeRateDiabetes", "dischargeRateRespiratory",
-                    "dischargeRateHypertension", #"dischargeRateCancer",
-                    "dischargeRateChd", #"dischargeRatePneumonia",
+                    "dischargeRateHypertension", "dischargeRateCancer",
+                    "dischargeRateChd", "dischargeRatePneumonia",
                     "dischargeRateTB", "availableBeds",
                     "maritimePassengersDisembarked", "railTravelers")
 
