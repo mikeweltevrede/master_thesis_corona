@@ -162,6 +162,33 @@ for (item in lsdv_results){
                                          "({signif(tvals, digits=5)})"))
 }
 
+# Print as latex
+a = lsdv_results[[1]] %>% summary
+b = lsdv_results[[2]] %>% summary
+c = lsdv_results[[5]] %>% summary
+
+rows = a$coefficients[, 1] %>%
+  names %>%
+  str_replace(paste0("dplyr::lag\\(incidenceRate, 1\\):dplyr::lag",
+                     "\\(susceptibleRate, 1\\):dplyr::lag\\("), "") %>%
+  str_replace("\\, \\d\\)", "$^{\\\\dagger}$") %>% 
+  str_replace("factor\\(Code\\)", "") 
+noquote(
+  glue("{{rows}} ",
+       "& ${{signif(a$coefficients[, 1], 4)}}}$ ",
+       "&& ${{signif(b$coefficients[, 1], 4)}}}$ ",
+       "&& ${{signif(c$coefficients[, 1], 4)}}}$ \\\\ \n",
+       " ",
+       "& $({{signif(a$coefficients[, 2], 4)}}})$ ",
+       "&& $({{signif(b$coefficients[, 2], 4)}}})$ ",
+       "&& $({{signif(c$coefficients[, 2], 4)}}})$ \\\\ \n",
+       .open = "{{", .close = "}}") %>%
+    str_replace_all("e-0", " \\\\times 10^{\\\\shortminus ") %>%
+    str_replace_all("-", "\\\\shortminus ")
+  
+) %>% write("output/lsdv_table_latex.txt")
+
+
 # Save to HTML table
 # coefs_tbl %>% gt() %>% gtsave("table_lsdv.html", path = output_path) # path= does not work; known issue
 coefs_tbl %>% gt %>% gtsave("table_lsdv.html")
