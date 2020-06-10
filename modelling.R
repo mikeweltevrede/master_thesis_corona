@@ -10,8 +10,9 @@ library(lmtest)
 source("config.R")
 
 # Each day, the data should be recleaned
-# source("clean_full.R")
+source("clean_full.R")
 
+# Import the data
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
 
