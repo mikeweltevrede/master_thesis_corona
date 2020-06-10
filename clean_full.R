@@ -1,10 +1,10 @@
 #### Setup ####
 rm(list=ls())
 
-library(readxl, quietly=TRUE)
-library(tidyverse, quietly=TRUE)
-library(lubridate, quietly=TRUE)
-library(reticulate, quietly=TRUE)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(reticulate)
 
 # Import standard variables
 source("config.R")
