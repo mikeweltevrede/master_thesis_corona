@@ -144,7 +144,7 @@ for (regio in df_eurostat$Code) {
 
 # Join the data with the extra data (containing the amount of active ICU
 # patients, recoveries, tested people, and positively tested people)
-df_wide_full = read_xlsx(path_wiki, sheet="Extra") %>%
+df_wide = read_xlsx(path_wiki, sheet="Extra") %>%
   mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
   drop_na %>%
   full_join(df_wide, by="Date") %>%
@@ -160,17 +160,17 @@ df_wide_full = read_xlsx(path_wiki, sheet="Extra") %>%
 for (regio in df_eurostat$Code){
   # For completeness sake, even though the NAs (should) align, we find them per
   # region. It does not take much computing time
-  which_NA = df_wide_full %>%
+  which_NA = df_wide %>%
     select(!!paste0(regio, "_TestedPositive")) %>%
     is.na %>%
     which
   
-  csum = df_wide_full %>%
+  csum = df_wide %>%
     select(!!paste0(regio, "_Confirmed")) %>%
     cumsum %>%
     .[which_NA, ]
   
-  first_elt = df_wide_full %>%
+  first_elt = df_wide %>%
     select(!!paste0(regio, "_TestedPositive")) %>%
     na.omit %>%
     unlist %>%
@@ -178,7 +178,7 @@ for (regio in df_eurostat$Code){
   
   # Check if the final element in the cumsum is lower than
   if (tail(csum, 1) <= first_elt) {
-    df_wide_full[which_NA, paste0(regio, "_TestedPositive")] = csum
+    df_wide[which_NA, paste0(regio, "_TestedPositive")] = csum
   } else {
     print(paste0("For region ", regio, ", the final element of csum (",
                  tail(csum, 1), ") was not lower than the first NA element (",
@@ -187,7 +187,7 @@ for (regio in df_eurostat$Code){
   
   # In Adda's notation, region_Confirmed[t] is the incidence. We now convert
   # these to get the rates Inc and S. Do note that these will be extremely small
-  df_wide_full = df_wide_full %>%
+  df_wide = df_wide %>%
     mutate(!!paste0(regio, "_susceptibleRate") :=
              .data[[paste0(regio, "_susceptiblePopulation")]] /
              .data[[paste0(regio, "_totalPopulation")]]) %>%
@@ -197,10 +197,10 @@ for (regio in df_eurostat$Code){
 }
 
 # Sort the columns, keeping Date as the first column.
-df_wide_full = df_wide_full[, c("Date", sort(colnames(df_wide_full)[-1]))]
+df_wide = df_wide[, c("Date", sort(colnames(df_wide)[-1]))]
 
 # Convert the data to long format.
-df_long_full = df_wide_full %>%
+df_long_full = df_wide %>%
   pivot_longer(cols = -Date, names_to = c("Code", ".value"), names_sep = "_")
 
 #### Process Eurostat regressors (import on line 60) ####
@@ -372,17 +372,17 @@ df_long_full = df_long_full %>%
 
 #### Final processing ####
 # Pivot the long data to wide data
-df_wide_full = df_long_full %>%
+df_wide = df_long_full %>%
   pivot_wider(names_from = Code,
               values_from = all_of(colnames(df_long_full)[-c(1,2)]))
 
 # Colnames are now of the form "variable_regionCode". We want to have them of
 # the form "regionCode_variable".
-colnames(df_wide_full) = colnames(df_wide_full) %>%
+colnames(df_wide) = colnames(df_wide) %>%
   sapply(function(s) {
     s %>% str_split("_", simplify = TRUE) %>% rev() %>% paste(collapse="_")
     }, USE.NAMES=FALSE)
 
 #### Export to file ####
-readr::write_csv(df_wide_full, path_full_wide)
+readr::write_csv(df_wide, path_full_wide)
 readr::write_csv(df_long_full, path_full_long)
