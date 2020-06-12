@@ -5,12 +5,14 @@ path_requirements = "requirements.txt"
 # Activate the Conda environment. If it does not exist yet, create it with the
 # required packages.
 library(reticulate)
-tryCatch(use_condaenv(env_name),
-         error=function(e){
-           requirements = scan(file=path_requirements, what=character(),
-                               quiet=TRUE) 
-           conda_create(env_name, packages=requirements)
-         })
+if (env_name %in% conda_list()$name){
+  use_condaenv(env_name)
+} else {
+  requirements = scan(file=path_requirements, what=character(),
+                      quiet=TRUE) 
+  conda_create(env_name, packages=requirements)
+  use_condaenv(env_name)
+}
 
 # Path variables for data
 data_path = "data"
