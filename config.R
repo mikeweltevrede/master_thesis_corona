@@ -8,9 +8,9 @@ library(reticulate)
 if (env_name %in% conda_list()$name){
   use_condaenv(env_name)
 } else {
-  requirements = scan(file=path_requirements, what=character(),
-                      quiet=TRUE) 
-  conda_create(env_name, packages=requirements)
+  conda_create(env_name)
+  conda_install(env_name, packages=scan(file=path_requirements,
+                                        what=character(), quiet=TRUE))
   use_condaenv(env_name)
 }
 
