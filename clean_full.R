@@ -60,7 +60,7 @@ df_wide = df_wide %>%
 
 df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character()))) %>%
-  right_join(df_meta %>% select(c("Region", "Code")), by=c("region"="Region"))
+  right_join(df_meta %>% select(Region, Code), by=c("region"="Region"))
 
 # From https://www.worldometers.info/world-population/italy-population/, we find
 # that the yearly growth rate for Italy in 2019 was -0.13% and for 2020 it was
@@ -144,6 +144,7 @@ for (regio in df_eurostat$Code) {
 # patients, recoveries, tested people, and positively tested people)
 df_wide = read_xlsx(path_wiki, sheet="Extra") %>%
   mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
+  complete(Date = all_dates) %>%
   drop_na %>%
   full_join(df_wide, by="Date") %>%
   arrange(Date) # Sort by Date
@@ -264,9 +265,9 @@ df_eurostat_panel = left_join(iddat, df_eurostat, by = "Code") %>%
   as_tibble
 
 #### Interpolate Google Mobility Report ####
+# TODO: Google recently released the actual data; will be used soon instead.
 # Import railway travellers data. This is interpolated from the Google Mobility
-# Report (by eye and hand). Google recently released the actual data and this
-# will be used soon instead.
+# Report (by eye and hand). 
 dfs_mobility = path_mobility_report %>% 
   excel_sheets %>% 
   set_names %>% 
