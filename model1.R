@@ -3,14 +3,12 @@
 # I_rt = alpha_within*I_rt-tau*S_rt-tau + X_rt*delta + nu_rt
 
 #### Setup ####
-rm(list=ls())
+# Import standard variables
+source("config.R")
 
 library(tidyverse)
 library(glue)
 library(lmtest)
-
-# Import standard variables
-source("config.R")
 
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))

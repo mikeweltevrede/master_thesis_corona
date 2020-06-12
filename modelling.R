@@ -1,13 +1,11 @@
 #### Setup ####
-rm(list=ls())
+# Import standard variables
+source("config.R")
 
 library(tidyverse, quietly=TRUE)
 library(glue)
 library(gt)
 library(lmtest)
-
-# Import standard variables
-source("config.R")
 
 # Each day, the data should be recleaned
 source("clean_full.R")
