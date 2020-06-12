@@ -2,7 +2,7 @@
 # Import standard variables
 source("config.R")
 
-library(tidyverse, quietly=TRUE)
+library(tidyverse)
 library(glue)
 library(gt)
 library(lmtest)
