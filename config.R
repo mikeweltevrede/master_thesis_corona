@@ -1,18 +1,19 @@
 rm(list=ls())
+library(reticulate)
+
 # Environment variables
 env_name = "r-thesis_corona"
 path_requirements = "requirements.txt"
 
 # Activate the Conda environment. If it does not exist yet, create it with the
 # required packages.
-library(reticulate)
 if (env_name %in% conda_list()$name){
-  use_condaenv(env_name)
+  use_condaenv(env_name, required=TRUE)
 } else {
   conda_create(env_name)
   conda_install(env_name, packages=scan(file=path_requirements,
                                         what=character(), quiet=TRUE))
-  use_condaenv(env_name)
+  use_condaenv(env_name, required=TRUE)
 }
 
 # Path variables for data
