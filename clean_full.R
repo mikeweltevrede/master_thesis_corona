@@ -1,13 +1,11 @@
 #### Setup ####
-rm(list=ls())
+# Import standard variables
+source("config.R")
 
 library(readxl)
 library(tidyverse)
 library(lubridate)
 library(reticulate)
-
-# Import standard variables
-source("config.R")
 
 # Read in metadata
 df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
