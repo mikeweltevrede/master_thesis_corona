@@ -1,3 +1,4 @@
+rm(list=ls())
 # Environment variables
 env_name = "r-thesis_corona"
 path_requirements = "requirements.txt"
