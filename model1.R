@@ -38,8 +38,7 @@ fm = paste("incidenceRate ~ ",
 
 # Run model
 lsdv = lm(fm, data=df_long)
-residual = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
-
+summary(lsdv)
 
 png(glue("{output_path}/model1_lmplot_lag_{lag}.png"))
 par(mfrow=c(2,2))
@@ -47,6 +46,7 @@ plot(lsdv)
 par(mfrow=c(1,1))
 dev.off()
 
+residual = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
 
 # Plot residuals
 tibble(index = 1:length(residual), residuals = residual) %>%
