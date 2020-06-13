@@ -6,8 +6,8 @@ df_wide = pd.read_excel(f"{data_path}/italy_wikipedia.xlsx", sheet_name='Wide',
                         parse_dates=['Date'], dayfirst=True)
 
 # We fill NAs by either 0 or the average of the value directly before and directly after
+# We fill NAs by 0
 for col in df_wide.columns[df_wide.isna().any(axis=0)]:
-    # fill_value = (df_wide[col].shift() + df_wide[col].shift(-1))/2
     fill_value = 0
     df_wide[col] = df_wide[col].fillna(fill_value)
 
