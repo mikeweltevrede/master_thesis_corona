@@ -452,7 +452,7 @@ df_wide = df_long_full %>%
 # the form "regionCode_variable".
 colnames(df_wide) = colnames(df_wide) %>%
   sapply(function(s) {
-    s %>% str_split("_", simplify = TRUE) %>% rev() %>% paste(collapse="_")
+    s %>% str_split("_", simplify = TRUE) %>% rev %>% paste(collapse="_")
     }, USE.NAMES=FALSE)
 
 #### Export to file ####
