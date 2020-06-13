@@ -262,19 +262,11 @@ iddat = expand.grid(Date = unique(df_long_full$Date),
                     Code = unique(df_long_full$Code))
 iddat = iddat[order(iddat$Date, iddat$Code), ]
 rownames(iddat) <- NULL
-df_eurostat_panel = left_join(iddat, df_eurostat, by = "Code") %>%
-  as_tibble
+df_eurostat = left_join(iddat, df_eurostat, by = "Code") %>% as_tibble
 
-#### Interpolate Google Mobility Report ####
-# TODO: Google recently released the actual data; will be used soon instead.
-# Import railway travellers data. This is interpolated from the Google Mobility
-# Report (by eye and hand). 
-dfs_mobility = path_mobility_report %>% 
-  excel_sheets %>% 
-  set_names %>% 
-  map(read_excel, path = path_mobility_report)
+df_long_full = df_long_full %>%
+  left_join(df_eurostat, by = c("Date", "Code"))
 
-interpolate = function(data, metadata, max_date = NULL, only=NULL) {
 #### Process Google Mobility Report ####
 df_gmr = readr::read_csv(path_mobility_report_official,
                          col_types = do.call(cols, list(
