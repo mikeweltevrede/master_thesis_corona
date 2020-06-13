@@ -11,6 +11,7 @@ source("config.R")
 library(tidyverse)
 library(glue)
 library(lmtest)
+library(aTSA)
 
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
@@ -71,3 +72,15 @@ ggplot(tbl, aes(x=index, y=resids_col)) +
   theme(plot.title = element_text(face = "bold")) +
   geom_point(alpha=0.6, color='firebrick')
 ggsave("model1_residuals_plot_lag_1_6.png", path=output_path)
+# One Sample t-test for zero-mean
+t.test(residual) # p=1: true mean is not equal to 0
+
+# Tests for autocorrelation
+lmtest::dwtest(fm, data=df_long) # Durbin-Watson test: p=0.76: ac > 0
+lmtest::bgtest(fm, data=df_long) # Breusch-Godfrey test: p<2.2e-16: ac > 0(?)
+Box.test(residual, type = "Ljung-Box") # Ljung-Box test: p<2.2e-16: ac > 0
+
+# Tests for stationarity
+aTSA::stationary.test(residual, method = "adf") # ADF: stationary
+aTSA::stationary.test(residual, method = "pp") # Phillips-Perron: stationary
+aTSA::stationary.test(residual, method = "kpss") # KPSS: nonstationary
