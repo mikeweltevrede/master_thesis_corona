@@ -40,38 +40,21 @@ fm = paste("incidenceRate ~ ",
 lsdv = lm(fm, data=df_long)
 residual = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
 
-# TODO: Replace DW test by another unit root test
-dw_results = dwtest(fm, data=df_long)
-dw_stat = dw_results$statistic
-dw_pval = dw_results$p.value
 
-t_results = t.test(residual)
-t_stat = t_results$statistic
-t_pval = t_results$p.value
+png(glue("{output_path}/model1_lmplot_lag_{lag}.png"))
+par(mfrow=c(2,2))
+plot(lsdv)
+par(mfrow=c(1,1))
+dev.off()
 
-# Test
-lag_col_counts = table(lag_col)
-index = vector()
-for (len in lag_col_counts){
-  index = c(index, 1:len)
-}
 
-tbl = tibble(index, residuals = residual, lag=lag_col, dw_col, dw_p_col,
-             t_col, t_p_col)
-tbl$lag = factor(tbl$lag, levels=unique(tbl$lag),
-                 labels=paste0("Lag: ", lags,
-                               "\n Durbin-Watson statistic: ",
-                               signif(unique(tbl$dw_col), 5),
-                               " (p=", signif(unique(tbl$dw_p_col), 5), ")",
-                               "\n t-statistic for mean 0: ",
-                               signif(unique(tbl$t_col), 5),
-                               " (p=", signif(unique(tbl$t_p_col), 5), ")"))
-
-ggplot(tbl, aes(x=index, y=resids_col)) +
-  facet_wrap(~lag) +
+# Plot residuals
+tibble(index = 1:length(residual), residuals = residual) %>%
+  ggplot(aes(x=index, y=residual)) +
   theme(plot.title = element_text(face = "bold")) +
   geom_point(alpha=0.6, color='firebrick')
-ggsave("model1_residuals_plot_lag_1_6.png", path=output_path)
+ggsave(glue("model1_residuals_plot_lag_{lag}.png"), path=output_path)
+
 # One Sample t-test for zero-mean
 t.test(residual) # p=1: true mean is not equal to 0
 
