@@ -5,11 +5,8 @@ data_path = "data"
 df_wide = pd.read_excel(f"{data_path}/italy_wikipedia.xlsx", sheet_name='Wide',
                         parse_dates=['Date'], dayfirst=True)
 
-# We fill NAs by either 0 or the average of the value directly before and directly after
 # We fill NAs by 0
-for col in df_wide.columns[df_wide.isna().any(axis=0)]:
-    fill_value = 0
-    df_wide[col] = df_wide[col].fillna(fill_value)
+df_wide = df_wide.fillna(0)
 
 # We will not allow for negative values. These are defined as corrections due
 # to cases that were subsequently declared negative. So, we will go backwards
