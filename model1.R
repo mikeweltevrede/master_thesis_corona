@@ -3,6 +3,8 @@
 # I_rt = alpha_within*I_rt-tau*S_rt-tau + X_rt*delta + nu_rt
 
 #### Setup ####
+source("clean_full.R") # May error; if so, run it by hand
+
 # Import standard variables
 source("config.R")
 
