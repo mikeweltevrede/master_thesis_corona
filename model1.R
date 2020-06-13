@@ -3,7 +3,7 @@
 # I_rt = alpha_within*I_rt-tau*S_rt-tau + X_rt*delta + nu_rt
 
 #### Setup ####
-source("clean_full.R") # May error; if so, run it by hand
+# source("clean_full.R") # May error; if so, run it by hand
 
 # Import standard variables
 source("config.R")
@@ -22,18 +22,16 @@ df_long = df_long %>%
   mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
-X_regressors = c("weekend", "weekNumber", "medianAge",
-                 "riskOfPovertyOrSocialExclusion")
-
+X_regressors = c("weekend", "weekNumber", "medianAge")
 base_vars = c("Date", "Code", "incidenceRate", "susceptibleRate", X_regressors)
 
 #### Run models ####
-lag = 3 # Incubation period
+lag = 5 # Incubation period
   
 # Construct formula
 fm = paste("incidenceRate ~ ",
-          glue("lag(incidenceRate, {lag}):lag(susceptibleRate, {lag})"),
-          paste(X_regressors, collapse="+")) %>%
+           glue("lag(incidenceRate, {lag}):lag(susceptibleRate, {lag})+"),
+           paste(X_regressors, collapse="+")) %>%
   paste("+factor(Code)") %>%
   as.formula
 
