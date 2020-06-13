@@ -6,6 +6,7 @@ library(readxl)
 library(tidyverse)
 library(lubridate)
 library(reticulate)
+library(zoo)
 
 # Read in metadata
 df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
@@ -274,62 +275,76 @@ dfs_mobility = path_mobility_report %>%
   map(read_excel, path = path_mobility_report)
 
 interpolate = function(data, metadata, max_date = NULL, only=NULL) {
+#### Process Google Mobility Report ####
+df_gmr = readr::read_csv(path_mobility_report_official,
+                         col_types = do.call(cols, list(
+                           sub_region_2 = col_character(),
+                           date = col_date(format = "%Y-%m-%d")))) %>%
+  filter(country_region_code == "IT") %>%
   
-  if (is.null(max_date)) {
-    data = data %>%
-      mutate(Date = as.Date(Date, format = "%d/%m/%Y")) %>%
-      complete(Date = seq.Date(min(Date), max(Date), by = "day"))
-  } else {
-    max_date = as.Date(max_date, format = "%d/%m/%Y")
-    data = data %>%
-      mutate(Date = as.Date(Date, format = "%d/%m/%Y")) %>%
-      complete(Date = seq.Date(min(Date), max_date, by = "day"))
-  }
+  # Drop unused columns
+  select(-country_region_code, -country_region, -sub_region_2) %>%
   
-  if (is_null(only)){
-    # Take all columns except for "Date"; else, take the ones specified in only
-    only = colnames(data)[colnames(data) != "Date"]
-  }
+  # Drop rows with NAs in column `sub_region_1` (region name)
+  drop_na(any_of("sub_region_1")) %>%
   
-  # We now run the interpolation for each column
-  for (region_code in only) {
-    region_name = metadata[df_meta$Code == region_code, ][["Region"]]
-    missing_dates = data[data[, region_code] %>% is.na(), ][["Date"]]
-    
-    for (date in missing_dates) {
-      
-      # Note that we have not specified a value for the final date in the data
-      # since this is unknown. We assume that the value from March 29 stays
-      # constant, rule=2 argument.
-      data[data$Date == date, region_code] = approx(
-        data$Date, data[[region_code]], xout = date,
-        ties = "ordered", rule = 2)$y
-    }
-  }
+  # Clean column names
+  rename_at(vars(ends_with("_percent_change_from_baseline")),
+            funs(str_replace(., "_percent_change_from_baseline", "")))
+
+colnames(df_gmr) = colnames(df_gmr) %>%
+  str_replace("sub_region_1", "Region") %>%
+  snakecase::to_upper_camel_case()
+
+# Translate the regions to their Italian equivalent
+df_gmr$Region = df_gmr$Region %>%
+  str_replace("Aosta", "Valle d'Aosta/Vallée d'Aoste") %>%
+  str_replace("Apulia", "Puglia") %>%
+  str_replace("Lombardy", "Lombardia") %>%
+  str_replace("Piedmont", "Piemonte") %>%
+  str_replace("Sardinia", "Sardegna") %>%
+  str_replace("Sicily", "Sicilia") %>%
   
-  return(data)
-}
+  # Consider how to divide up in TN and BZ; for now: just the same (see below)
+  str_replace("Trentino-South Tyrol", "Provincia Autonoma di Trento") %>%
+  str_replace("Tuscany", "Toscana")
 
-# Use the function; save each interpolated sheet as a list element
-dfs_interpolated = vector("list")
+# Assume that the changes in Trentino-South Tyrol are the same for Trento and
+# Bolzano
+temp = df_gmr %>%
+  filter(Region == "Provincia Autonoma di Trento")
+temp$Region = "Provincia Autonoma di Bolzano/Bozen"
 
-# We get the maximum date available in our cleaned wikipedia data
-max_date = readr::read_csv(path_cleaned_wide, col_types = do.call(
-  cols, list(Date=col_date(format="%Y-%m-%d")))) %>%
-  .[["Date"]] %>%
-  max
+df_gmr = df_gmr %>%
+  bind_rows(temp)
 
-for (data in names(dfs_mobility)[names(dfs_mobility) != "Overall"]) {
-  dfs_interpolated[[data]] = interpolate(dfs_mobility[[data]], df_meta,
-                                         max_date)
-}
+rm(temp) # Remove temp from the workspace
 
-# For railroad transport, we can multiply by the baseline value
-df_rail = read_csv(path_railroad) %>%
+# Transform into percentages (decimal form)
+df_gmr = df_gmr %>%
+  mutate(across(-c(Region, Date), function(x) {x/100 + 1}))
+
+# Add regional codes
+df_gmr = df_meta %>%
+  select(Region, Code) %>%
+  right_join(df_gmr , by="Region") %>%
+  select(-Region)
+
+# We now are only interested in a decrease in the rail travellers, so we only
+# select TransitStations.
+df_gmr = df_gmr %>% select(Code, Date, TransitStations)
+
+# For railroad transport, we can multiply by the baseline value. The latest data
+# from Eurostat is from 2015. We assume that this value has changed in the same
+# way as the population growth rate.
+df_rail = readr::read_csv(path_railroad,
+                          col_types = do.call(cols, list(
+                            C_LOAD = col_character()))) %>%
   filter(TIME == max(TIME))
 
-regions = colnames(dfs_interpolated[["Transit stations"]])[
-  colnames(dfs_interpolated[["Transit stations"]]) != "Date"]
+regions = df_gmr$Code %>% unique
+baselines = vector()
+date_diff = as.integer(df_gmr$Date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 
 for (region_code in regions) {
   region_name = df_meta[df_meta$Code == region_code, ][["Region"]]
@@ -350,24 +365,90 @@ for (region_code in regions) {
     filter(C_LOAD == region_name) %>%
     .[[region_name]]
   
+  # We convert the amount of rail travellers in accordance with the population
+  # growth rate. We divide by 366 on the next line because 2020 is a leap year
+  baseline = baseline * (1+growth_rate_pop_2019) *
+    (1+growth_rate_pop_2020)^(date_diff/366) - 
+    head(df_wide[[glue("{region_code}_Deaths")]], 1)
+  
   # The given numbers in df_rail are per year so we need daily numbers. This
-  # depends on whether it is a leap year.
-  if (df_rail$TIME %>% max() %>% leap_year()) {
+  # depends on whether it is a leap year
+  if (df_rail$TIME[1] %>% leap_year) {
     baseline = baseline / 366
   } else {
     baseline = baseline / 365
   }
   
-  dfs_interpolated[["Transit stations"]][[region_code]] =
-    dfs_interpolated[["Transit stations"]][[region_code]] * baseline
+  # TODO: Assume constant behaviour for the dates in df_long_full missing in 
+  #### here ####
+  dates_before = seq.Date(df_long_full %>%
+                           filter(Code == region_code) %>%
+                           .[["Date"]] %>%
+                           min,
+                         df_gmr %>%
+                           filter(Code == region_code) %>%
+                           .[["Date"]] %>%
+                           min-1, by="day")
+  dates_after = seq.Date(df_gmr %>%
+                           filter(Code == region_code) %>%
+                           .[["Date"]] %>%
+                           max+1,
+                         df_long_full %>%
+                           filter(Code == region_code) %>%
+                           .[["Date"]] %>%
+                           max, by="day")
+  
+  df_gmr = df_gmr %>%
+    bind_rows(tibble(Code = rep(region_code, length(dates_before)),
+                     Date = dates_before,
+                     TransitStations = rep(df_gmr %>%
+                                             filter(Code == region_code) %>%
+                                             select(TransitStations) %>%
+                                             head(1) %>%
+                                             unlist(use.names=FALSE),
+                                           length(dates_before)))) %>%
+    bind_rows(tibble(Code = rep(region_code, length(dates_after)),
+                     Date = dates_after,
+                     TransitStations = rep(df_gmr %>%
+                                             filter(Code == region_code) %>%
+                                             select(TransitStations) %>%
+                                             tail(1) %>%
+                                             unlist(use.names=FALSE),
+                                           length(dates_after))))
+  
+  all_dates = seq.Date(min(df_long_full$Date), max(df_long_full$Date), by="day")
+  missing_dates = all_dates[which(!df_long_full$Date %in%
+                                    (df_gmr %>% filter(Code == region_code) %>%
+                                    .[["Date"]]))][-1]
+  
+  if (length(missing_dates) > 0){
+    # TODO: Impute missing values by the mean of the surrounding values
+    df_gmr = df_gmr %>%
+      bind_rows(tibble(
+        Code = rep(region_code, length(missing_dates)),
+        Date = missing_dates,
+        TransitStations = rep(NA, length(missing_dates)))) 
+  }
+  
+  # Sort now that new dates have been added
+  df_gmr = df_gmr %>% arrange(Code, Date)
+  
+  # Impute possible NAs with the mean of the surrounding values
+  df_gmr$TransitStations = df_gmr$TransitStations %>%
+    (function(x){(na.locf(x) + rev(na.locf(rev(x))))/2})
+  
+  # Add baseline to a column baselines to be added to df_gmr
+  num_rows = df_gmr %>% filter(Code == region_code) %>% nrow
+  baselines = c(baselines, rep(baseline, num_rows))
 }
+
+df_gmr = df_gmr %>%
+  transmute(Date = Date, Code = Code,
+            railTravelers = round(TransitStations*eval(baselines)))
 
 # Join the expanded eurostat data and the railway data with the long data.
 df_long_full = df_long_full %>%
-  left_join(df_eurostat_panel, by = c("Date", "Code")) %>%
-  left_join(dfs_interpolated[["Transit stations"]] %>%
-              pivot_longer(cols = -Date, names_to = "Code",
-                           values_to = "railTravelers"), by = c("Date", "Code"))
+  left_join(df_gmr, by = c("Date", "Code"))
 
 #### Final processing ####
 # Pivot the long data to wide data
