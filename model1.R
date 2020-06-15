@@ -37,8 +37,9 @@ fm = paste("incidenceRate ~ ",
   as.formula
 
 # Run model
-lsdv = lm(fm, data=df_long)
+lsdv = lm(fm, data=df_long) # Multicolinearity regions and medianAge
 summary(lsdv)
+alias(lsdv) # Looks at the linearly dependent terms
 
 png(glue("{output_path}/model1_lmplot_lag_{lag}.png"))
 par(mfrow=c(2,2))
