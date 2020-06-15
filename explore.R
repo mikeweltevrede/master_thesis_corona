@@ -16,12 +16,14 @@ df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 # yet exist or if new data gets added.
 # reticulate::py_run_file("eurostat_reader.py")
 
-df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
+dischargeRates = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character()))) %>%
-  right_join(df_meta %>% select(c("Region", "Code")), by=c("region"="Region"))
+  right_join(df_meta %>%
+               select(c("Region", "Code")), by=c("region"="Region")) %>%
+  select(starts_with("dischargeRate")) %>%
+  rename_with(function(x){str_replace(x, "dischargeRate", "")}) %>%
+  select(-Respiratory) # TODO: Remove respiratory diseases from Eurostat
 
-dischargeRates = df_eurostat %>% select(starts_with("dischargeRate"))
-
-corrs = correlate(dischargeRates)
-corrs %>% rplot(print_cor = TRUE)
-corrs %>% xtable %>% print(booktabs=TRUE)
+GGally::ggcorr(dischargeRates, label=TRUE, hjust = 0.75, size = 4.5,
+               layout.exp = 1, label_round = 2)
+ggsave("correlations_discharge_rates.png", path=output_path, dpi=300)
