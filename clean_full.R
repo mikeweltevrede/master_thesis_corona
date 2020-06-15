@@ -339,6 +339,10 @@ baselines = vector()
 date_diff = as.integer(df_gmr$Date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 
 for (region_code in regions) {
+  if (is.na(region_code)){
+    next
+  }
+  
   region_name = df_meta[df_meta$Code == region_code, ][["Region"]]
   
   baseline = df_rail %>%
