@@ -65,7 +65,7 @@ for (lag in lags){
   # Construct formula
   fm = paste("incidenceRate ~",
              
-             # The eurostat regressors are multiplied by the lagged Inc and S
+             # The Eurostat regressors are multiplied by the lagged Inc and S
              # TODO: Investigate more closely if some variables should not be
              # multiplied in this way
              paste0(glue("dplyr::lag(incidenceRate, {lag})",
@@ -191,5 +191,3 @@ noquote(
 # Save to HTML table
 # coefs_tbl %>% gt() %>% gtsave("table_lsdv.html", path = output_path) # path= does not work; known issue
 coefs_tbl %>% gt %>% gtsave("table_lsdv.html")
-
-# TODO: Model validation, e.g. walk-forward approach

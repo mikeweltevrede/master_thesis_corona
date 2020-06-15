@@ -1,11 +1,10 @@
 #### Setup ####
 rm(list=ls())
 
-library(readxl, quietly=TRUE)
-library(tidyverse, quietly=TRUE)
-library(lubridate, quietly=TRUE)
-library(reticulate, quietly=TRUE)
-library(corrr)
+library(readxl)
+library(tidyverse)
+library(reticulate)
+library(GGally)
 
 # Import standard variables
 source("config.R")
@@ -16,11 +15,6 @@ df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 # To merge all Eurostat zip files, uncomment the next line if the file does not
 # yet exist or if new data gets added.
 # reticulate::py_run_file("eurostat_reader.py")
-
-# We know the amount of people on January 1, 2019 as defined in df_eurostat. We
-# only keep rows where the `region` is an Italian region, not a direction/NUTS-1
-# region or the entire country by right joining with df_meta, since df_meta only
-# contains NUTS-2 regions.
 
 df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character()))) %>%

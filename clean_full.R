@@ -371,8 +371,7 @@ for (region_code in regions) {
     baseline = baseline / 365
   }
   
-  # TODO: Assume constant behaviour for the dates in df_long_full missing in 
-  #### here ####
+  # Assume constant behaviour before and after the limiting dates
   dates_before = seq.Date(df_long_full %>%
                            filter(Code == region_code) %>%
                            .[["Date"]] %>%
@@ -414,7 +413,6 @@ for (region_code in regions) {
                                     .[["Date"]]))][-1]
   
   if (length(missing_dates) > 0){
-    # TODO: Impute missing values by the mean of the surrounding values
     df_gmr = df_gmr %>%
       bind_rows(tibble(
         Code = rep(region_code, length(missing_dates)),
