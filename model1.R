@@ -23,7 +23,7 @@ df_long = df_long %>%
   mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
-X_regressors = c("weekend", "weekNumber", "medianAge")
+X_regressors = c("weekend", "weekNumber") # Multicolinearity regions and medianAge
 base_vars = c("Date", "Code", "incidenceRate", "susceptibleRate", X_regressors)
 
 #### Run models ####
@@ -37,7 +37,7 @@ fm = paste("incidenceRate ~ ",
   as.formula
 
 # Run model
-lsdv = lm(fm, data=df_long) # Multicolinearity regions and medianAge
+lsdv = lm(fm, data=df_long)
 summary(lsdv)
 alias(lsdv) # Looks at the linearly dependent terms
 
