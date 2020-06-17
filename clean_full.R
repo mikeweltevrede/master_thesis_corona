@@ -6,7 +6,7 @@ library(readxl)
 library(tidyverse)
 library(lubridate)
 library(reticulate)
-library(zoo)
+library(glue)
 
 # Read in metadata
 df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
