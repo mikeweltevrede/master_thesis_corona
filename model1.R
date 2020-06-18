@@ -68,6 +68,32 @@ Box.test(residual, type = "Ljung-Box") # Ljung-Box test: p<2.2e-16: ac > 0
 aTSA::stationary.test(residual, method = "adf") # ADF: stationary
 aTSA::stationary.test(residual, method = "pp") # Phillips-Perron: stationary
 aTSA::stationary.test(residual, method = "kpss") # KPSS: nonstationary
+
+#### Plot alpha over time ####
+df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
+tbl = tibble(Date = as.Date(NA), Alpha=numeric(0), Code=character(0))
+start = 31 # starting index - we want at least this number of observations
+
+for (region in df_meta$Code){
+  alphas = vector("double")
+  dates = vector("character")
+  data = df_long %>% filter(Code == !!region)
+  for (t in start:nrow(data)){
+    lsdv = lm(fm, data=data[1:t, ])
+    alpha = lsdv$coefficients[["lag(Confirmed, 5):lag(susceptibleRate, 5)"]]
+    alphas = c(alphas, alpha)
+  }
+  
+  tbl = tbl %>%
+    bind_rows(tibble(Date = data$Date[start:nrow(data)],
+                     Alpha = alphas,
+                     Code = region) %>%
+                drop_na())
+}
+
+tbl = tbl %>%
+  left_join(df_meta %>% select(c(Region, Code, Direction)), on=Code)
+
 mean_alphas = vector("list")
 days_smooth = 14
 for (sub_tbl in split(tbl, tbl$Direction)){
