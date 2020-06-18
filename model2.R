@@ -49,12 +49,12 @@ X_regressors = c("weekend", "weekNumber, medianAge")
 lag = 5 # Incubation period
 
 # Construct formula
-fm = paste("incidenceRate ~",
+fm = paste("Confirmed ~",
            
            # The Eurostat regressors are multiplied by the lagged Inc and S
            # TODO: Investigate more closely if some variables should not be
            # multiplied in this way
-           paste0(glue("dplyr::lag(incidenceRate, {lag})",
+           paste0(glue("dplyr::lag(Confirmed, {lag})",
                        ":dplyr::lag(susceptibleRate, {lag}):")) %>%
              paste0(glue("dplyr::lag({regressors}, {lag})")) %>%
              paste(collapse="+"), "+",

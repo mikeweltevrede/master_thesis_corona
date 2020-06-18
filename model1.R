@@ -30,16 +30,16 @@ X_regressors = c("weekend", "weekNumber", "medianAge") # Multicolinearity region
 lag = 5 # Incubation period
 
 # Construct formula
-fm = paste("incidenceRate ~ ",
-           glue("lag(incidenceRate, {lag}):lag(susceptibleRate, {lag})+"),
+fm = paste("Confirmed ~ ",
+           glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
   # paste("+factor(Code)") %>%
   as.formula
 
-# Run model
+# Run model - Note: now pools all observations
+# TODO: Consider a burn-in period
 lsdv = lm(fm, data=df_long)
 summary(lsdv)
-alias(lsdv) # Looks at the linearly dependent terms
 
 png(glue("{output_path}/model1_lag{lag}_lmplot.png"))
 par(mfrow=c(2,2))

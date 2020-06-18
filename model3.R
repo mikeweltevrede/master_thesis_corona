@@ -24,19 +24,19 @@ lag = 5 # Incubation period
 codes = df_long$Code %>% unique
 df_sumInc = tibble(Date = as.Date(NA),
                    Code = character(),
-                   sumIncidenceRate = numeric())
+                   sumConfirmed = numeric())
 for (region in codes){
   df_sumInc = df_sumInc %>%
     bind_rows(
       df_wide %>%
       select(map(codes[codes != region], starts_with, vars = colnames(.)) %>%
                unlist()) %>%
-      select(ends_with("incidenceRate")) %>%
+      select(ends_with("Confirmed")) %>%
       mutate_all(dplyr::lag, n=lag) %>%
       transmute(
         Date = df_wide$Date,
         Code = region,
-        sumIncidenceRate = rowSums(.)))
+        sumConfirmed = rowSums(.)))
 }
 
 rm(df_wide)
@@ -56,9 +56,9 @@ X_regressors = c("weekend", "weekNumber", "medianAge")
 
 #### Run model 3 ####
 # Construct formula
-fm = paste("incidenceRate ~ ",
-           glue("lag(incidenceRate, {lag}):lag(susceptibleRate, {lag})+"),
-           glue("lag(susceptibleRate, {lag}):sumIncidenceRate +"),
+fm = paste("Confirmed ~ ",
+           glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
+           glue("lag(susceptibleRate, {lag}):sumConfirmed +"),
            paste(X_regressors, collapse="+")) %>%
   # paste("+ factor(Code)") %>%
   as.formula
