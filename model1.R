@@ -68,6 +68,14 @@ Box.test(residual, type = "Ljung-Box") # Ljung-Box test: p<2.2e-16: ac > 0
 aTSA::stationary.test(residual, method = "adf") # ADF: stationary
 aTSA::stationary.test(residual, method = "pp") # Phillips-Perron: stationary
 aTSA::stationary.test(residual, method = "kpss") # KPSS: nonstationary
+#### Burn-in period ####
+data = df_long %>% filter(Code == "ABR")
+ssr = vector()
+for (burnin in 0:floor(nrow(data)/2)){
+  lsdv = lm(fm, data=data[(1+burnin):nrow(data), ])
+  ssr = c(ssr, sum(lsdv$residuals**2))
+}
+
 # TODO: Work on this; see a lot of difference in model specification per region
 for (region in df_meta$Code){
   print(glue("#############{region}#############"))
