@@ -68,6 +68,27 @@ Box.test(residual, type = "Ljung-Box") # Ljung-Box test: p<2.2e-16: ac > 0
 aTSA::stationary.test(residual, method = "adf") # ADF: stationary
 aTSA::stationary.test(residual, method = "pp") # Phillips-Perron: stationary
 aTSA::stationary.test(residual, method = "kpss") # KPSS: nonstationary
+mean_alphas = vector("list")
+days_smooth = 14
+for (sub_tbl in split(tbl, tbl$Direction)){
+  direc = sub_tbl$Direction[1]
+  g = ggplot(sub_tbl, aes(Date, Alpha, colour = Region)) + 
+    geom_point() +
+    # geom_path(alpha=0.2) +
+    geom_smooth(method="loess", span=0.3, se=FALSE) +
+    # coord_cartesian(ylim = c(0, 1)) +
+    xlab("") +
+    ylab(TeX("$\\alpha_{within}$")) +
+    scale_colour_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#0072B2",
+                                 "#D55E00", "#CC79A7"))
+  print(g)
+  ggsave(glue("model1_lag{lag}_alphawithin_{direc}.png"), path=output_path)
+  
+  # Get the mean Alpha of the last `days_smooth` days per region
+  mean_alphas[[direc]] = lapply(
+    split(sub_tbl, sub_tbl$Code),
+    function(x){mean(x$Alpha %>% tail(days_smooth))})
+}
 #### Burn-in period ####
 data = df_long %>% filter(Code == "ABR")
 ssr = vector()
