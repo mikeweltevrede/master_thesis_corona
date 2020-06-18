@@ -43,8 +43,8 @@ regressors = c("touristArrivals", "broadbandAccess", "dischargeRateDiabetes",
                "dischargeRateHypertension", "dischargeRateCancer",
                "dischargeRateChd", "dischargeRateTB", "availableBeds",
                "riskOfPovertyOrSocialExclusion")
-X_regressors = c("weekend", "weekNumber") # Multicollinearity regions and medianAge
 base_vars = c("Date", "Code", "incidenceRate", "susceptibleRate", X_regressors)
+X_regressors = c("weekend", "weekNumber, medianAge")
 
 #### Run models ####
 lag = 5 # Incubation period
@@ -62,7 +62,7 @@ fm = paste("incidenceRate ~",
            
            # These include the weekend and weekNumber effect
            paste(X_regressors, collapse="+")) %>%
-  paste("+factor(Code)") %>%
+  # paste("+factor(Code)") %>%
   as.formula
 
 # Run model

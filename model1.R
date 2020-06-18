@@ -23,8 +23,8 @@ df_long = df_long %>%
   mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
-X_regressors = c("weekend", "weekNumber") # Multicolinearity regions and medianAge
 base_vars = c("Date", "Code", "incidenceRate", "susceptibleRate", X_regressors)
+X_regressors = c("weekend", "weekNumber", "medianAge") # Multicolinearity regions and medianAge
 
 #### Run models ####
 lag = 5 # Incubation period
@@ -33,7 +33,7 @@ lag = 5 # Incubation period
 fm = paste("incidenceRate ~ ",
            glue("lag(incidenceRate, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
-  paste("+factor(Code)") %>%
+  # paste("+factor(Code)") %>%
   as.formula
 
 # Run model

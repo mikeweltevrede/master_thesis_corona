@@ -60,7 +60,7 @@ fm = paste("incidenceRate ~ ",
            glue("lag(incidenceRate, {lag}):lag(susceptibleRate, {lag})+"),
            glue("lag(susceptibleRate, {lag}):sumIncidenceRate +"),
            paste(X_regressors, collapse="+")) %>%
-  paste("+ factor(Code)") %>%
+  # paste("+ factor(Code)") %>%
   as.formula
 
 # Run model
