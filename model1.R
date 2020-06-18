@@ -68,3 +68,10 @@ Box.test(residual, type = "Ljung-Box") # Ljung-Box test: p<2.2e-16: ac > 0
 aTSA::stationary.test(residual, method = "adf") # ADF: stationary
 aTSA::stationary.test(residual, method = "pp") # Phillips-Perron: stationary
 aTSA::stationary.test(residual, method = "kpss") # KPSS: nonstationary
+# TODO: Work on this; see a lot of difference in model specification per region
+for (region in df_meta$Code){
+  print(glue("#############{region}#############"))
+  data = df_long %>% filter(Code == !!region)
+  print(step(lm(fm, data=data), direction = "both",
+             k=log(nrow(data)), trace=0))
+}
