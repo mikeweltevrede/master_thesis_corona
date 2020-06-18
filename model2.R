@@ -43,7 +43,6 @@ regressors = c("touristArrivals", "broadbandAccess", "dischargeRateDiabetes",
                "dischargeRateHypertension", "dischargeRateCancer",
                "dischargeRateChd", "dischargeRateTB", "availableBeds",
                "riskOfPovertyOrSocialExclusion")
-base_vars = c("Date", "Code", "incidenceRate", "susceptibleRate", X_regressors)
 X_regressors = c("weekend", "weekNumber, medianAge")
 
 #### Run models ####
@@ -68,9 +67,8 @@ fm = paste("incidenceRate ~",
 # Run model
 lsdv = lm(fm, data=df_long)
 summary(lsdv)
-alias(lsdv) # Looks at the linearly dependent terms
 
-png(glue("{output_path}/model1_lmplot_lag_{lag}.png"))
+png(glue("{output_path}/model2_lmplot_lag_{lag}.png"))
 par(mfrow=c(2,2))
 plot(lsdv)
 par(mfrow=c(1,1))

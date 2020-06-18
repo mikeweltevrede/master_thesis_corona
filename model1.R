@@ -12,6 +12,7 @@ library(tidyverse)
 library(glue)
 library(lmtest)
 library(aTSA)
+library(latex2exp)
 
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
@@ -23,12 +24,11 @@ df_long = df_long %>%
   mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
-base_vars = c("Date", "Code", "incidenceRate", "susceptibleRate", X_regressors)
 X_regressors = c("weekend", "weekNumber", "medianAge") # Multicolinearity regions and medianAge
 
 #### Run models ####
 lag = 5 # Incubation period
-  
+
 # Construct formula
 fm = paste("incidenceRate ~ ",
            glue("lag(incidenceRate, {lag}):lag(susceptibleRate, {lag})+"),
@@ -41,7 +41,7 @@ lsdv = lm(fm, data=df_long)
 summary(lsdv)
 alias(lsdv) # Looks at the linearly dependent terms
 
-png(glue("{output_path}/model1_lmplot_lag_{lag}.png"))
+png(glue("{output_path}/model1_lag{lag}_lmplot.png"))
 par(mfrow=c(2,2))
 plot(lsdv)
 par(mfrow=c(1,1))
@@ -54,7 +54,7 @@ tibble(index = 1:length(residual), residuals = residual) %>%
   ggplot(aes(x=index, y=residual)) +
   theme(plot.title = element_text(face = "bold")) +
   geom_point(alpha=0.6, color='firebrick')
-ggsave(glue("model1_residuals_plot_lag_{lag}.png"), path=output_path)
+ggsave(glue("model1_lag{lag}_residuals.png"), path=output_path)
 
 # One Sample t-test for zero-mean
 t.test(residual) # p=1: true mean is not equal to 0
@@ -115,6 +115,7 @@ for (sub_tbl in split(tbl, tbl$Direction)){
     split(sub_tbl, sub_tbl$Code),
     function(x){mean(x$Alpha %>% tail(days_smooth))})
 }
+
 #### Burn-in period ####
 data = df_long %>% filter(Code == "ABR")
 ssr = vector()
