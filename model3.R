@@ -67,7 +67,7 @@ fm = paste("Confirmed ~ ",
 lsdv = lm(fm, data=df_long) # Multicolinearity regions and medianAge
 summary(lsdv)
 
-png(glue("{output_path}/model3_lmplot_lag_{lag}.png"))
+png(glue("{output_path}/model3_lag{lag}_lmplot.png"))
 par(mfrow=c(2,2))
 plot(lsdv)
 par(mfrow=c(1,1))
@@ -80,7 +80,7 @@ tibble(index = 1:length(residual), residuals = residual) %>%
   ggplot(aes(x=index, y=residual)) +
   theme(plot.title = element_text(face = "bold")) +
   geom_point(alpha=0.6, color='firebrick')
-ggsave(glue("model3_residuals_plot_lag_{lag}.png"), path=output_path)
+ggsave(glue("model3_lag{lag}_residuals.png"), path=output_path)
 
 # One Sample t-test for zero-mean
 t.test(residual) # p=0.7036: true mean is not equal to 0
