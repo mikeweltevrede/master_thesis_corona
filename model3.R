@@ -52,7 +52,7 @@ df_long = df_long %>%
   mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
-X_regressors = c("weekend", "weekNumber", "medianAge")
+X_regressors = c("weekend", "weekNumber")
 
 #### Run model 3 ####
 # Construct formula
@@ -60,7 +60,7 @@ fm = paste("Confirmed ~ ",
            glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
            glue("lag(susceptibleRate, {lag}):sumConfirmed +"),
            paste(X_regressors, collapse="+")) %>%
-  # paste("+ factor(Code)") %>%
+  paste("+ factor(Code)") %>%
   as.formula
 
 # Run model
