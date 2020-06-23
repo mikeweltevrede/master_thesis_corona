@@ -73,7 +73,11 @@ plot(lsdv)
 par(mfrow=c(1,1))
 dev.off()
 
-residual = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
+# We remove the first `lag` dates for the residuals
+df_long_sub = df_long[!df_long$Date %in% (df_long$Date %>% unique() %>% .[1:lag]), ]
+
+# Compute the residuals
+residual = df_long_sub$Confirmed - lsdv$fitted.values
 
 # Plot residuals
 tibble(index = 1:length(residual), residuals = residual) %>%
