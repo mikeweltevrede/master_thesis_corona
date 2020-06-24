@@ -8,126 +8,378 @@
 # Import standard variables
 source("config.R")
 
+# Import packages
 library(tidyverse)
 library(glue)
-library(lmtest)
-library(aTSA)
+library(xtable)
 library(latex2exp)
 
+# Import data
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
+df_wide_full = readr::read_csv(path_full_wide, col_types = do.call(
+  cols, list(Date=col_date(format="%Y-%m-%d"))))
+
+# Incubation period
+lag = 5
+
+X_regressors = c("weekend", "weekNumber")
+all_variables = c("(Intercept)", X_regressors) %>%
+  str_replace("weekend", "weekend1")
 
 #### Data preprocessing ####
+# Add nationwide variables by summing the individual regions' variables
+susceptible = df_wide_full %>%
+  select(ends_with("susceptiblePopulation")) %>%
+  rowSums
+total = df_wide_full %>%
+  select(ends_with("totalPopulation")) %>%
+  rowSums
+
+# We use the *_Confirmed columns because these have been cleaned
+confirmed = df_wide_full %>% 
+  select(ends_with("_Confirmed")) %>% 
+  rowSums
+df_wide_full = df_wide_full %>%
+  mutate(susceptibleRate_total = susceptible/total,
+         confirmed_total = confirmed)
+
 # Add weekend and weekday effect
+df_wide_full = df_wide_full %>%
+  mutate(weekNumber = lubridate::week(df_wide_full$Date)) %>%
+  mutate(weekend = lubridate::wday(df_wide_full$Date, label = TRUE)
+         %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
+
 df_long = df_long %>%
   mutate(weekNumber = lubridate::week(df_long$Date)) %>%
   mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
-X_regressors = c("weekend", "weekNumber", "medianAge") # Multicolinearity regions and medianAge
+#### Least Squares Dummy Variables (LSDV) regression ####
+fm = paste("confirmed_total ~ ",
+           glue("lag(confirmed_total, {lag}):lag(susceptibleRate_total, ",
+                "{lag})+"),
+           paste(X_regressors,
+                 collapse="+")) %>%
+  paste("+factor(Code)") %>%
+  as.formula
 
-#### Run models ####
-lag = 5 # Incubation period
+model = lm(fm, data=df_long)
+summary(model)
+
+png(glue("{output_path}/model1_lag{lag}_lmplot_lsdv.png"))
+par(mfrow=c(2,2))
+plot(model)
+par(mfrow=c(1,1))
+dev.off()
+
+#### Models without model selection ####
+results_table = tibble(variables = c(all_variables, "alpha"))
+
+#### National model ####
+# Construct formula
+fm = paste("confirmed_total ~ ",
+           glue("lag(confirmed_total, {lag}):lag(susceptibleRate_total, ",
+                "{lag})+"),
+           paste(X_regressors,
+                 collapse="+")) %>%
+  as.formula
+
+# Estimate the model by OLS
+model = lm(fm, data=df_wide_full)
+
+png(glue("{output_path}/model1_lag{lag}_lmplot_national.png"))
+par(mfrow=c(2,2))
+plot(model)
+par(mfrow=c(1,1))
+dev.off()
+
+# Retrieve parameter estimates
+estimates = coef(summary(model))[, "Estimate"]
+pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
+
+# Insert parameter estimates in the results table
+results_table = results_table %>%
+  left_join(tibble("variables" = c(all_variables, "alpha"),
+                   "National" = unname(
+                     c(estimates[all_variables], estimates[
+                       glue("lag(confirmed_total, {lag}):",
+                            "lag(susceptibleRate_total, {lag})")])),
+                   "National_pvals" = unname(
+                     c(pvals[all_variables], pvals[
+                       glue("lag(confirmed_total, {lag}):",
+                            "lag(susceptibleRate_total, {lag})")]))),
+            by="variables")
+
+#### Regional models ####
+regions = df_long$Code %>% unique
 
 # Construct formula
 fm = paste("Confirmed ~ ",
            glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
-  # paste("+factor(Code)") %>%
   as.formula
 
-# Run model - Note: now pools all observations
-# TODO: Consider a burn-in period
-lsdv = lm(fm, data=df_long)
-summary(lsdv)
+for (region in regions){
+  # Select only the data for the relevant region
+  data = df_long %>% filter(Code == !!region)
+  
+  # Estimate the model by OLS
+  model = lm(fm, data=data)
+  
+  png(glue("{output_path}/model1_lag{lag}_lmplot_{region}.png"))
+  par(mfrow=c(2,2))
+  plot(model)
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  # Retrieve parameter estimates
+  estimates = coef(summary(model))[, "Estimate"]
+  pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
+  
+  # Insert parameter estimates in the results table
+  results_table = results_table %>%
+    left_join(tibble("variables" = c(all_variables, "alpha"),
+                     !!glue("{region}") := unname(
+                       c(estimates[all_variables], estimates[
+                         glue("lag(Confirmed, {lag}):",
+                              "lag(susceptibleRate, {lag})")])),
+                     !!glue("{region}_pvals") := unname(
+                       c(pvals[all_variables], pvals[
+                         glue("lag(Confirmed, {lag}):",
+                              "lag(susceptibleRate, {lag})")]))),
+              by="variables")
+}
 
-png(glue("{output_path}/model1_lag{lag}_lmplot.png"))
+# Transpose and reorder columns
+results_table = results_table %>%
+  gather(Region, val, 2:ncol(results_table)) %>%
+  spread(names(results_table)[1], val) %>%
+  select(Region, alpha, everything())
+
+# Put the national results at the top
+results_table = rbind(
+  results_table %>% filter(str_detect(Region, "National")),
+  results_table %>% filter(!str_detect(Region, "National"))) %>%
+  column_to_rownames("Region")
+
+# Return a LaTeX table
+table_no_ms = xtable(results_table, math.style.exponents = TRUE)
+table_no_ms
+
+#### Models with model selection (BIC) ####
+results_table_ms = tibble(variables = c(all_variables, "alpha"))
+
+#### National model ####
+# Construct formula
+fm = paste("confirmed_total ~ ",
+           glue("lag(confirmed_total, {lag}):lag(susceptibleRate_total, ",
+                "{lag})+"),
+           paste(X_regressors,
+                 collapse="+")) %>%
+  as.formula
+
+# Use BIC for model selection - scope says we want to always keep
+# alpha_within in
+model = step(lm(fm, data=df_wide_full), k=log(nrow(df_wide_full)), trace=0,
+             scope=list("lower" = paste("Confirmed ~ ",
+                                        glue("lag(Confirmed, {lag}):",
+                                             "lag(susceptibleRate, {lag})")) %>%
+                          as.formula,
+                        "upper" = fm))
+
+png(glue("{output_path}/model1_lag{lag}_lmplot_national_bic.png"))
 par(mfrow=c(2,2))
-plot(lsdv)
+plot(model)
 par(mfrow=c(1,1))
 dev.off()
 
-residual = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
+# Retrieve parameter estimates
+estimates = coef(summary(model))[, "Estimate"]
+pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
 
-# Plot residuals
-tibble(index = 1:length(residual), residuals = residual) %>%
-  ggplot(aes(x=index, y=residual)) +
-  theme(plot.title = element_text(face = "bold")) +
-  geom_point(alpha=0.6, color='firebrick')
-ggsave(glue("model1_lag{lag}_residuals.png"), path=output_path)
+# Insert parameter estimates in the results table
+results_table_ms = results_table_ms %>%
+  left_join(tibble("variables" = c(all_variables, "alpha"),
+                   "National" = unname(
+                     c(estimates[all_variables], estimates[
+                       glue("lag(confirmed_total, {lag}):",
+                            "lag(susceptibleRate_total, {lag})")])),
+                   "National_pvals" = unname(
+                     c(pvals[all_variables], pvals[
+                       glue("lag(confirmed_total, {lag}):",
+                            "lag(susceptibleRate_total, {lag})")]))),
+            by="variables")
 
-# One Sample t-test for zero-mean
-t.test(residual) # p=1: true mean is not equal to 0
+#### Regional models ####
+# Construct formula
+fm = paste("Confirmed ~ ",
+           glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
+           paste(X_regressors, collapse="+")) %>%
+  as.formula
 
-# Tests for autocorrelation
-lmtest::dwtest(fm, data=df_long) # Durbin-Watson test: p=0.76: ac > 0
-lmtest::bgtest(fm, data=df_long) # Breusch-Godfrey test: p<2.2e-16: ac > 0(?)
-Box.test(residual, type = "Ljung-Box") # Ljung-Box test: p<2.2e-16: ac > 0
+for (region in regions){
+  # Select only the data for the relevant region
+  data = df_long %>% filter(Code == !!region)
+  
+  # Use BIC for model selection
+  model = step(lm(fm, data=data), k=log(nrow(data)), trace=0,
+               scope=list("lower" = paste("Confirmed ~ ",
+                                          glue("lag(Confirmed, {lag}):",
+                                               "lag(susceptibleRate, {lag})")) %>%
+                            as.formula,
+                          "upper" = fm))
+  
+  png(glue("{output_path}/model1_lag{lag}_lmplot_{region}_bic.png"))
+  par(mfrow=c(2,2))
+  plot(model)
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  # Retrieve parameter estimates
+  estimates = coef(summary(model))[, "Estimate"]
+  pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
+  
+  # Insert parameter estimates in the results table
+  results_table_ms = results_table_ms %>%
+    left_join(tibble("variables" = c(all_variables, "alpha"),
+                     !!glue("{region}") := unname(
+                       c(estimates[all_variables], estimates[
+                         glue("lag(Confirmed, {lag}):",
+                              "lag(susceptibleRate, {lag})")])),
+                     !!glue("{region}_pvals") := unname(
+                       c(pvals[all_variables], pvals[
+                         glue("lag(Confirmed, {lag}):",
+                              "lag(susceptibleRate, {lag})")]))),
+              by="variables")
+}
 
-# Tests for stationarity
-aTSA::stationary.test(residual, method = "adf") # ADF: stationary
-aTSA::stationary.test(residual, method = "pp") # Phillips-Perron: stationary
-aTSA::stationary.test(residual, method = "kpss") # KPSS: nonstationary
+# Transpose and reorder columns
+results_table_ms = results_table_ms %>%
+  gather(Region, val, 2:ncol(results_table_ms)) %>%
+  spread(names(results_table_ms)[1], val) %>%
+  select(Region, alpha, everything())
+
+# Put the national results at the top
+results_table_ms = rbind(
+  results_table_ms %>% filter(str_detect(Region, "National")),
+  results_table_ms %>% filter(!str_detect(Region, "National"))) %>%
+  column_to_rownames("Region")
+
+# Return a LaTeX table
+table_ms = xtable(results_table_ms, math.style.exponents = TRUE)
+table_ms
 
 #### Plot alpha over time ####
 df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
-tbl = tibble(Date = as.Date(NA), Alpha=numeric(0), Code=character(0))
-start = 31 # starting index - we want at least this number of observations
 
-for (region in df_meta$Code){
+# Starting index - we want at least this number of observations
+start = 50
+
+fm = paste("Confirmed ~ ",
+           glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
+           paste(X_regressors, collapse="+")) %>%
+  as.formula
+
+#### Without model selection ####
+tbl_alpha = tibble(Date = as.Date(NA), Alpha=numeric(0), Code=character(0))
+
+# Find the estimates of alpha per region over time
+for (region in regions){
   alphas = vector("double")
   dates = vector("character")
+  
+  # Select only the data for the relevant region
   data = df_long %>% filter(Code == !!region)
+  
   for (t in start:nrow(data)){
-    lsdv = lm(fm, data=data[1:t, ])
-    alpha = lsdv$coefficients[["lag(Confirmed, 5):lag(susceptibleRate, 5)"]]
+    # Estimate the model by OLS
+    model = lm(fm, data=data[1:t, ])
+    
+    # Retrieve the alpha estimate and append this to the list of alphas
+    # TODO: Unhardcode the lag
+    alpha = model$coefficients[[glue("lag(Confirmed, {lag}):",
+                                     "lag(susceptibleRate, {lag})")]]
     alphas = c(alphas, alpha)
   }
   
-  tbl = tbl %>%
+  # Append the results to the table
+  tbl_alpha = tbl_alpha %>%
     bind_rows(tibble(Date = data$Date[start:nrow(data)],
                      Alpha = alphas,
                      Code = region) %>%
                 drop_na())
 }
 
-tbl = tbl %>%
-  left_join(df_meta %>% select(c(Region, Code, Direction)), on=Code)
+# Add Region and Direction to the table
+tbl_alpha = tbl_alpha %>%
+  left_join(df_meta %>% select(c(Region, Code, Direction)), by="Code")
 
-mean_alphas = vector("list")
-days_smooth = 14
-for (sub_tbl in split(tbl, tbl$Direction)){
+# Make a plot per Direction
+for (sub_tbl in split(tbl_alpha, tbl_alpha$Direction)){
   direc = sub_tbl$Direction[1]
   g = ggplot(sub_tbl, aes(Date, Alpha, colour = Region)) + 
     geom_point() +
-    # geom_path(alpha=0.2) +
     geom_smooth(method="loess", span=0.3, se=FALSE) +
-    # coord_cartesian(ylim = c(0, 1)) +
     xlab("") +
     ylab(TeX("$\\alpha_{within}$")) +
     scale_colour_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#0072B2",
                                  "#D55E00", "#CC79A7"))
   print(g)
   ggsave(glue("model1_lag{lag}_alphawithin_{direc}.png"), path=output_path)
+}
+
+#### With model selection BIC ####
+tbl_alpha = tibble(Date = as.Date(NA), Alpha=numeric(0), Code=character(0))
+
+# Find the estimates of alpha per region over time
+for (region in regions){
+  alphas = vector("double")
+  dates = vector("character")
   
-  # Get the mean Alpha of the last `days_smooth` days per region
-  mean_alphas[[direc]] = lapply(
-    split(sub_tbl, sub_tbl$Code),
-    function(x){mean(x$Alpha %>% tail(days_smooth))})
-}
-
-#### Burn-in period ####
-data = df_long %>% filter(Code == "ABR")
-ssr = vector()
-for (burnin in 0:floor(nrow(data)/2)){
-  lsdv = lm(fm, data=data[(1+burnin):nrow(data), ])
-  ssr = c(ssr, sum(lsdv$residuals**2))
-}
-
-# TODO: Work on this; see a lot of difference in model specification per region
-for (region in df_meta$Code){
-  print(glue("#############{region}#############"))
+  # Select only the data for the relevant region
   data = df_long %>% filter(Code == !!region)
-  print(step(lm(fm, data=data), direction = "both",
-             k=log(nrow(data)), trace=0))
+  
+  for (t in start:nrow(data)){
+    # Use BIC for model selection - scope says we want to always keep
+    # alpha_within in
+    model = step(lm(fm, data=data[1:t, ]), k=log(t), trace=0,
+                 scope=list("lower" = paste("Confirmed ~ ",
+                                            glue("lag(Confirmed, {lag}):",
+                                                 "lag(susceptibleRate, {lag})")) %>%
+                              as.formula,
+                            "upper" = fm))
+    model
+    
+    # Retrieve the alpha estimate and append this to the list of alphas
+    # TODO: Unhardcode the lag
+    alpha = model$coefficients[[glue("lag(Confirmed, {lag}):",
+                                     "lag(susceptibleRate, {lag})")]]
+    alphas = c(alphas, alpha)
+  }
+  
+  # Append the results to the table
+  tbl_alpha = tbl_alpha %>%
+    bind_rows(tibble(Date = data$Date[start:nrow(data)],
+                     Alpha = alphas,
+                     Code = region) %>%
+                drop_na())
+}
+
+# Add Region and Direction to the table
+tbl_alpha = tbl_alpha %>%
+  left_join(df_meta %>% select(c(Region, Code, Direction)), by="Code")
+
+# Make a plot per Direction
+for (sub_tbl in split(tbl_alpha, tbl_alpha$Direction)){
+  direc = sub_tbl$Direction[1]
+  g = ggplot(sub_tbl, aes(Date, Alpha, colour = Region)) + 
+    geom_point() +
+    geom_smooth(method="loess", span=0.3, se=FALSE) +
+    xlab("") +
+    ylab(TeX("$\\alpha_{within}$")) +
+    scale_colour_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#0072B2",
+                                 "#D55E00", "#CC79A7"))
+  print(g)
+  ggsave(glue("model1_lag{lag}_alphawithin_{direc}_bic.png"), path=output_path)
 }
