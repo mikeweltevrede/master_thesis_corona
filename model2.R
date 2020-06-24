@@ -19,11 +19,10 @@ df_long = readr::read_csv(path_full_long, col_types = do.call(
 #### Data preprocessing ####
 # Transform into proportions
 regressors_prop = c("airPassengersArrived", "touristArrivals",
-                    "dischargeRateDiabetes", "dischargeRateRespiratory",
-                    "dischargeRateHypertension", "dischargeRateCancer",
+                    "dischargeRateDiabetes", "dischargeRateHypertension",
                     "dischargeRateChd", "dischargeRatePneumonia",
                     "dischargeRateTB", "availableBeds",
-                    "maritimePassengersDisembarked", "railTravelers")
+                    "maritimePassengersDisembarked",)
 
 make_prop = function(x, na.rm = FALSE) { x / sum(x, na.rm = na.rm) }
 df_long = df_long %>% 
@@ -74,7 +73,7 @@ plot(lsdv)
 par(mfrow=c(1,1))
 dev.off()
 
-residual = df_long$incidenceRate[-1:-lag] - lsdv$fitted.values
+residual = df_long$Confirmed[-1:-lag] - lsdv$fitted.values
 
 # Plot residuals
 tibble(index = 1:length(residual), residuals = residual) %>%
