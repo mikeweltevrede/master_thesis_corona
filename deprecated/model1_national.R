@@ -14,12 +14,6 @@ library(lmtest)
 library(aTSA)
 library(latex2exp)
 
-df_long = readr::read_csv(path_full_long, col_types = do.call(
-  cols, list(Date = col_date(format = "%Y-%m-%d"))))
-
-df_wide = readr::read_csv(path_cleaned_wide, col_types = do.call(
-  cols, list(Date=col_date(format="%Y-%m-%d"))))
-
 df_wide_full = readr::read_csv(path_full_wide, col_types = do.call(
   cols, list(Date=col_date(format="%Y-%m-%d"))))
 
