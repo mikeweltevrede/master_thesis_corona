@@ -17,6 +17,17 @@ df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(Date = col_date(format = "%Y-%m-%d"))))
 
 #### Data preprocessing ####
+regressors = c("touristArrivals", "broadbandAccess", "dischargeRateDiabetes",
+               "dischargeRateHypertension", "dischargeRateCancer",
+               "dischargeRateChd", "dischargeRateTB", "availableBeds",
+               "riskOfPovertyOrSocialExclusion")
+X_regressors = c("weekend", "weekNumber, medianAge")
+
+# TODO: Check more correlations
+
+# We remove airPassengersArrived
+cor(df_long$airPassengersArrived, df_long$touristArrivals) # = 0.5835016
+
 # Transform into proportions
 regressors_prop = c("airPassengersArrived", "touristArrivals",
                     "dischargeRateDiabetes", "dischargeRateHypertension",
@@ -35,14 +46,6 @@ df_long = df_long %>%
   mutate(weekNumber = lubridate::week(df_long$Date)) %>%
   mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
-
-cor(df_long$airPassengersArrived, df_long$touristArrivals) # = 0.5835016
-
-regressors = c("touristArrivals", "broadbandAccess", "dischargeRateDiabetes",
-               "dischargeRateHypertension", "dischargeRateCancer",
-               "dischargeRateChd", "dischargeRateTB", "availableBeds",
-               "riskOfPovertyOrSocialExclusion")
-X_regressors = c("weekend", "weekNumber, medianAge")
 
 #### Run models ####
 lag = 5 # Incubation period
