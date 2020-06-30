@@ -16,9 +16,11 @@ thesis.tex
 
 *.aux
 *.bbl
+*.bcf
 *.bib
 *.blg
 *.log
 *.out
+*.run.xml
 *.synctex.gz
 *.toc
