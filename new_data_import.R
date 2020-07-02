@@ -79,19 +79,17 @@ if (file.exists(new_data_path)) {
                   cols_only, # Only retain the columns specified below
                   list(
                     data=col_date(format="%Y-%m-%dT%H:%M:%S"), # Date
-                    denominazione_regione=col_character(), # Region name (to clean)
-                    # nuovi_positivi=col_integer(), # New confirmed cases
+                    denominazione_regione=col_character(), # Region name
+                    nuovi_positivi=col_integer(), # New confirmed cases
                     deceduti=col_integer(), # Total number of deceased
-                    terapia_intensiva=col_integer(), # Active ICU cases
                     dimessi_guariti=col_integer(), # Total number recovered
                     totale_casi=col_integer(), # Total positive tests
-                    tamponi=col_integer()#, # Total number of tests executed
+                    tamponi=col_integer(), # Total number of tests executed
                   ))) %>%
     rename(Date = data,
            RegionGH = denominazione_regione,
-           # Confirmed = nuovi_positivi,
+           Confirmed = nuovi_positivi,
            Deceased = deceduti,
-           ICU = terapia_intensiva,
            Recovered = dimessi_guariti,
            TestedPositive = totale_casi,
            Tested = tamponi
@@ -120,7 +118,9 @@ if (file.exists(new_data_path)) {
 rm(df) # df is only a temporary file and can be removed
 
 #### Import the entire data ####
-df_long = read_csv(new_data_path)
+df_long = read_csv(new_data_path) %>%
+  arrange(Code) %>%
+  arrange(Date)
 df_wide = df_long %>%
   pivot_wider(names_from = Code,
               values_from = all_of(colnames(df_long)[-c(1,2)]))
@@ -146,8 +146,8 @@ df_wide = df_wide %>%
 df_long = df_wide %>%
   pivot_longer(cols = -Date, names_to = c("Code", ".value"), names_sep = "_")
 
-readr::write_csv(df_wide, new_data_path_wide_cleaned)
-readr::write_csv(df_wide, new_data_path_long_cleaned)
+readr::write_csv(df_wide, new_data_path_wide)
+readr::write_csv(df_long, new_data_path_long_cleaned)
 
 #### OLD CODE - to update accordingly ####
 # We need to clean the data before being able to process it in R, also
@@ -266,15 +266,6 @@ for (regio in df_eurostat$Code) {
     add_column(!!paste0(regio, "_susceptiblePopulation") := suscept)
 }
 
-# Join the data with the extra data (containing the amount of active ICU
-# patients, recoveries, tested people, and positively tested people)
-df_wide = read_xlsx(path_wiki, sheet="Extra") %>%
-  mutate(Date = as.Date(Date, format = "%Y-%m-%d")) %>%
-  complete(Date = all_dates) %>%
-  drop_na %>%
-  full_join(df_wide, by="Date") %>%
-  arrange(Date) # Sort by Date
-
 # Note that, for example, cumsum(ABR_Confirmed) != ABR_TestedPositive. However,
 # we do assume that the missing values, i.e. those before March 2, are correctly
 # imputed by the cumsum of the confirmed cases, as long as the final element in
@@ -283,35 +274,7 @@ df_wide = read_xlsx(path_wiki, sheet="Extra") %>%
 # for _Recovered and _Tested is 0, then we could potentially backpropagate this.
 
 for (regio in df_eurostat$Code){
-  # For completeness sake, even though the NAs (should) align, we find them per
-  # region. It does not take much computing time
-  which_NA = df_wide %>%
-    select(!!paste0(regio, "_TestedPositive")) %>%
-    is.na %>%
-    which
-  
-  csum = df_wide %>%
-    select(!!paste0(regio, "_TestedPositive")) %>%
-    cumsum %>%
-    .[which_NA, ]
-  
-  first_elt = df_wide %>%
-    select(!!paste0(regio, "_TestedPositive")) %>%
-    na.omit %>%
-    unlist %>%
-    first
-  
-  # Check if the final element in the cumsum is lower than
-  if (tail(csum, 1) <= first_elt) {
-    df_wide[which_NA, paste0(regio, "_TestedPositive")] = csum
-  } else {
-    print(paste0("For region ", regio, ", the final element of csum (",
-                 tail(csum, 1), ") was not lower than the first NA element (",
-                 first_elt, "). We cannot impute values for this region."))
-  }
-  
-  # In Adda's notation, region_Confirmed[t] is the incidence. We now convert
-  # these to get the rates Inc and S. Do note that these will be extremely small
+  # We now get the rates Inc and S. Do note that these will be extremely small.
   df_wide = df_wide %>%
     mutate(!!paste0(regio, "_susceptibleRate") :=
              .data[[paste0(regio, "_susceptiblePopulation")]] /
@@ -330,21 +293,18 @@ df_long_full = df_wide %>%
 
 #### Process Eurostat regressors (import on line 60) ####
 # Define the variables we are interested in
-eurostat_variables = c("airPassengersArrived", "airPassengersDeparted",
-                       "touristArrivals", "broadbandAccess",
-                       "deathRateDiabetes", "deathRateInfluenza",
-                       "deathRateChd", "deathRateCancer", 
-                       "deathRatePneumonia", "availableBeds",
-                       "maritimePassengersDisembarked",
-                       "maritimePassengersEmbarked",
-                       "riskOfPovertyOrSocialExclusion")
-eurostat_variables = colnames(df_eurostat)
+eurostat_variables = c("touristArrivals", "broadbandAccess",
+                       "dischargeRateDiabetes", "dischargeRateHypertension",
+                       "dischargeRateCancer", "dischargeRateChd",
+                       "dischargeRateTB", "availableBeds",
+                       "riskOfPovertyOrSocialExclusion", "medianAge",
+                       "populationDensity")
 
 # Only keep rows where the `region` is an Italian region, not a direction or the
 # entire country.
 df_eurostat = df_eurostat[sapply(df_eurostat$region,
                                  function(x){x %in% df_meta$Region}), ] %>%
-  select(c("region", "populationDensity", all_of(eurostat_variables)))
+  select(c("region", all_of(eurostat_variables)))
 
 # Impute columns based on nearest neighbors tourists or population
 na_cols = sapply(df_eurostat, function(x){x %>% is.na() %>% any()}) %>%
@@ -355,8 +315,11 @@ num_neighbors = 1 # Amount of neighbors to take into account when imputing
 
 for (na_col in na_cols) {
   if (grepl("passenger", na_col, fixed=TRUE)) {
+    # If the variable contains "passenger", we use "touristArrivals" as the
+    # matching variable
     diff_col = "touristArrivals"
   } else {
+    # Else, we use "populationDensity"
     diff_col = "populationDensity"
   }
   
@@ -585,4 +548,3 @@ colnames(df_wide) = colnames(df_wide) %>%
 #### Export to file ####
 readr::write_csv(df_wide, path_full_wide)
 readr::write_csv(df_long_full, path_full_long)
-
