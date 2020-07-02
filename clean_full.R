@@ -24,8 +24,10 @@ df_wide = readr::read_csv(path_cleaned_wide, col_types = do.call(
 # We now add missing dates to the data for equal spacing.
 all_dates = seq.Date(min(df_wide$Date), max(df_wide$Date), by="day")
 missing_dates = all_dates[which(!all_dates %in% df_wide$Date)][-1]
-sprintf("The following %d dates are missing and will be added: %s",
-        length(missing_dates), paste(missing_dates, collapse=", "))
+
+if (length(missing_dates) > 0){
+  sprintf("The following %d dates are missing and will be added: %s",
+          length(missing_dates), paste(missing_dates, collapse=", "))
 
 # For the non-aggregated variables, we enter 0. For the totals, we use the
 # previous value.
@@ -44,6 +46,7 @@ df_wide = df_wide %>%
   complete(Date = all_dates) %>%
   replace_na(named_cols_replace_0) %>%
   fill(all_of(cols_fill))
+}
 
 #### Create population variables ####
 # We are currently only interested in regional (non-aggregated) data
