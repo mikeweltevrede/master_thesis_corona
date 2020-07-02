@@ -1,8 +1,10 @@
 import pandas as pd
 
 data_path = "data"
+file_path = "data_wide.csv"
+cleaned_path = "data_wide_cleaned.csv"
 
-df_wide = pd.read_excel(f"{data_path}/italy_wikipedia.xlsx", sheet_name='Wide',
+df_wide = pd.read_csv(f"{data_path}/{file_path}",
                         parse_dates=['Date'], dayfirst=True)
 
 # We fill NAs by 0
@@ -23,10 +25,11 @@ while len(neg_cols) > 0:
     
         # Look at indices in reverse
         for index in indices[::-1]:
-            df_wide.loc[index-1, col] = df_wide.loc[index-1, col] + df_wide.loc[index, col]
+            df_wide.loc[index-1, col] = df_wide.loc[index-1, col] + \
+                df_wide.loc[index, col]
             df_wide.loc[index, col] = 0
             
     neg_cols = (df_wide.iloc[:, 1:] < 0).any(axis=0)
     neg_cols = neg_cols.index[neg_cols]
 
-df_wide.to_csv(f"{data_path}/italy_wikipedia_cleaned.csv", index=False)
+df_wide.to_csv(f"{data_path}/{cleaned_path}", index=False)
