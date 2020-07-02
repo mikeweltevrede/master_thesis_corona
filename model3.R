@@ -24,19 +24,19 @@ lag = 5 # Incubation period
 codes = df_long$Code %>% unique
 df_sumInc = tibble(Date = as.Date(NA),
                    Code = character(),
-                   sumConfirmed = numeric())
+                   sumTestedPositive = numeric())
 for (region in codes){
   df_sumInc = df_sumInc %>%
     bind_rows(
       df_wide %>%
       select(map(codes[codes != region], starts_with, vars = colnames(.)) %>%
                unlist()) %>%
-      select(ends_with("Confirmed")) %>%
+      select(ends_with("TestedPositive")) %>%
       mutate_all(dplyr::lag, n=lag) %>%
       transmute(
         Date = df_wide$Date,
         Code = region,
-        sumConfirmed = rowSums(.)))
+        sumTestedPositive = rowSums(.)))
 }
 
 rm(df_wide)
@@ -56,15 +56,15 @@ X_regressors = c("weekend", "weekNumber")
 
 #### Run model 3 ####
 # Construct formula
-fm = paste("Confirmed ~ ",
-           glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
-           glue("lag(susceptibleRate, {lag}):sumConfirmed +"),
+fm = paste("TestedPositive ~ ",
+           glue("lag(TestedPositive, {lag}):lag(susceptibleRate, {lag})+"),
+           glue("lag(susceptibleRate, {lag}):sumTestedPositive +"),
            paste(X_regressors, collapse="+")) %>%
   paste("+ factor(Code)") %>%
   as.formula
 
 # Run model
-lsdv = lm(fm, data=df_long) # Multicolinearity regions and medianAge
+lsdv = lm(fm, data=df_long) # Multicollinearity regions and medianAge
 summary(lsdv)
 
 png(glue("{output_path}/model3_lag{lag}_lmplot.png"))
@@ -77,7 +77,7 @@ dev.off()
 df_long_sub = df_long[!df_long$Date %in% (df_long$Date %>% unique() %>% .[1:lag]), ]
 
 # Compute the residuals
-residual = df_long_sub$Confirmed - lsdv$fitted.values
+residual = df_long_sub$TestedPositive - lsdv$fitted.values
 
 # Plot residuals
 tibble(index = 1:length(residual), residuals = residual) %>%

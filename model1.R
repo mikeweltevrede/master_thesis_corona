@@ -36,9 +36,9 @@ total = df_wide_full %>%
   select(ends_with("totalPopulation")) %>%
   rowSums
 
-# We use the *_Confirmed columns because these have been cleaned
+# We use the *_TestedPositive columns because these have been cleaned
 confirmed = df_wide_full %>% 
-  select(ends_with("_Confirmed")) %>% 
+  select(ends_with("_TestedPositive")) %>% 
   rowSums
 df_wide_full = df_wide_full %>%
   mutate(susceptibleRate_total = susceptible/total,
@@ -115,8 +115,8 @@ results_table = results_table %>%
 regions = df_long$Code %>% unique
 
 # Construct formula
-fm = paste("Confirmed ~ ",
-           glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
+fm = paste("TestedPositive ~ ",
+           glue("lag(TestedPositive, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -142,11 +142,11 @@ for (region in regions){
     left_join(tibble("variables" = c(all_variables, "alpha"),
                      !!glue("{region}") := unname(
                        c(estimates[all_variables], estimates[
-                         glue("lag(Confirmed, {lag}):",
+                         glue("lag(TestedPositive, {lag}):",
                               "lag(susceptibleRate, {lag})")])),
                      !!glue("{region}_pvals") := unname(
                        c(pvals[all_variables], pvals[
-                         glue("lag(Confirmed, {lag}):",
+                         glue("lag(TestedPositive, {lag}):",
                               "lag(susceptibleRate, {lag})")]))),
               by="variables")
 }
@@ -182,8 +182,8 @@ fm = paste("confirmed_total ~ ",
 # Use BIC for model selection - scope says we want to always keep
 # alpha_within in
 model = step(lm(fm, data=df_wide_full), k=log(nrow(df_wide_full)), trace=0,
-             scope=list("lower" = paste("Confirmed ~ ",
-                                        glue("lag(Confirmed, {lag}):",
+             scope=list("lower" = paste("TestedPositive ~ ",
+                                        glue("lag(TestedPositive, {lag}):",
                                              "lag(susceptibleRate, {lag})")) %>%
                           as.formula,
                         "upper" = fm))
@@ -213,8 +213,8 @@ results_table_ms = results_table_ms %>%
 
 #### Regional models ####
 # Construct formula
-fm = paste("Confirmed ~ ",
-           glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
+fm = paste("TestedPositive ~ ",
+           glue("lag(TestedPositive, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -224,8 +224,8 @@ for (region in regions){
   
   # Use BIC for model selection
   model = step(lm(fm, data=data), k=log(nrow(data)), trace=0,
-               scope=list("lower" = paste("Confirmed ~ ",
-                                          glue("lag(Confirmed, {lag}):",
+               scope=list("lower" = paste("TestedPositive ~ ",
+                                          glue("lag(TestedPositive, {lag}):",
                                                "lag(susceptibleRate, {lag})")) %>%
                             as.formula,
                           "upper" = fm))
@@ -245,11 +245,11 @@ for (region in regions){
     left_join(tibble("variables" = c(all_variables, "alpha"),
                      !!glue("{region}") := unname(
                        c(estimates[all_variables], estimates[
-                         glue("lag(Confirmed, {lag}):",
+                         glue("lag(TestedPositive, {lag}):",
                               "lag(susceptibleRate, {lag})")])),
                      !!glue("{region}_pvals") := unname(
                        c(pvals[all_variables], pvals[
-                         glue("lag(Confirmed, {lag}):",
+                         glue("lag(TestedPositive, {lag}):",
                               "lag(susceptibleRate, {lag})")]))),
               by="variables")
 }
@@ -276,8 +276,8 @@ df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 # Starting index - we want at least this number of observations
 start = 50
 
-fm = paste("Confirmed ~ ",
-           glue("lag(Confirmed, {lag}):lag(susceptibleRate, {lag})+"),
+fm = paste("TestedPositive ~ ",
+           glue("lag(TestedPositive, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -298,7 +298,7 @@ for (region in regions){
     
     # Retrieve the alpha estimate and append this to the list of alphas
     # TODO: Unhardcode the lag
-    alpha = model$coefficients[[glue("lag(Confirmed, {lag}):",
+    alpha = model$coefficients[[glue("lag(TestedPositive, {lag}):",
                                      "lag(susceptibleRate, {lag})")]]
     alphas = c(alphas, alpha)
   }
@@ -344,8 +344,8 @@ for (region in regions){
     # Use BIC for model selection - scope says we want to always keep
     # alpha_within in
     model = step(lm(fm, data=data[1:t, ]), k=log(t), trace=0,
-                 scope=list("lower" = paste("Confirmed ~ ",
-                                            glue("lag(Confirmed, {lag}):",
+                 scope=list("lower" = paste("TestedPositive ~ ",
+                                            glue("lag(TestedPositive, {lag}):",
                                                  "lag(susceptibleRate, {lag})")) %>%
                               as.formula,
                             "upper" = fm))
@@ -353,7 +353,7 @@ for (region in regions){
     
     # Retrieve the alpha estimate and append this to the list of alphas
     # TODO: Unhardcode the lag
-    alpha = model$coefficients[[glue("lag(Confirmed, {lag}):",
+    alpha = model$coefficients[[glue("lag(TestedPositive, {lag}):",
                                      "lag(susceptibleRate, {lag})")]]
     alphas = c(alphas, alpha)
   }
