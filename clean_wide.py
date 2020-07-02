@@ -23,6 +23,15 @@ while len(neg_cols) > 0:
         # Find rows in which the value is negative
         indices = df_wide.index[df_wide[col] < 0]
     
+        # If the negative value is at the start of the data, then we cannot
+        # propagate it backwards more. In that case, we set it equal to zero.
+        # Note that it does not logically make sense that this happens, as
+        # negative numbers correct values in the past. However, it may
+        # sometimes happen so our code should take this into account.
+        if 0 in indices:
+            df_wide.loc[0, col] = 0
+            indices = df_wide.index[df_wide[col] < 0]
+            
         # Look at indices in reverse
         for index in indices[::-1]:
             df_wide.loc[index-1, col] = df_wide.loc[index-1, col] + \
