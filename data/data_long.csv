@@ -1,4 +1,4 @@
-Date,Code,Recovered,Deceased,TestedPositive,Tested
+Date,Code,Recovered,Deaths,TestedPositive,Tested
 2020-02-24,ABR,0,0,0,5
 2020-02-24,BAS,0,0,0,0
 2020-02-24,CAL,0,0,0,1

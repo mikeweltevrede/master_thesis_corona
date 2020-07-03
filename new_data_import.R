@@ -50,7 +50,6 @@ if (file.exists(new_data_path)) {
       rename(Date = data,
              RegionGH = denominazione_regione,
              Confirmed = nuovi_positivi,
-             Deceased = deceduti,
              Recovered = dimessi_guariti,
              TestedPositive = totale_casi,
              Tested = tamponi
@@ -71,6 +70,7 @@ if (file.exists(new_data_path)) {
     
     # Append this date to the completed dates file
     write(date, file=completed_dates_path, append=TRUE)
+               Deaths = deceduti,
   }
 } else{
   # Then process the entire file
@@ -89,7 +89,7 @@ if (file.exists(new_data_path)) {
     rename(Date = data,
            RegionGH = denominazione_regione,
            Confirmed = nuovi_positivi,
-           Deceased = deceduti,
+           Deaths = deceduti,
            Recovered = dimessi_guariti,
            TestedPositive = totale_casi,
            Tested = tamponi
