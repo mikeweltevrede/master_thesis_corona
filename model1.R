@@ -56,8 +56,8 @@ df_long = df_long %>%
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
 #### Least Squares Dummy Variables (LSDV) regression ####
-fm = paste("confirmedTotal ~ ",
-           glue("lag(confirmedTotal, {lag}):lag(susceptibleRateTotal, ",
+fm = paste("testedPositive ~ ",
+           glue("lag(testedPositive, {lag}):lag(susceptibleRate, ",
                 "{lag})+"),
            paste(X_regressors,
                  collapse="+")) %>%
@@ -352,7 +352,6 @@ for (region in regions){
     model
     
     # Retrieve the alpha estimate and append this to the list of alphas
-    # TODO: Unhardcode the lag
     alpha = model$coefficients[[glue("lag(testedPositive, {lag}):",
                                      "lag(susceptibleRate, {lag})")]]
     alphas = c(alphas, alpha)
