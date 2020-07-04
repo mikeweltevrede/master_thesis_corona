@@ -182,9 +182,9 @@ fm = paste("confirmedTotal ~ ",
 # Use BIC for model selection - scope says we want to always keep
 # alpha_within in
 model = step(lm(fm, data=df_wide_full), k=log(nrow(df_wide_full)), trace=0,
-             scope=list("lower" = paste("testedPositive ~ ",
-                                        glue("lag(testedPositive, {lag}):",
-                                             "lag(susceptibleRate, {lag})")) %>%
+             scope=list("lower" = paste("confirmedTotal ~ ",
+                                        glue("lag(confirmedTotal, {lag}):",
+                                             "lag(susceptibleRateTotal, {lag})")) %>%
                           as.formula,
                         "upper" = fm))
 
