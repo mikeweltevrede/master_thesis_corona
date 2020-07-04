@@ -5,7 +5,7 @@ file_path = "data_wide.csv"
 cleaned_path = "data_wide_cleaned.csv"
 
 df_wide = pd.read_csv(f"{data_path}/{file_path}",
-                        parse_dates=['Date'], dayfirst=True)
+                        parse_dates=['date'], dayfirst=True)
 
 # We fill NAs by 0
 df_wide = df_wide.fillna(0)
