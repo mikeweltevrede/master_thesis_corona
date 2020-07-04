@@ -458,44 +458,55 @@ for (region_code in regions) {
     baseline = baseline / 365
   }
   
-  # Assume constant behaviour before and after the limiting dates
-  dates_before = seq.Date(df_long_full %>%
-                            filter(code == region_code) %>%
-                            .[["date"]] %>%
-                            min,
-                          df_gmr %>%
-                            filter(code == region_code) %>%
-                            .[["date"]] %>%
-                            min-1, by="day")
-  dates_after = seq.Date(df_gmr %>%
-                           filter(code == region_code) %>%
-                           .[["date"]] %>%
-                           max+1,
-                         df_long_full %>%
-                           filter(code == region_code) %>%
-                           .[["date"]] %>%
-                           max, by="day")
+  # Assume constant behaviour before and after the limiting dates, if applicable
+  min_date_long = df_long_full %>%
+    filter(code == region_code) %>%
+    .[["date"]] %>%
+    min
+  max_date_long = df_long_full %>%
+    filter(code == region_code) %>%
+    .[["date"]] %>%
+    max
+  min_date_gmr = df_gmr %>%
+    filter(code == region_code) %>%
+    .[["date"]] %>%
+    min
+  max_date_gmr = df_gmr %>%
+    filter(code == region_code) %>%
+    .[["date"]] %>%
+    max
   
-  df_gmr = df_gmr %>%
-    bind_rows(tibble(code = rep(region_code, length(dates_before)),
-                     date = dates_before,
-                     TransitStations = rep(df_gmr %>%
-                                             filter(code == region_code) %>%
-                                             select(TransitStations) %>%
-                                             head(1) %>%
-                                             unlist(use.names=FALSE),
-                                           length(dates_before)))) %>%
-    bind_rows(tibble(code = rep(region_code, length(dates_after)),
-                     date = dates_after,
-                     TransitStations = rep(df_gmr %>%
-                                             filter(code == region_code) %>%
-                                             select(TransitStations) %>%
-                                             tail(1) %>%
-                                             unlist(use.names=FALSE),
-                                           length(dates_after))))
+  if (min_date_long < min_date_gmr){
+    # Then we do need to draw out the values before the minimum date
   
-  all_dates = seq.Date(min(df_long_full$date), max(df_long_full$date), by="day")
-  missing_dates = all_dates[which(!df_long_full$date %in%
+    dates_before = seq.Date(min_date_long, min_date_gmr-1, by="day")
+    df_gmr = df_gmr %>%
+      bind_rows(tibble(code = rep(region_code, length(dates_before)),
+                       date = dates_before,
+                       transitStations = rep(df_gmr %>%
+                                               filter(code == region_code) %>%
+                                               select(transitStations) %>%
+                                               head(1) %>%
+                                               unlist(use.names=FALSE),
+                                             length(dates_before))))
+  }
+  
+  if (max_date_long > max_date_gmr){
+    # Then we do need to draw out the values after the maximum date
+    dates_after = seq.Date(max_date_gmr+1, max_date_long, by="day")
+    
+    df_gmr = df_gmr %>%
+      bind_rows(tibble(code = rep(region_code, length(dates_after)),
+                       date = dates_after,
+                       transitStations = rep(df_gmr %>%
+                                               filter(code == region_code) %>%
+                                               select(transitStations) %>%
+                                               tail(1) %>%
+                                               unlist(use.names=FALSE),
+                                             length(dates_after))))
+  }
+  
+  missing_dates = all_dates[which(!unique(df_long_full$date) %in%
                                     (df_gmr %>% filter(code == region_code) %>%
                                        .[["date"]]))][-1]
   
