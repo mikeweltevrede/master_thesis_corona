@@ -214,7 +214,6 @@ for (regio in df_eurostat$code) {
   # We divide by 366 on the next line because 2020 is a leap year
   pop_base = round(pop_region * (1+growth_rate_pop_2019) *
     (1+growth_rate_pop_2020)^(date_diff/366) - 
-    df_region[[paste0(regio, "_Deaths")]][1] 
     df_region[[paste0(regio, "_deaths")]][1])
   total_pop = pop_base - df_region[[paste0(regio, "_deaths")]][1]
   suscept = total_pop - df_region[[paste0(regio, "_testedPositive")]][1]
