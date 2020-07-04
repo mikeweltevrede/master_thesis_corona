@@ -2,11 +2,12 @@
 # Import standard variables
 source("config.R")
 
-library(readxl)
-library(tidyverse)
-library(lubridate)
-library(reticulate)
 library(glue)
+library(lubridate)
+library(readxl)
+library(reticulate)
+library(tidyverse)
+library(zoo)
 
 # Read in metadata
 df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
@@ -60,7 +61,6 @@ if (file.exists(new_data_path)) {
         
         # We want to use the region names in df_meta and not the one in the
         # official data
-        # TODO: Does this matter?
         left_join(df_meta %>% select(code, regionGH), by="regionGH") %>%
         select(-regionGH) %>%
         
@@ -98,7 +98,6 @@ if (file.exists(new_data_path)) {
     
     # We want to use the region names in df_meta and not the one in the
     # official data
-    # TODO: Does this matter?
     left_join(df_meta %>% select(code, regionGH), by="regionGH") %>%
     select(-regionGH) %>%
     
@@ -187,7 +186,7 @@ if (length(missing_dates) > 0){
 
 df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character()))) %>%
-  right_join(df_meta %>% select(region, code), by=c("region"="region"))
+  right_join(df_meta %>% select(region, code), by="region")
 
 # From https://www.worldometers.info/world-population/italy-population/, we find
 # that the yearly growth rate for Italy in 2019 was -0.13% and for 2020 it was
@@ -266,16 +265,7 @@ for (regio in df_eurostat$code) {
     add_column(!!paste0(regio, "_populationBaseline") := pop_base) %>%
     add_column(!!paste0(regio, "_totalPopulation") := total_pop) %>%
     add_column(!!paste0(regio, "_susceptiblePopulation") := suscept)
-  
-  # TODO: Check if the for loop below can be put here
 }
-
-# Note that, for example, cumsum(ABR_Confirmed) != ABR_testedPositive. However,
-# we do assume that the missing values, i.e. those before March 2, are correctly
-# imputed by the cumsum of the confirmed cases, as long as the final element in
-# the cumsum is less than the first non-missing element of testedPositive.
-# Unfortunately, we cannot (reasonably) impute _ICU. If the first known value
-# for _recovered and _tested is 0, then we could potentially backpropagate this.
 
 for (regio in df_eurostat$code){
   # We now get the rates Inc and S. Do note that these will be extremely small.
@@ -308,7 +298,7 @@ eurostat_variables = c("touristArrivals", "broadbandAccess",
 # entire country.
 df_eurostat = df_eurostat[sapply(df_eurostat$region,
                                  function(x){x %in% df_meta$region}), ] %>%
-  select(c("region", all_of(eurostat_variables)))
+  select(c("region", "code", all_of(eurostat_variables)))
 
 # Impute columns based on nearest neighbors tourists or population
 na_cols = sapply(df_eurostat, function(x){x %>% is.na() %>% any()}) %>%
@@ -374,11 +364,11 @@ df_gmr = readr::read_csv(path_mobility_report_official,
   
   # Clean column names
   rename_at(vars(ends_with("_percent_change_from_baseline")),
-            funs(str_replace(., "_percent_change_from_baseline", "")))
+            function(x){str_replace(x, "_percent_change_from_baseline", "")})
 
 colnames(df_gmr) = colnames(df_gmr) %>%
   str_replace("sub_region_1", "region") %>%
-  snakecase::to_upper_camel_case()
+  snakecase::to_lower_camel_case()
 
 # Translate the regions to their Italian equivalent
 df_gmr$region = df_gmr$region %>%
@@ -416,7 +406,7 @@ df_gmr = df_meta %>%
 
 # We now are only interested in a decrease in the rail travellers, so we only
 # select TransitStations.
-df_gmr = df_gmr %>% select(code, date, TransitStations)
+df_gmr = df_gmr %>% select(code, date, transitStations)
 
 # For railroad transport, we can multiply by the baseline value. The latest data
 # from Eurostat is from 2015. We assume that this value has changed in the same
@@ -429,6 +419,7 @@ df_rail = readr::read_csv(path_railroad,
 regions = df_gmr$code %>% unique
 baselines = vector()
 date_diff = as.integer(df_gmr$date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
+all_dates = seq.Date(min(df_long_full$date), max(df_long_full$date), by="day")
 
 for (region_code in regions) {
   if (is.na(region_code)){
@@ -513,15 +504,15 @@ for (region_code in regions) {
       bind_rows(tibble(
         code = rep(region_code, length(missing_dates)),
         date = missing_dates,
-        TransitStations = rep(NA, length(missing_dates)))) 
+        transitStations = rep(NA, length(missing_dates)))) 
   }
   
   # Sort now that new dates have been added
   df_gmr = df_gmr %>% arrange(code, date)
   
   # Impute possible NAs with the mean of the surrounding values
-  df_gmr$TransitStations = df_gmr$TransitStations %>%
-    (function(x){(na.locf(x) + rev(na.locf(rev(x))))/2})
+  df_gmr$transitStations = df_gmr$transitStations %>%
+    (function(x){(zoo::na.locf(x) + rev(zoo::na.locf(rev(x))))/2})
   
   # Add baseline to a column baselines to be added to df_gmr
   num_rows = df_gmr %>% filter(code == region_code) %>% nrow
@@ -530,7 +521,7 @@ for (region_code in regions) {
 
 df_gmr = df_gmr %>%
   transmute(date = date, code = code,
-            railTravelers = round(TransitStations*eval(baselines)))
+            railTravelers = round(transitStations*eval(baselines)))
 
 # Join the expanded eurostat data and the railway data with the long data.
 df_long_full = df_long_full %>%
@@ -548,6 +539,9 @@ colnames(df_wide) = colnames(df_wide) %>%
   sapply(function(s) {
     s %>% str_split("_", simplify = TRUE) %>% rev %>% paste(collapse="_")
   }, USE.NAMES=FALSE)
+
+# Order the columns alphabetically, keeping date at the start
+df_wide = df_wide[, c("date", sort(colnames(df_wide[-1])))]
 
 #### Export to file ####
 readr::write_csv(df_wide, path_full_wide)
