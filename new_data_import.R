@@ -211,7 +211,7 @@ for (regio in df_eurostat$code) {
     .[["populationNumbers"]]
   
   # We divide by 366 on the next line because 2020 is a leap year
-  pop_base = pop_region * (1+growth_rate_pop_2019) *
+  pop_base = round(pop_region * (1+growth_rate_pop_2019) *
     (1+growth_rate_pop_2020)^(date_diff/366) - 
     df_region[[paste0(regio, "_Deaths")]][1] 
     df_region[[paste0(regio, "_deaths")]][1])
@@ -228,7 +228,8 @@ for (regio in df_eurostat$code) {
     # This column assumes the growth rates above and no extraordinary deaths due
     # to COVID-19. That is, what would be expected to happen if SARS-CoV-2 never
     # struck?
-    pop_base = c(pop_base, (1+growth_rate_pop_2020)^(1/366)*tail(pop_base, 1))
+    pop_base = c(pop_base,
+                 round((1+growth_rate_pop_2020)^(1/366)*tail(pop_base, 1)))
     
     # The total population at time t is defined as the amount of people alive at
     # that time: total_pop(t) = total_pop(t-1) - deaths(t-1). In the code below,
