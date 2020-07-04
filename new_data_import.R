@@ -32,29 +32,24 @@ if (file.exists(new_data_path)) {
   # been added
   missing_dates = setdiff(completed_dates, all_dates)
   
-  # TODO: If missing dates is empty, skip this
-  for (date in missing_dates){
-    # Per date, import the data
-    df = read_csv(glue("{data_path_gh}/dpc-covid19-ita-regioni-{date}.csv"),
-                  col_types=do.call(
-                    cols_only, # Only retain the columns specified below
-                    list(
-                      data=col_date(format="%Y-%m-%dT%H:%M:%S"), # Date
-                      denominazione_regione=col_character(), # Region name
-                      nuovi_positivi=col_integer(), # New confirmed cases
-                      deceduti=col_integer(), # Total number of deceased
-                      dimessi_guariti=col_integer(), # Total number recovered
-                      totale_casi=col_integer(), # Total positive tests
-                      tamponi=col_integer(), # Total number of tests executed
-                    ))) %>%
-      
-      # Append to the existing file
-      write.table(file = new_data_path, sep = ",", append = TRUE, quote = FALSE,
-                  col.names = FALSE, row.names = FALSE)
+  
+  if (length(missing_dates) > 0){
+    sprintf("The following %d dates are missing and will be added: %s",
+            length(missing_dates), paste(missing_dates, collapse=", "))
     
-    # Append this date to the completed dates file
-    write(date, file=completed_dates_path, append=TRUE)
-               Deaths = deceduti,
+    for (date in missing_dates){
+      # Per date, import the data
+      df = read_csv(glue("{data_path_gh}/dpc-covid19-ita-regioni-{date}.csv"),
+                    col_types=do.call(
+                      cols_only, # Only retain the columns specified below
+                      list(
+                        data=col_date(format="%Y-%m-%dT%H:%M:%S"), # Date
+                        denominazione_regione=col_character(), # region name
+                        deceduti=col_integer(), # Total number of deceased
+                        dimessi_guariti=col_integer(), # Total number recovered
+                        totale_casi=col_integer(), # Total positive tests
+                        tamponi=col_integer() # Total number of tests executed
+                      ))) %>%
         rename(date = data,
                regionGH = denominazione_regione,
                deaths = deceduti,
@@ -71,6 +66,14 @@ if (file.exists(new_data_path)) {
         
         # Reorder the columns
         select(date, code, everything()) %>%
+        
+        # Append to the existing file
+        write.table(file = new_data_path, sep = ",", append = TRUE, quote = FALSE,
+                    col.names = FALSE, row.names = FALSE)
+      
+      # Append this date to the completed dates file
+      write(date, file=completed_dates_path, append=TRUE)
+    }
   }
 } else{
   # Then process the entire file
@@ -79,12 +82,11 @@ if (file.exists(new_data_path)) {
                   cols_only, # Only retain the columns specified below
                   list(
                     data=col_date(format="%Y-%m-%dT%H:%M:%S"), # Date
-                    denominazione_regione=col_character(), # Region name
-                    nuovi_positivi=col_integer(), # New confirmed cases
+                    denominazione_regione=col_character(), # region name
                     deceduti=col_integer(), # Total number of deceased
                     dimessi_guariti=col_integer(), # Total number recovered
                     totale_casi=col_integer(), # Total positive tests
-                    tamponi=col_integer(), # Total number of tests executed
+                    tamponi=col_integer() # Total number of tests executed
                   ))) %>%
     rename(date = data,
            regionGH = denominazione_regione,
@@ -148,14 +150,13 @@ df_long = df_wide %>%
 readr::write_csv(df_wide, new_data_path_wide)
 readr::write_csv(df_long, new_data_path_long_cleaned)
 
-#### OLD CODE - to update accordingly ####
 # We need to clean the data before being able to process it in R, also
 # to include new dates. Run the next line to do so (you may need to install
 # Miniconda as a Python interpreter).
 reticulate::py_run_file("clean_wide.py")
 
 # Read in the cleaned data
-df_wide = readr::read_csv(path_cleaned_wide_new, col_types = do.call(
+df_wide = readr::read_csv(new_data_path_wide_cleaned, col_types = do.call(
   cols, list(date=col_date(format="%Y-%m-%d"))))
 
 #### Handle missing values ####
@@ -249,12 +250,13 @@ for (regio in df_eurostat$code) {
     # Let:
     # I(t) = New confirmed cases at time t
     # S(t) = The total susceptible population at time t
-    # The susceptible population at time t (beginning of the day) is then defined as:
-    ## S(t) = S(t-1) - I(t-1)
+    # The susceptible population at time t (beginning of the day) is then
+    # defined as: S(t) = S(t-1) - I(t-1)
     # This is because the people that die or recover have previously been tested
     # positive and are therefore already included in the confirmed cases (under
     # the assumption that only corona patients die). We also assume that other
-    # causes of death are negligible. This can be relaxed later.
+    # causes of death are negligible. Lastly, we assume that there are no
+    # births.
     suscept = c(suscept,
                 tail(suscept, 1) - df_region[[paste0(regio, "_testedPositive")]][t])
   }
@@ -263,6 +265,8 @@ for (regio in df_eurostat$code) {
     add_column(!!paste0(regio, "_populationBaseline") := pop_base) %>%
     add_column(!!paste0(regio, "_totalPopulation") := total_pop) %>%
     add_column(!!paste0(regio, "_susceptiblePopulation") := suscept)
+  
+  # TODO: Check if the for loop below can be put here
 }
 
 # Note that, for example, cumsum(ABR_Confirmed) != ABR_testedPositive. However,
