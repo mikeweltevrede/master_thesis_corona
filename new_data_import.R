@@ -116,7 +116,8 @@ if (file.exists(new_data_path)) {
     write(file=completed_dates_path)
 }
 
-rm(df) # df is only a temporary file and can be removed
+# df is only a temporary file and can be removed
+tryCatch(rm(df), warning = function(cond) {})
 
 #### Import the entire data ####
 df_long = read_csv(new_data_path) %>%
