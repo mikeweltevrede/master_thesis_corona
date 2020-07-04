@@ -15,15 +15,15 @@ library(lmtest)
 library(aTSA)
 
 df_long = readr::read_csv(path_full_long, col_types = do.call(
-  cols, list(Date = col_date(format = "%Y-%m-%d"))))
+  cols, list(date = col_date(format = "%Y-%m-%d"))))
 
 df_wide = readr::read_csv(path_full_wide, col_types = do.call(
-  cols, list(Date = col_date(format = "%Y-%m-%d"))))
+  cols, list(date = col_date(format = "%Y-%m-%d"))))
 
 lag = 5 # Incubation period
-codes = df_long$Code %>% unique
-df_sumInc = tibble(Date = as.Date(NA),
-                   Code = character(),
+codes = df_long$code %>% unique
+df_sumInc = tibble(date = as.Date(NA),
+                   code = character(),
                    sumTestedPositive = numeric())
 for (region in codes){
   df_sumInc = df_sumInc %>%
@@ -31,36 +31,36 @@ for (region in codes){
       df_wide %>%
       select(map(codes[codes != region], starts_with, vars = colnames(.)) %>%
                unlist()) %>%
-      select(ends_with("TestedPositive")) %>%
+      select(ends_with("testedPositive")) %>%
       mutate_all(dplyr::lag, n=lag) %>%
       transmute(
-        Date = df_wide$Date,
-        Code = region,
+        date = df_wide$date,
+        code = region,
         sumTestedPositive = rowSums(.)))
 }
 
 rm(df_wide)
 
 df_long = df_long %>%
-  left_join(df_sumInc, by = c("Code", "Date"))
+  left_join(df_sumInc, by = c("code", "date"))
 rm(df_sumInc)
 
 #### Data preprocessing ####
 # Add weekend and weekday effect
 df_long = df_long %>%
-  mutate(weekNumber = lubridate::week(df_long$Date)) %>%
-  mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
+  mutate(weekNumber = lubridate::week(df_long$date)) %>%
+  mutate(weekend = lubridate::wday(df_long$date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
 X_regressors = c("weekend", "weekNumber")
 
 #### Run model 3 ####
 # Construct formula
-fm = paste("TestedPositive ~ ",
-           glue("lag(TestedPositive, {lag}):lag(susceptibleRate, {lag})+"),
+fm = paste("testedPositive ~ ",
+           glue("lag(testedPositive, {lag}):lag(susceptibleRate, {lag})+"),
            glue("lag(susceptibleRate, {lag}):sumTestedPositive +"),
            paste(X_regressors, collapse="+")) %>%
-  paste("+ factor(Code)") %>%
+  paste("+ factor(code)") %>%
   as.formula
 
 # Run model
@@ -74,10 +74,10 @@ par(mfrow=c(1,1))
 dev.off()
 
 # We remove the first `lag` dates for the residuals
-df_long_sub = df_long[!df_long$Date %in% (df_long$Date %>% unique() %>% .[1:lag]), ]
+df_long_sub = df_long[!df_long$date %in% (df_long$date %>% unique() %>% .[1:lag]), ]
 
 # Compute the residuals
-residual = df_long_sub$TestedPositive - lsdv$fitted.values
+residual = df_long_sub$testedPositive - lsdv$fitted.values
 
 # Plot residuals
 tibble(index = 1:length(residual), residuals = residual) %>%

@@ -16,9 +16,9 @@ library(latex2exp)
 
 # Import data
 df_long = readr::read_csv(path_full_long, col_types = do.call(
-  cols, list(Date = col_date(format = "%Y-%m-%d"))))
+  cols, list(date = col_date(format = "%Y-%m-%d"))))
 df_wide_full = readr::read_csv(path_full_wide, col_types = do.call(
-  cols, list(Date=col_date(format="%Y-%m-%d"))))
+  cols, list(date=col_date(format="%Y-%m-%d"))))
 
 # Incubation period
 lag = 5
@@ -36,32 +36,32 @@ total = df_wide_full %>%
   select(ends_with("totalPopulation")) %>%
   rowSums
 
-# We use the *_TestedPositive columns because these have been cleaned
+# We use the *_testedPositive columns because these have been cleaned
 confirmed = df_wide_full %>% 
-  select(ends_with("_TestedPositive")) %>% 
+  select(ends_with("_testedPositive")) %>% 
   rowSums
 df_wide_full = df_wide_full %>%
-  mutate(susceptibleRate_total = susceptible/total,
-         confirmed_total = confirmed)
+  mutate(susceptibleRateTotal = susceptible/total,
+         confirmedTotal = confirmed)
 
 # Add weekend and weekday effect
 df_wide_full = df_wide_full %>%
-  mutate(weekNumber = lubridate::week(df_wide_full$Date)) %>%
-  mutate(weekend = lubridate::wday(df_wide_full$Date, label = TRUE)
+  mutate(weekNumber = lubridate::week(df_wide_full$date)) %>%
+  mutate(weekend = lubridate::wday(df_wide_full$date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
 df_long = df_long %>%
-  mutate(weekNumber = lubridate::week(df_long$Date)) %>%
-  mutate(weekend = lubridate::wday(df_long$Date, label = TRUE)
+  mutate(weekNumber = lubridate::week(df_long$date)) %>%
+  mutate(weekend = lubridate::wday(df_long$date, label = TRUE)
          %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
 
 #### Least Squares Dummy Variables (LSDV) regression ####
-fm = paste("confirmed_total ~ ",
-           glue("lag(confirmed_total, {lag}):lag(susceptibleRate_total, ",
+fm = paste("confirmedTotal ~ ",
+           glue("lag(confirmedTotal, {lag}):lag(susceptibleRateTotal, ",
                 "{lag})+"),
            paste(X_regressors,
                  collapse="+")) %>%
-  paste("+factor(Code)") %>%
+  paste("+factor(code)") %>%
   as.formula
 
 model = lm(fm, data=df_long)
@@ -78,8 +78,8 @@ results_table = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-fm = paste("confirmed_total ~ ",
-           glue("lag(confirmed_total, {lag}):lag(susceptibleRate_total, ",
+fm = paste("confirmedTotal ~ ",
+           glue("lag(confirmedTotal, {lag}):lag(susceptibleRateTotal, ",
                 "{lag})+"),
            paste(X_regressors,
                  collapse="+")) %>%
@@ -103,26 +103,26 @@ results_table = results_table %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
                      c(estimates[all_variables], estimates[
-                       glue("lag(confirmed_total, {lag}):",
-                            "lag(susceptibleRate_total, {lag})")])),
+                       glue("lag(confirmedTotal, {lag}):",
+                            "lag(susceptibleRateTotal, {lag})")])),
                    "National_pvals" = unname(
                      c(pvals[all_variables], pvals[
-                       glue("lag(confirmed_total, {lag}):",
-                            "lag(susceptibleRate_total, {lag})")]))),
+                       glue("lag(confirmedTotal, {lag}):",
+                            "lag(susceptibleRateTotal, {lag})")]))),
             by="variables")
 
 #### Regional models ####
-regions = df_long$Code %>% unique
+regions = df_long$code %>% unique
 
 # Construct formula
-fm = paste("TestedPositive ~ ",
-           glue("lag(TestedPositive, {lag}):lag(susceptibleRate, {lag})+"),
+fm = paste("testedPositive ~ ",
+           glue("lag(testedPositive, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
   as.formula
 
 for (region in regions){
   # Select only the data for the relevant region
-  data = df_long %>% filter(Code == !!region)
+  data = df_long %>% filter(code == !!region)
   
   # Estimate the model by OLS
   model = lm(fm, data=data)
@@ -142,26 +142,26 @@ for (region in regions){
     left_join(tibble("variables" = c(all_variables, "alpha"),
                      !!glue("{region}") := unname(
                        c(estimates[all_variables], estimates[
-                         glue("lag(TestedPositive, {lag}):",
+                         glue("lag(testedPositive, {lag}):",
                               "lag(susceptibleRate, {lag})")])),
                      !!glue("{region}_pvals") := unname(
                        c(pvals[all_variables], pvals[
-                         glue("lag(TestedPositive, {lag}):",
+                         glue("lag(testedPositive, {lag}):",
                               "lag(susceptibleRate, {lag})")]))),
               by="variables")
 }
 
 # Transpose and reorder columns
 results_table = results_table %>%
-  gather(Region, val, 2:ncol(results_table)) %>%
+  gather(region, val, 2:ncol(results_table)) %>%
   spread(names(results_table)[1], val) %>%
-  select(Region, alpha, everything())
+  select(region, alpha, everything())
 
 # Put the national results at the top
 results_table = rbind(
-  results_table %>% filter(str_detect(Region, "National")),
-  results_table %>% filter(!str_detect(Region, "National"))) %>%
-  column_to_rownames("Region")
+  results_table %>% filter(str_detect(region, "National")),
+  results_table %>% filter(!str_detect(region, "National"))) %>%
+  column_to_rownames("region")
 
 # Return a LaTeX table
 table_no_ms = xtable(results_table, math.style.exponents = TRUE)
@@ -172,8 +172,8 @@ results_table_ms = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-fm = paste("confirmed_total ~ ",
-           glue("lag(confirmed_total, {lag}):lag(susceptibleRate_total, ",
+fm = paste("confirmedTotal ~ ",
+           glue("lag(confirmedTotal, {lag}):lag(susceptibleRateTotal, ",
                 "{lag})+"),
            paste(X_regressors,
                  collapse="+")) %>%
@@ -182,8 +182,8 @@ fm = paste("confirmed_total ~ ",
 # Use BIC for model selection - scope says we want to always keep
 # alpha_within in
 model = step(lm(fm, data=df_wide_full), k=log(nrow(df_wide_full)), trace=0,
-             scope=list("lower" = paste("TestedPositive ~ ",
-                                        glue("lag(TestedPositive, {lag}):",
+             scope=list("lower" = paste("testedPositive ~ ",
+                                        glue("lag(testedPositive, {lag}):",
                                              "lag(susceptibleRate, {lag})")) %>%
                           as.formula,
                         "upper" = fm))
@@ -203,29 +203,29 @@ results_table_ms = results_table_ms %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
                      c(estimates[all_variables], estimates[
-                       glue("lag(confirmed_total, {lag}):",
-                            "lag(susceptibleRate_total, {lag})")])),
+                       glue("lag(confirmedTotal, {lag}):",
+                            "lag(susceptibleRateTotal, {lag})")])),
                    "National_pvals" = unname(
                      c(pvals[all_variables], pvals[
-                       glue("lag(confirmed_total, {lag}):",
-                            "lag(susceptibleRate_total, {lag})")]))),
+                       glue("lag(confirmedTotal, {lag}):",
+                            "lag(susceptibleRateTotal, {lag})")]))),
             by="variables")
 
 #### Regional models ####
 # Construct formula
-fm = paste("TestedPositive ~ ",
-           glue("lag(TestedPositive, {lag}):lag(susceptibleRate, {lag})+"),
+fm = paste("testedPositive ~ ",
+           glue("lag(testedPositive, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
   as.formula
 
 for (region in regions){
   # Select only the data for the relevant region
-  data = df_long %>% filter(Code == !!region)
+  data = df_long %>% filter(code == !!region)
   
   # Use BIC for model selection
   model = step(lm(fm, data=data), k=log(nrow(data)), trace=0,
-               scope=list("lower" = paste("TestedPositive ~ ",
-                                          glue("lag(TestedPositive, {lag}):",
+               scope=list("lower" = paste("testedPositive ~ ",
+                                          glue("lag(testedPositive, {lag}):",
                                                "lag(susceptibleRate, {lag})")) %>%
                             as.formula,
                           "upper" = fm))
@@ -245,26 +245,26 @@ for (region in regions){
     left_join(tibble("variables" = c(all_variables, "alpha"),
                      !!glue("{region}") := unname(
                        c(estimates[all_variables], estimates[
-                         glue("lag(TestedPositive, {lag}):",
+                         glue("lag(testedPositive, {lag}):",
                               "lag(susceptibleRate, {lag})")])),
                      !!glue("{region}_pvals") := unname(
                        c(pvals[all_variables], pvals[
-                         glue("lag(TestedPositive, {lag}):",
+                         glue("lag(testedPositive, {lag}):",
                               "lag(susceptibleRate, {lag})")]))),
               by="variables")
 }
 
 # Transpose and reorder columns
 results_table_ms = results_table_ms %>%
-  gather(Region, val, 2:ncol(results_table_ms)) %>%
+  gather(region, val, 2:ncol(results_table_ms)) %>%
   spread(names(results_table_ms)[1], val) %>%
-  select(Region, alpha, everything())
+  select(region, alpha, everything())
 
 # Put the national results at the top
 results_table_ms = rbind(
-  results_table_ms %>% filter(str_detect(Region, "National")),
-  results_table_ms %>% filter(!str_detect(Region, "National"))) %>%
-  column_to_rownames("Region")
+  results_table_ms %>% filter(str_detect(region, "National")),
+  results_table_ms %>% filter(!str_detect(region, "National"))) %>%
+  column_to_rownames("region")
 
 # Return a LaTeX table
 table_ms = xtable(results_table_ms, math.style.exponents = TRUE)
@@ -276,13 +276,13 @@ df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 # Starting index - we want at least this number of observations
 start = 50
 
-fm = paste("TestedPositive ~ ",
-           glue("lag(TestedPositive, {lag}):lag(susceptibleRate, {lag})+"),
+fm = paste("testedPositive ~ ",
+           glue("lag(testedPositive, {lag}):lag(susceptibleRate, {lag})+"),
            paste(X_regressors, collapse="+")) %>%
   as.formula
 
 #### Without model selection ####
-tbl_alpha = tibble(Date = as.Date(NA), Alpha=numeric(0), Code=character(0))
+tbl_alpha = tibble(date = as.Date(NA), alphas=numeric(0), code=character(0))
 
 # Find the estimates of alpha per region over time
 for (region in regions){
@@ -290,7 +290,7 @@ for (region in regions){
   dates = vector("character")
   
   # Select only the data for the relevant region
-  data = df_long %>% filter(Code == !!region)
+  data = df_long %>% filter(code == !!region)
   
   for (t in start:nrow(data)){
     # Estimate the model by OLS
@@ -298,27 +298,27 @@ for (region in regions){
     
     # Retrieve the alpha estimate and append this to the list of alphas
     # TODO: Unhardcode the lag
-    alpha = model$coefficients[[glue("lag(TestedPositive, {lag}):",
+    alpha = model$coefficients[[glue("lag(testedPositive, {lag}):",
                                      "lag(susceptibleRate, {lag})")]]
     alphas = c(alphas, alpha)
   }
   
   # Append the results to the table
   tbl_alpha = tbl_alpha %>%
-    bind_rows(tibble(Date = data$Date[start:nrow(data)],
-                     Alpha = alphas,
-                     Code = region) %>%
+    bind_rows(tibble(date = data$date[start:nrow(data)],
+                     alphas = alphas,
+                     code = region) %>%
                 drop_na())
 }
 
-# Add Region and Direction to the table
+# Add region and Direction to the table
 tbl_alpha = tbl_alpha %>%
-  left_join(df_meta %>% select(c(Region, Code, Direction)), by="Code")
+  left_join(df_meta %>% select(c(region, code, Direction)), by="code")
 
 # Make a plot per Direction
 for (sub_tbl in split(tbl_alpha, tbl_alpha$Direction)){
   direc = sub_tbl$Direction[1]
-  g = ggplot(sub_tbl, aes(Date, Alpha, colour = Region)) + 
+  g = ggplot(sub_tbl, aes(date, alphas, colour = region)) + 
     geom_point() +
     geom_smooth(method="loess", span=0.3, se=FALSE) +
     xlab("") +
@@ -330,7 +330,7 @@ for (sub_tbl in split(tbl_alpha, tbl_alpha$Direction)){
 }
 
 #### With model selection BIC ####
-tbl_alpha = tibble(Date = as.Date(NA), Alpha=numeric(0), Code=character(0))
+tbl_alpha = tibble(date = as.Date(NA), alphas=numeric(0), code=character(0))
 
 # Find the estimates of alpha per region over time
 for (region in regions){
@@ -338,14 +338,14 @@ for (region in regions){
   dates = vector("character")
   
   # Select only the data for the relevant region
-  data = df_long %>% filter(Code == !!region)
+  data = df_long %>% filter(code == !!region)
   
   for (t in start:nrow(data)){
     # Use BIC for model selection - scope says we want to always keep
     # alpha_within in
     model = step(lm(fm, data=data[1:t, ]), k=log(t), trace=0,
-                 scope=list("lower" = paste("TestedPositive ~ ",
-                                            glue("lag(TestedPositive, {lag}):",
+                 scope=list("lower" = paste("testedPositive ~ ",
+                                            glue("lag(testedPositive, {lag}):",
                                                  "lag(susceptibleRate, {lag})")) %>%
                               as.formula,
                             "upper" = fm))
@@ -353,27 +353,27 @@ for (region in regions){
     
     # Retrieve the alpha estimate and append this to the list of alphas
     # TODO: Unhardcode the lag
-    alpha = model$coefficients[[glue("lag(TestedPositive, {lag}):",
+    alpha = model$coefficients[[glue("lag(testedPositive, {lag}):",
                                      "lag(susceptibleRate, {lag})")]]
     alphas = c(alphas, alpha)
   }
   
   # Append the results to the table
   tbl_alpha = tbl_alpha %>%
-    bind_rows(tibble(Date = data$Date[start:nrow(data)],
-                     Alpha = alphas,
-                     Code = region) %>%
+    bind_rows(tibble(date = data$date[start:nrow(data)],
+                     alphas = alphas,
+                     code = region) %>%
                 drop_na())
 }
 
-# Add Region and Direction to the table
+# Add region and Direction to the table
 tbl_alpha = tbl_alpha %>%
-  left_join(df_meta %>% select(c(Region, Code, Direction)), by="Code")
+  left_join(df_meta %>% select(c(region, code, Direction)), by="code")
 
 # Make a plot per Direction
 for (sub_tbl in split(tbl_alpha, tbl_alpha$Direction)){
   direc = sub_tbl$Direction[1]
-  g = ggplot(sub_tbl, aes(Date, Alpha, colour = Region)) + 
+  g = ggplot(sub_tbl, aes(date, alphas, colour = region)) + 
     geom_point() +
     geom_smooth(method="loess", span=0.3, se=FALSE) +
     xlab("") +

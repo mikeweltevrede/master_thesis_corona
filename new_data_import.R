@@ -47,22 +47,6 @@ if (file.exists(new_data_path)) {
                       totale_casi=col_integer(), # Total positive tests
                       tamponi=col_integer(), # Total number of tests executed
                     ))) %>%
-      rename(Date = data,
-             RegionGH = denominazione_regione,
-             Confirmed = nuovi_positivi,
-             Recovered = dimessi_guariti,
-             TestedPositive = totale_casi,
-             Tested = tamponi
-      ) %>%
-      
-      # We want to use the Region names in df_meta and not the one in the
-      # official data
-      # TODO: Does this matter?
-      left_join(df_meta %>% select(Code, RegionGH), by="RegionGH") %>%
-      select(-RegionGH) %>%
-      
-      # Reorder the columns
-      select(Date, Code, everything()) %>%
       
       # Append to the existing file
       write.table(file = new_data_path, sep = ",", append = TRUE, quote = FALSE,
@@ -71,6 +55,22 @@ if (file.exists(new_data_path)) {
     # Append this date to the completed dates file
     write(date, file=completed_dates_path, append=TRUE)
                Deaths = deceduti,
+        rename(date = data,
+               regionGH = denominazione_regione,
+               deaths = deceduti,
+               recovered = dimessi_guariti,
+               testedPositive = totale_casi,
+               tested = tamponi
+        ) %>%
+        
+        # We want to use the region names in df_meta and not the one in the
+        # official data
+        # TODO: Does this matter?
+        left_join(df_meta %>% select(code, regionGH), by="regionGH") %>%
+        select(-regionGH) %>%
+        
+        # Reorder the columns
+        select(date, code, everything()) %>%
   }
 } else{
   # Then process the entire file
@@ -86,30 +86,29 @@ if (file.exists(new_data_path)) {
                     totale_casi=col_integer(), # Total positive tests
                     tamponi=col_integer(), # Total number of tests executed
                   ))) %>%
-    rename(Date = data,
-           RegionGH = denominazione_regione,
-           Confirmed = nuovi_positivi,
-           Deaths = deceduti,
-           Recovered = dimessi_guariti,
-           TestedPositive = totale_casi,
-           Tested = tamponi
+    rename(date = data,
+           regionGH = denominazione_regione,
+           deaths = deceduti,
+           recovered = dimessi_guariti,
+           testedPositive = totale_casi,
+           tested = tamponi
     ) %>%
     
-    # We want to use the Region names in df_meta and not the one in the
+    # We want to use the region names in df_meta and not the one in the
     # official data
     # TODO: Does this matter?
-    left_join(df_meta %>% select(Code, RegionGH), by="RegionGH") %>%
-    select(-RegionGH) %>%
+    left_join(df_meta %>% select(code, regionGH), by="regionGH") %>%
+    select(-regionGH) %>%
     
     # Reorder the columns
-    select(Date, Code, everything()) %>%
+    select(date, code, everything()) %>%
     
     # Save to a csv
     readr::write_csv(new_data_path)
   
   # Write the processed dates to the completed dates file - note: this
   # overwrites the existing file
-  df$Date %>%
+  df$date %>%
     unique %>%
     str_replace_all("-", "") %>%
     write(file=completed_dates_path)
@@ -119,10 +118,10 @@ rm(df) # df is only a temporary file and can be removed
 
 #### Import the entire data ####
 df_long = read_csv(new_data_path) %>%
-  arrange(Code) %>%
-  arrange(Date)
+  arrange(code) %>%
+  arrange(date)
 df_wide = df_long %>%
-  pivot_wider(names_from = Code,
+  pivot_wider(names_from = code,
               values_from = all_of(colnames(df_long)[-c(1,2)]))
 
 # Column names are now of the form "variable_regionCode". We want to have them
@@ -135,16 +134,16 @@ colnames(df_wide) = colnames(df_wide) %>%
       paste(collapse="_")
   }, USE.NAMES=FALSE)
 
-# Order the columns alphabetically, keeping Date at the start
-df_wide = df_wide[, c("Date", sort(colnames(df_wide[-1])))]
+# Order the columns alphabetically, keeping date at the start
+df_wide = df_wide[, c("date", sort(colnames(df_wide[-1])))]
 
-# Take the first difference of the columns except for Date
+# Take the first difference of the columns except for date
 df_wide = df_wide %>%
-  mutate_at(vars(!matches("Date")), function(x){c(NA,diff(x))}) %>%
+  mutate_at(vars(!matches("date")), function(x){c(NA,diff(x))}) %>%
   drop_na
 
 df_long = df_wide %>%
-  pivot_longer(cols = -Date, names_to = c("Code", ".value"), names_sep = "_")
+  pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
 
 readr::write_csv(df_wide, new_data_path_wide)
 readr::write_csv(df_long, new_data_path_long_cleaned)
@@ -157,12 +156,12 @@ reticulate::py_run_file("clean_wide.py")
 
 # Read in the cleaned data
 df_wide = readr::read_csv(path_cleaned_wide_new, col_types = do.call(
-  cols, list(Date=col_date(format="%Y-%m-%d"))))
+  cols, list(date=col_date(format="%Y-%m-%d"))))
 
 #### Handle missing values ####
 # We now add missing dates to the data for equal spacing.
-all_dates = seq.Date(min(df_wide$Date), max(df_wide$Date), by="day")
-missing_dates = all_dates[which(!all_dates %in% df_wide$Date)][-1]
+all_dates = seq.Date(min(df_wide$date), max(df_wide$date), by="day")
+missing_dates = all_dates[which(!all_dates %in% df_wide$date)][-1]
 
 if (length(missing_dates) > 0){
   sprintf("The following %d dates are missing and will be added: %s",
@@ -170,7 +169,7 @@ if (length(missing_dates) > 0){
 
  # Complete the dates and execute the filling procedure described above
   df_wide = df_wide %>%
-    complete(Date = all_dates) %>%
+    complete(date = all_dates) %>%
     replace(is.na(.), 0)
 }
 
@@ -186,7 +185,7 @@ if (length(missing_dates) > 0){
 
 df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character()))) %>%
-  right_join(df_meta %>% select(Region, Code), by=c("region"="Region"))
+  right_join(df_meta %>% select(region, code), by=c("region"="region"))
 
 # From https://www.worldometers.info/world-population/italy-population/, we find
 # that the yearly growth rate for Italy in 2019 was -0.13% and for 2020 it was
@@ -198,25 +197,25 @@ growth_rate_pop_2020 = -0.0015
 # Find day number in 2020 of the day before the first date in the data. We take
 # the day before because then we can factor in the amount of reported deaths due
 # to COVID-19.
-date_diff = as.integer(df_wide$Date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
+date_diff = as.integer(df_wide$date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 
-for (regio in df_eurostat$Code) {
+for (regio in df_eurostat$code) {
   # Only select the data for this region
   df_region = df_wide %>%
     select(starts_with(regio))
   
   # Initialize the baseline values at time t=1
   pop_region = df_eurostat %>%
-    filter(Code == regio) %>%
+    filter(code == regio) %>%
     .[["populationNumbers"]]
   
   # We divide by 366 on the next line because 2020 is a leap year
   pop_base = pop_region * (1+growth_rate_pop_2019) *
     (1+growth_rate_pop_2020)^(date_diff/366) - 
     df_region[[paste0(regio, "_Deaths")]][1] 
-  total_pop = pop_base - df_region[[paste0(regio, "_Deaths")]][1]
-  suscept = pop_base - df_region[[paste0(regio, "_TestedPositive")]][1] -
-    df_region[[paste0(regio, "_Deaths")]][1]
+    df_region[[paste0(regio, "_deaths")]][1])
+  total_pop = pop_base - df_region[[paste0(regio, "_deaths")]][1]
+  suscept = total_pop - df_region[[paste0(regio, "_testedPositive")]][1]
   
   # The variables below are assumed to happen on day t at 5pm, namely the time
   # at which new data is reported. That is, the new cases, deaths, and
@@ -245,7 +244,7 @@ for (regio in df_eurostat$Code) {
     ## This is important because that means that it is likely that deaths due to
     ## comorbidities of the coronavirus were recorded under COVID-19 deaths.
     total_pop = c(total_pop,
-                  tail(total_pop, 1) - df_region[[paste0(regio, "_Deaths")]][t])
+                  tail(total_pop, 1) - df_region[[paste0(regio, "_deaths")]][t])
     
     # Let:
     # I(t) = New confirmed cases at time t
@@ -257,7 +256,7 @@ for (regio in df_eurostat$Code) {
     # the assumption that only corona patients die). We also assume that other
     # causes of death are negligible. This can be relaxed later.
     suscept = c(suscept,
-                tail(suscept, 1) - df_region[[paste0(regio, "_TestedPositive")]][t])
+                tail(suscept, 1) - df_region[[paste0(regio, "_testedPositive")]][t])
   }
   
   df_wide = df_wide %>%
@@ -266,30 +265,30 @@ for (regio in df_eurostat$Code) {
     add_column(!!paste0(regio, "_susceptiblePopulation") := suscept)
 }
 
-# Note that, for example, cumsum(ABR_Confirmed) != ABR_TestedPositive. However,
+# Note that, for example, cumsum(ABR_Confirmed) != ABR_testedPositive. However,
 # we do assume that the missing values, i.e. those before March 2, are correctly
 # imputed by the cumsum of the confirmed cases, as long as the final element in
-# the cumsum is less than the first non-missing element of TestedPositive.
+# the cumsum is less than the first non-missing element of testedPositive.
 # Unfortunately, we cannot (reasonably) impute _ICU. If the first known value
-# for _Recovered and _Tested is 0, then we could potentially backpropagate this.
+# for _recovered and _tested is 0, then we could potentially backpropagate this.
 
-for (regio in df_eurostat$Code){
+for (regio in df_eurostat$code){
   # We now get the rates Inc and S. Do note that these will be extremely small.
   df_wide = df_wide %>%
     mutate(!!paste0(regio, "_susceptibleRate") :=
              .data[[paste0(regio, "_susceptiblePopulation")]] /
              .data[[paste0(regio, "_totalPopulation")]]) %>%
     mutate(!!paste0(regio, "_incidenceRate") :=
-             .data[[paste0(regio, "_TestedPositive")]] /
+             .data[[paste0(regio, "_testedPositive")]] /
              .data[[paste0(regio, "_totalPopulation")]])
 }
 
-# Sort the columns, keeping Date as the first column.
-df_wide = df_wide[, c("Date", sort(colnames(df_wide)[-1]))]
+# Sort the columns, keeping date as the first column.
+df_wide = df_wide[, c("date", sort(colnames(df_wide)[-1]))]
 
 # Convert the data to long format.
 df_long_full = df_wide %>%
-  pivot_longer(cols = -Date, names_to = c("Code", ".value"), names_sep = "_")
+  pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
 
 #### Process Eurostat regressors (import on line 60) ####
 # Define the variables we are interested in
@@ -303,7 +302,7 @@ eurostat_variables = c("touristArrivals", "broadbandAccess",
 # Only keep rows where the `region` is an Italian region, not a direction or the
 # entire country.
 df_eurostat = df_eurostat[sapply(df_eurostat$region,
-                                 function(x){x %in% df_meta$Region}), ] %>%
+                                 function(x){x %in% df_meta$region}), ] %>%
   select(c("region", all_of(eurostat_variables)))
 
 # Impute columns based on nearest neighbors tourists or population
@@ -346,14 +345,14 @@ for (na_col in na_cols) {
 }
 
 # We need to expand the time-constant variables to the same scale as df_long
-iddat = expand.grid(Date = unique(df_long_full$Date),
-                    Code = unique(df_long_full$Code))
-iddat = iddat[order(iddat$Date, iddat$Code), ]
+iddat = expand.grid(date = unique(df_long_full$date),
+                    code = unique(df_long_full$code))
+iddat = iddat[order(iddat$date, iddat$code), ]
 rownames(iddat) <- NULL
-df_eurostat = left_join(iddat, df_eurostat, by = "Code") %>% as_tibble
+df_eurostat = left_join(iddat, df_eurostat, by = "code") %>% as_tibble
 
 df_long_full = df_long_full %>%
-  left_join(df_eurostat, by = c("Date", "Code"))
+  left_join(df_eurostat, by = c("date", "code"))
 
 #### Process Google Mobility Report ####
 df_gmr = readr::read_csv(path_mobility_report_official,
@@ -373,11 +372,11 @@ df_gmr = readr::read_csv(path_mobility_report_official,
             funs(str_replace(., "_percent_change_from_baseline", "")))
 
 colnames(df_gmr) = colnames(df_gmr) %>%
-  str_replace("sub_region_1", "Region") %>%
+  str_replace("sub_region_1", "region") %>%
   snakecase::to_upper_camel_case()
 
 # Translate the regions to their Italian equivalent
-df_gmr$Region = df_gmr$Region %>%
+df_gmr$region = df_gmr$region %>%
   str_replace("Aosta", "Valle d'Aosta/Vallée d'Aoste") %>%
   str_replace("Apulia", "Puglia") %>%
   str_replace("Lombardy", "Lombardia") %>%
@@ -392,8 +391,8 @@ df_gmr$Region = df_gmr$Region %>%
 # Assume that the changes in Trentino-South Tyrol are the same for Trento and
 # Bolzano
 temp = df_gmr %>%
-  filter(Region == "Provincia Autonoma di Trento")
-temp$Region = "Provincia Autonoma di Bolzano/Bozen"
+  filter(region == "Provincia Autonoma di Trento")
+temp$region = "Provincia Autonoma di Bolzano/Bozen"
 
 df_gmr = df_gmr %>%
   bind_rows(temp)
@@ -402,17 +401,17 @@ rm(temp) # Remove temp from the workspace
 
 # Transform into percentages (decimal form)
 df_gmr = df_gmr %>%
-  mutate(across(-c(Region, Date), function(x) {x/100 + 1}))
+  mutate(across(-c(region, date), function(x) {x/100 + 1}))
 
 # Add regional codes
 df_gmr = df_meta %>%
-  select(Region, Code) %>%
-  right_join(df_gmr , by="Region") %>%
-  select(-Region)
+  select(region, code) %>%
+  right_join(df_gmr , by="region") %>%
+  select(-region)
 
 # We now are only interested in a decrease in the rail travellers, so we only
 # select TransitStations.
-df_gmr = df_gmr %>% select(Code, Date, TransitStations)
+df_gmr = df_gmr %>% select(code, date, TransitStations)
 
 # For railroad transport, we can multiply by the baseline value. The latest data
 # from Eurostat is from 2015. We assume that this value has changed in the same
@@ -422,16 +421,16 @@ df_rail = readr::read_csv(path_railroad,
                             C_LOAD = col_character()))) %>%
   filter(TIME == max(TIME))
 
-regions = df_gmr$Code %>% unique
+regions = df_gmr$code %>% unique
 baselines = vector()
-date_diff = as.integer(df_gmr$Date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
+date_diff = as.integer(df_gmr$date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 
 for (region_code in regions) {
   if (is.na(region_code)){
     next
   }
   
-  region_name = df_meta[df_meta$Code == region_code, ][["Region"]]
+  region_name = df_meta[df_meta$code == region_code, ][["region"]]
   
   baseline = df_rail %>%
     # Add the amount of passengers that travelled FROM the region
@@ -453,7 +452,7 @@ for (region_code in regions) {
   # growth rate. We divide by 366 on the next line because 2020 is a leap year
   baseline = baseline * (1+growth_rate_pop_2019) *
     (1+growth_rate_pop_2020)^(date_diff/366) - 
-    head(df_wide[[glue("{region_code}_Deaths")]], 1)
+    head(df_wide[[glue("{region_code}_deaths")]], 1)
   
   # The given numbers in df_rail are per year so we need daily numbers. This
   # depends on whether it is a leap year
@@ -465,77 +464,77 @@ for (region_code in regions) {
   
   # Assume constant behaviour before and after the limiting dates
   dates_before = seq.Date(df_long_full %>%
-                            filter(Code == region_code) %>%
-                            .[["Date"]] %>%
+                            filter(code == region_code) %>%
+                            .[["date"]] %>%
                             min,
                           df_gmr %>%
-                            filter(Code == region_code) %>%
-                            .[["Date"]] %>%
+                            filter(code == region_code) %>%
+                            .[["date"]] %>%
                             min-1, by="day")
   dates_after = seq.Date(df_gmr %>%
-                           filter(Code == region_code) %>%
-                           .[["Date"]] %>%
+                           filter(code == region_code) %>%
+                           .[["date"]] %>%
                            max+1,
                          df_long_full %>%
-                           filter(Code == region_code) %>%
-                           .[["Date"]] %>%
+                           filter(code == region_code) %>%
+                           .[["date"]] %>%
                            max, by="day")
   
   df_gmr = df_gmr %>%
-    bind_rows(tibble(Code = rep(region_code, length(dates_before)),
-                     Date = dates_before,
+    bind_rows(tibble(code = rep(region_code, length(dates_before)),
+                     date = dates_before,
                      TransitStations = rep(df_gmr %>%
-                                             filter(Code == region_code) %>%
+                                             filter(code == region_code) %>%
                                              select(TransitStations) %>%
                                              head(1) %>%
                                              unlist(use.names=FALSE),
                                            length(dates_before)))) %>%
-    bind_rows(tibble(Code = rep(region_code, length(dates_after)),
-                     Date = dates_after,
+    bind_rows(tibble(code = rep(region_code, length(dates_after)),
+                     date = dates_after,
                      TransitStations = rep(df_gmr %>%
-                                             filter(Code == region_code) %>%
+                                             filter(code == region_code) %>%
                                              select(TransitStations) %>%
                                              tail(1) %>%
                                              unlist(use.names=FALSE),
                                            length(dates_after))))
   
-  all_dates = seq.Date(min(df_long_full$Date), max(df_long_full$Date), by="day")
-  missing_dates = all_dates[which(!df_long_full$Date %in%
-                                    (df_gmr %>% filter(Code == region_code) %>%
-                                       .[["Date"]]))][-1]
+  all_dates = seq.Date(min(df_long_full$date), max(df_long_full$date), by="day")
+  missing_dates = all_dates[which(!df_long_full$date %in%
+                                    (df_gmr %>% filter(code == region_code) %>%
+                                       .[["date"]]))][-1]
   
   if (length(missing_dates) > 0){
     df_gmr = df_gmr %>%
       bind_rows(tibble(
-        Code = rep(region_code, length(missing_dates)),
-        Date = missing_dates,
+        code = rep(region_code, length(missing_dates)),
+        date = missing_dates,
         TransitStations = rep(NA, length(missing_dates)))) 
   }
   
   # Sort now that new dates have been added
-  df_gmr = df_gmr %>% arrange(Code, Date)
+  df_gmr = df_gmr %>% arrange(code, date)
   
   # Impute possible NAs with the mean of the surrounding values
   df_gmr$TransitStations = df_gmr$TransitStations %>%
     (function(x){(na.locf(x) + rev(na.locf(rev(x))))/2})
   
   # Add baseline to a column baselines to be added to df_gmr
-  num_rows = df_gmr %>% filter(Code == region_code) %>% nrow
+  num_rows = df_gmr %>% filter(code == region_code) %>% nrow
   baselines = c(baselines, rep(baseline, num_rows))
 }
 
 df_gmr = df_gmr %>%
-  transmute(Date = Date, Code = Code,
+  transmute(date = date, code = code,
             railTravelers = round(TransitStations*eval(baselines)))
 
 # Join the expanded eurostat data and the railway data with the long data.
 df_long_full = df_long_full %>%
-  left_join(df_gmr, by = c("Date", "Code"))
+  left_join(df_gmr, by = c("date", "code"))
 
 #### Final processing ####
 # Pivot the long data to wide data
 df_wide = df_long_full %>%
-  pivot_wider(names_from = Code,
+  pivot_wider(names_from = code,
               values_from = all_of(colnames(df_long_full)[-c(1,2)]))
 
 # Colnames are now of the form "variable_regionCode". We want to have them of

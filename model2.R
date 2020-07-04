@@ -51,19 +51,19 @@ df_long = df_long %>%
 lag = 5 # Incubation period
 
 # Construct formula
-fm = paste("TestedPositive ~",
+fm = paste("testedPositive ~",
            
            # The Eurostat regressors are multiplied by the lagged Inc and S
            # TODO: Investigate more closely if some variables should not be
            # multiplied in this way
-           paste0(glue("dplyr::lag(TestedPositive, {lag})",
+           paste0(glue("dplyr::lag(testedPositive, {lag})",
                        ":dplyr::lag(susceptibleRate, {lag}):")) %>%
              paste0(glue("dplyr::lag({regressors}, {lag})")) %>%
              paste(collapse="+"), "+",
            
            # These include the weekend and weekNumber effect
            paste(X_regressors, collapse="+")) %>%
-  # paste("+factor(Code)") %>%
+  # paste("+factor(code)") %>%
   as.formula
 
 # Run model
@@ -76,7 +76,7 @@ plot(lsdv)
 par(mfrow=c(1,1))
 dev.off()
 
-residual = df_long$TestedPositive[-1:-lag] - lsdv$fitted.values
+residual = df_long$testedPositive[-1:-lag] - lsdv$fitted.values
 
 # Plot residuals
 tibble(index = 1:length(residual), residuals = residual) %>%
