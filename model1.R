@@ -311,13 +311,13 @@ for (region in regions){
                 drop_na())
 }
 
-# Add region and Direction to the table
+# Add region and direction to the table
 tbl_alpha = tbl_alpha %>%
-  left_join(df_meta %>% select(c(region, code, Direction)), by="code")
+  left_join(df_meta %>% select(c(region, code, direction)), by="code")
 
-# Make a plot per Direction
-for (sub_tbl in split(tbl_alpha, tbl_alpha$Direction)){
-  direc = sub_tbl$Direction[1]
+# Make a plot per direction
+for (sub_tbl in split(tbl_alpha, tbl_alpha$direction)){
+  direc = sub_tbl$direction[1]
   g = ggplot(sub_tbl, aes(date, alphas, colour = region)) + 
     geom_point() +
     geom_smooth(method="loess", span=0.3, se=FALSE) +
@@ -366,13 +366,13 @@ for (region in regions){
                 drop_na())
 }
 
-# Add region and Direction to the table
+# Add region and direction to the table
 tbl_alpha = tbl_alpha %>%
-  left_join(df_meta %>% select(c(region, code, Direction)), by="code")
+  left_join(df_meta %>% select(c(region, code, direction)), by="code")
 
-# Make a plot per Direction
-for (sub_tbl in split(tbl_alpha, tbl_alpha$Direction)){
-  direc = sub_tbl$Direction[1]
+# Make a plot per direction
+for (sub_tbl in split(tbl_alpha, tbl_alpha$direction)){
+  direc = sub_tbl$direction[1]
   g = ggplot(sub_tbl, aes(date, alphas, colour = region)) + 
     geom_point() +
     geom_smooth(method="loess", span=0.3, se=FALSE) +
