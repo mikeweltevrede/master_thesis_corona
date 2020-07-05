@@ -24,19 +24,19 @@ lag = 5 # Incubation period
 codes = df_long$code %>% unique
 df_sumInc = tibble(date = as.Date(NA),
                    code = character(),
-                   sumTestedPositive = numeric())
+                   sumInfectives = numeric())
 for (region in codes){
   df_sumInc = df_sumInc %>%
     bind_rows(
       df_wide %>%
       select(map(codes[codes != region], starts_with, vars = colnames(.)) %>%
                unlist()) %>%
-      select(ends_with("testedPositive")) %>%
+      select(ends_with("infectives")) %>%
       mutate_all(dplyr::lag, n=lag) %>%
       transmute(
         date = df_wide$date,
         code = region,
-        sumTestedPositive = rowSums(.)))
+        sumInfectives = rowSums(.)))
 }
 
 rm(df_wide)
@@ -56,9 +56,9 @@ X_regressors = c("weekend", "weekNumber")
 
 #### Run model 3 ####
 # Construct formula
-fm = paste("testedPositive ~ ",
-           glue("lag(testedPositive, {lag}):lag(susceptibleRate, {lag})+"),
-           glue("lag(susceptibleRate, {lag}):sumTestedPositive +"),
+fm = paste("infectives ~ ",
+           glue("lag(infectives, {lag}):lag(susceptibleRate, {lag})+"),
+           glue("lag(susceptibleRate, {lag}):sumInfectives +"),
            paste(X_regressors, collapse="+")) %>%
   paste("+ factor(code)") %>%
   as.formula
@@ -77,7 +77,7 @@ dev.off()
 df_long_sub = df_long[!df_long$date %in% (df_long$date %>% unique() %>% .[1:lag]), ]
 
 # Compute the residuals
-residual = df_long_sub$testedPositive - lsdv$fitted.values
+residual = df_long_sub$infectives - lsdv$fitted.values
 
 # Plot residuals
 tibble(index = 1:length(residual), residuals = residual) %>%

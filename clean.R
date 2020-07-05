@@ -54,7 +54,7 @@ if (file.exists(new_data_path)) {
                regionGH = denominazione_regione,
                deaths = deceduti,
                recovered = dimessi_guariti,
-               testedPositive = totale_casi,
+               infectives = totale_casi,
                tested = tamponi
         ) %>%
         
@@ -91,7 +91,7 @@ if (file.exists(new_data_path)) {
            regionGH = denominazione_regione,
            deaths = deceduti,
            recovered = dimessi_guariti,
-           testedPositive = totale_casi,
+           infectives = totale_casi,
            tested = tamponi
     ) %>%
     
@@ -214,7 +214,7 @@ for (regio in df_eurostat$code) {
     (1+growth_rate_pop_2020)^(date_diff/366) - 
     df_region[[paste0(regio, "_deaths")]][1])
   total_pop = pop_base - df_region[[paste0(regio, "_deaths")]][1]
-  suscept = total_pop - df_region[[paste0(regio, "_testedPositive")]][1]
+  suscept = total_pop - df_region[[paste0(regio, "_infectives")]][1]
   
   # The variables below are assumed to happen on day t at 5pm, namely the time
   # at which new data is reported. That is, the new cases, deaths, and
@@ -257,7 +257,7 @@ for (regio in df_eurostat$code) {
     # causes of death are negligible. Lastly, we assume that there are no
     # births.
     suscept = c(suscept,
-                tail(suscept, 1) - df_region[[paste0(regio, "_testedPositive")]][t])
+                tail(suscept, 1) - df_region[[paste0(regio, "_infectives")]][t])
   }
   
   df_wide = df_wide %>%
@@ -273,7 +273,7 @@ for (regio in df_eurostat$code){
              .data[[paste0(regio, "_susceptiblePopulation")]] /
              .data[[paste0(regio, "_totalPopulation")]]) %>%
     mutate(!!paste0(regio, "_incidenceRate") :=
-             .data[[paste0(regio, "_testedPositive")]] /
+             .data[[paste0(regio, "_infectives")]] /
              .data[[paste0(regio, "_totalPopulation")]])
 }
 
