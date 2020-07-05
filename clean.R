@@ -122,12 +122,6 @@ df_long = read_csv(new_data_path) %>%
   arrange(code) %>%
   arrange(date)
 
-# The number of tests executed cannot be lower than the number of people tested
-# positive. If this is the case, we set the number of tests equal to the number
-# of positive tests.
-index = df_long$tested < df_long$infectives
-df_long[index, "tested"] = df_long[index, "infectives"]
-
 # Turn long data into wide data
 df_wide = df_long %>%
   pivot_wider(names_from = code,
@@ -153,6 +147,15 @@ df_wide = df_wide %>%
 
 df_long = df_wide %>%
   pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
+
+# The number of tests executed cannot be lower than the number of people tested
+# positive. If this is the case, we set the number of tests equal to the number
+# of positive tests.
+## We need to do this later for the first differences too. That is, if from one
+## day to the next, more people are tested positive than tests are executed,
+## this is illogical and should be corrected.
+index = df_long$tested < df_long$infectives
+df_long[index, "tested"] = df_long[index, "infectives"]
 
 readr::write_csv(df_wide, new_data_path_wide)
 readr::write_csv(df_long, new_data_path_long_cleaned)
@@ -568,6 +571,13 @@ df_long_full = df_long_full %>%
   left_join(df_gmr, by = c("date", "code"))
 
 #### Final processing ####
+# The number of tests executed cannot be lower than the number of people tested
+# positive. We have now taken first differences and this still holds. That is,
+# if from one day to the next, more people are tested positive than tests are
+# executed, this is illogical and should be corrected. If this is the case, we
+# set the number of tests equal to the number of positive tests. 
+index = df_long_full$tested < df_long_full$infectives
+df_long_full[index, "tested"] = df_long_full[index, "infectives"]
 # Pivot the long data to wide data
 df_wide = df_long_full %>%
   pivot_wider(names_from = code,
