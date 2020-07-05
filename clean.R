@@ -361,13 +361,23 @@ df_long_full = df_long_full %>%
 # Residential: Mobility trends for places of residence.
 # Workplaces: Mobility trends for places of work.
 df_gmr = readr::read_csv(path_mobility_report_official,
-                         col_types = do.call(cols, list(
-                           sub_region_2 = col_character(),
-                           date = col_date(format = "%Y-%m-%d")))) %>%
+                         col_types = do.call(
+                           cols_only, list(
+                             country_region_code=col_character(),
+                             sub_region_1=col_character(),
+                             date=col_date(format = "%Y-%m-%d"),
+                             retail_and_recreation_percent_change_from_baseline=
+                               col_double(),
+                             grocery_and_pharmacy_percent_change_from_baseline=
+                               col_double(),
+                             parks_percent_change_from_baseline=col_double(),
+                             transit_stations_percent_change_from_baseline=col_double(),
+                             workplaces_percent_change_from_baseline=col_double(),
+                             residential_percent_change_from_baseline=col_double()))) %>%
   filter(country_region_code == "IT") %>%
   
   # Drop unused columns
-  select(-country_region_code, -country_region, -sub_region_2) %>%
+  select(-country_region_code) %>%
   
   # Drop rows with NAs in column `sub_region_1` (region name)
   drop_na(any_of("sub_region_1")) %>%
@@ -415,7 +425,8 @@ df_gmr = df_meta %>%
   select(-region)
 
 # We now are only interested in a decrease in the rail travellers, so we only
-# select TransitStations.
+# select transitStations. Note that this is not only for train stations but
+# similar places like public transport hubs
 df_gmr = df_gmr %>% select(code, date, transitStations)
 
 # For railroad transport, we can multiply by the baseline value. The latest data
