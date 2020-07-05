@@ -21,11 +21,13 @@ data_path = "data"
 
 # For data import
 data_path_gh = glue("{data_path}/COVID-19/dati-regioni")
-completed_dates_path = "{data_path}/completed_dates.txt"
+completed_dates_path = glue("{data_path}/completed_dates.txt")
 new_data_path = glue("{data_path}/data_long.csv")
 new_data_path_wide = glue("{data_path}/data_wide.csv")
 new_data_path_wide_cleaned = glue("{data_path}/data_wide_cleaned.csv")
 new_data_path_long_cleaned = glue("{data_path}/data_long_cleaned.csv")
+path_full_long = glue("{data_path}/data_long_full.csv")
+path_full_wide = glue("{data_path}/data_wide_full.csv")
 
 path_wiki = glue("{data_path}/italy_wikipedia.xlsx")
 path_full_eurostat = glue("{data_path}/merged_eurostat.csv")
