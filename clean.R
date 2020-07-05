@@ -121,6 +121,14 @@ tryCatch(rm(df), warning = function(cond) {})
 df_long = read_csv(new_data_path) %>%
   arrange(code) %>%
   arrange(date)
+
+# The number of tests executed cannot be lower than the number of people tested
+# positive. If this is the case, we set the number of tests equal to the number
+# of positive tests.
+index = df_long$tested < df_long$infectives
+df_long[index, "tested"] = df_long[index, "infectives"]
+
+# Turn long data into wide data
 df_wide = df_long %>%
   pivot_wider(names_from = code,
               values_from = all_of(colnames(df_long)[-c(1,2)]))
