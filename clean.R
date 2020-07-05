@@ -33,7 +33,6 @@ if (file.exists(new_data_path)) {
   # been added
   missing_dates = setdiff(completed_dates, all_dates)
   
-  
   if (length(missing_dates) > 0){
     sprintf("The following %d dates are missing and will be added: %s",
             length(missing_dates), paste(missing_dates, collapse=", "))
