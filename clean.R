@@ -578,6 +578,36 @@ df_long_full = df_long_full %>%
 # set the number of tests equal to the number of positive tests. 
 index = df_long_full$tested < df_long_full$infectives
 df_long_full[index, "tested"] = df_long_full[index, "infectives"]
+
+# Add undocumented infections
+source("undocumented_infections.R")
+df_long_full = df_long_full %>% 
+  rowwise() %>% 
+  mutate(proportionDocumentedLinear =
+           undocumented_infections(totalPopulation, tested, form= "linear"),
+         proportionDocumentedQuadratic =
+           undocumented_infections(totalPopulation, tested, form = "quadratic",
+                                   gamma = 0.7),
+         proportionDocumentedDownwardsVertex =
+           undocumented_infections(totalPopulation, tested,
+                                   form = "downwards_vertex"),
+         proportionDocumentedUpwardsVertex =
+           undocumented_infections(totalPopulation, tested,
+                                   form = "upwards_vertex"),
+         proportionDocumentedCubic =
+           undocumented_infections(totalPopulation, tested, form = "cubic",
+                                   gamma = 0.6, gamma2 = 0.8),
+         ) %>%
+  mutate(allInfectivesLinear = round(infectives / proportionDocumentedLinear),
+         allInfectivesQuadratic =
+           round(infectives / proportionDocumentedQuadratic),
+         allInfectivesDownwardsVertex =
+           round(infectives / proportionDocumentedDownwardsVertex),
+         allInfectivesUpwardsVertex =
+           round(infectives / proportionDocumentedUpwardsVertex),
+         allInfectivesCubic = round(infectives / proportionDocumentedCubic),
+         )
+
 # Pivot the long data to wide data
 df_wide = df_long_full %>%
   pivot_wider(names_from = code,
