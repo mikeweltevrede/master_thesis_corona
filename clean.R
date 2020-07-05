@@ -349,6 +349,17 @@ df_long_full = df_long_full %>%
   left_join(df_eurostat, by = c("date", "code"))
 
 #### Process Google Mobility Report ####
+# Grocery & pharmacy: Mobility trends for places like grocery markets, food
+#   warehouses, farmers markets, specialty food shops, drug stores, and
+#   pharmacies.
+# Parks: Mobility trends for places like local parks, national parks, public
+#   beaches, marinas, dog parks, plazas, and public gardens.
+# Transit stations: Mobility trends for places like public transport hubs such
+#   as subway, bus, and train stations.
+# Retail & recreation: Mobility trends for places like restaurants, cafes,
+#   shopping centers, theme parks, museums, libraries, and movie theaters.
+# Residential: Mobility trends for places of residence.
+# Workplaces: Mobility trends for places of work.
 df_gmr = readr::read_csv(path_mobility_report_official,
                          col_types = do.call(cols, list(
                            sub_region_2 = col_character(),
