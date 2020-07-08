@@ -12,6 +12,30 @@ library(zoo)
 # Read in metadata
 df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 
+# Column names are now of the form "variable_regionCode". We want to have them
+# in the form "regionCode_variable".
+pivot_to_df_wide = function(df_long) {
+  # Turn long data into wide data
+  df_wide = df_long %>%
+    pivot_wider(names_from = code,
+                values_from = all_of(colnames(df_long)[-c(1,2)]))
+  
+  # Column names are now of the form "variable_regionCode". We want to have them
+  # in the form "regionCode_variable".
+  colnames(df_wide) = colnames(df_wide) %>%
+    sapply(function(s) {
+      s %>%
+        str_split("_", simplify = TRUE) %>%
+        rev %>%
+        paste(collapse="_")
+    }, USE.NAMES=FALSE)
+  
+  # Order the columns alphabetically, keeping date at the start
+  df_wide = df_wide[, c("date", sort(colnames(df_wide[-1])))]
+  
+  return(df_wide)
+}
+
 #### Import the data ####
 # From the official Github account; make sure to pull the repository's latest
 # version yourself!
@@ -121,24 +145,7 @@ tryCatch(rm(df), warning = function(cond) {})
 df_long = read_csv(new_data_path) %>%
   arrange(code) %>%
   arrange(date)
-
-# Turn long data into wide data
-df_wide = df_long %>%
-  pivot_wider(names_from = code,
-              values_from = all_of(colnames(df_long)[-c(1,2)]))
-
-# Column names are now of the form "variable_regionCode". We want to have them
-# in the form "regionCode_variable".
-colnames(df_wide) = colnames(df_wide) %>%
-  sapply(function(s) {
-    s %>%
-      str_split("_", simplify = TRUE) %>%
-      rev %>%
-      paste(collapse="_")
-  }, USE.NAMES=FALSE)
-
-# Order the columns alphabetically, keeping date at the start
-df_wide = df_wide[, c("date", sort(colnames(df_wide[-1])))]
+df_wide = pivot_to_df_wide(df_long)
 
 # Take the first difference of the columns except for date
 df_wide = df_wide %>%
@@ -156,6 +163,8 @@ df_long = df_wide %>%
 ## this is illogical and should be corrected.
 index = df_long$tested < df_long$infectives
 df_long[index, "tested"] = df_long[index, "infectives"]
+
+df_wide = pivot_to_df_wide(df_long)
 
 readr::write_csv(df_wide, new_data_path_wide)
 readr::write_csv(df_long, new_data_path_long_cleaned)
@@ -288,8 +297,6 @@ for (regio in df_eurostat$code){
              .data[[paste0(regio, "_totalPopulation")]])
 }
 
-# Sort the columns, keeping date as the first column.
-df_wide = df_wide[, c("date", sort(colnames(df_wide)[-1]))]
 
 # Convert the data to long format.
 df_long_full = df_wide %>%
@@ -609,19 +616,7 @@ df_long_full = df_long_full %>%
          )
 
 # Pivot the long data to wide data
-df_wide = df_long_full %>%
-  pivot_wider(names_from = code,
-              values_from = all_of(colnames(df_long_full)[-c(1,2)]))
-
-# Colnames are now of the form "variable_regionCode". We want to have them of
-# the form "regionCode_variable".
-colnames(df_wide) = colnames(df_wide) %>%
-  sapply(function(s) {
-    s %>% str_split("_", simplify = TRUE) %>% rev %>% paste(collapse="_")
-  }, USE.NAMES=FALSE)
-
-# Order the columns alphabetically, keeping date at the start
-df_wide = df_wide[, c("date", sort(colnames(df_wide[-1])))]
+df_wide = pivot_to_df_wide(df_long)
 
 #### Export to file ####
 readr::write_csv(df_wide, path_full_wide)
