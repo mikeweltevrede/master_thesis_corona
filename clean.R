@@ -219,6 +219,7 @@ growth_rate_pop_2020 = -0.0015
 # to COVID-19.
 date_diff = as.integer(df_wide$date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 
+# Add population variables for the base and total population
 for (regio in df_eurostat$code) {
   # Only select the data for this region
   df_region = df_wide %>%
@@ -247,7 +248,7 @@ for (regio in df_eurostat$code) {
     # struck?
     pop_base = c(pop_base,
                  round((1+growth_rate_pop_2020)^(1/366)*tail(pop_base, 1)))
-    
+      
     # The total population at time t is defined as the amount of people alive at
     # that time: total_pop(t) = total_pop(t-1) - deaths(t-1). In the code below,
     # because we have no other information, we assume that the deaths are only
@@ -263,15 +264,12 @@ for (regio in df_eurostat$code) {
     ## This is important because that means that it is likely that deaths due to
     ## comorbidities of the coronavirus were recorded under COVID-19 deaths.
     total_pop = c(total_pop,
-                  tail(total_pop, 1) - df_region[[paste0(regio, "_deaths")]][t])
+                  tail(total_pop, 1) - df_region[[glue("{regio}_deaths")]][t])
   }
-  
-  df_wide = df_wide %>%
-    add_column(!!paste0(regio, "_populationBaseline") := pop_base) %>%
-    add_column(!!paste0(regio, "_totalPopulation") := total_pop) %>%
-}
 
   df_wide = df_wide %>%
+    add_column(!!glue("{regio}_populationBaseline") := pop_base) %>%
+    add_column(!!glue("{regio}_totalPopulation") := total_pop)
 }
 
 df_long = df_wide %>%
@@ -677,9 +675,8 @@ df_long = df_long %>%
 # if from one day to the next, more people are tested positive than tests are
 # executed, this is illogical and should be corrected. If this is the case, we
 # set the number of tests equal to the number of positive tests. 
-index = df_long_full$tested < df_long_full$infectives
-df_long_full[index, "tested"] = df_long_full[index, "infectives"]
-
+index = df_long$tested < df_long$infectives
+df_long[index, "tested"] = df_long[index, "infectives"]
 
 # Pivot the long data to wide data
 df_wide = pivot_to_df_wide(df_long)
