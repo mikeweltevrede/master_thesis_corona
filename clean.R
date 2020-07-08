@@ -299,7 +299,7 @@ for (regio in df_eurostat$code){
 
 
 # Convert the data to long format.
-df_long_full = df_wide %>%
+df_long = df_wide %>%
   pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
 
 #### Process Eurostat regressors (import on line 60) ####
@@ -357,13 +357,13 @@ for (na_col in na_cols) {
 }
 
 # We need to expand the time-constant variables to the same scale as df_long
-iddat = expand.grid(date = unique(df_long_full$date),
-                    code = unique(df_long_full$code))
+iddat = expand.grid(date = unique(df_long$date),
+                    code = unique(df_long$code))
 iddat = iddat[order(iddat$date, iddat$code), ]
 rownames(iddat) <- NULL
 df_eurostat = left_join(iddat, df_eurostat, by = "code") %>% as_tibble
 
-df_long_full = df_long_full %>%
+df_long = df_long %>%
   left_join(df_eurostat, by = c("date", "code"))
 
 #### Process Google Mobility Report ####
@@ -458,7 +458,7 @@ df_rail = readr::read_csv(path_railroad,
 regions = df_gmr$code %>% unique
 baselines = vector()
 date_diff = as.integer(df_gmr$date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
-all_dates = seq.Date(min(df_long_full$date), max(df_long_full$date), by="day")
+all_dates = seq.Date(min(df_long$date), max(df_long$date), by="day")
 
 for (region_code in regions) {
   if (is.na(region_code)){
@@ -498,11 +498,11 @@ for (region_code in regions) {
   }
   
   # Assume constant behaviour before and after the limiting dates, if applicable
-  min_date_long = df_long_full %>%
+  min_date_long = df_long %>%
     filter(code == region_code) %>%
     .[["date"]] %>%
     min
-  max_date_long = df_long_full %>%
+  max_date_long = df_long %>%
     filter(code == region_code) %>%
     .[["date"]] %>%
     max
@@ -545,7 +545,7 @@ for (region_code in regions) {
                                              length(dates_after))))
   }
   
-  missing_dates = all_dates[which(!unique(df_long_full$date) %in%
+  missing_dates = all_dates[which(!unique(df_long$date) %in%
                                     (df_gmr %>% filter(code == region_code) %>%
                                        .[["date"]]))][-1]
   
@@ -574,7 +574,7 @@ df_gmr = df_gmr %>%
             railTravelers = round(transitStations*eval(baselines)))
 
 # Join the expanded eurostat data and the railway data with the long data.
-df_long_full = df_long_full %>%
+df_long = df_long %>%
   left_join(df_gmr, by = c("date", "code"))
 
 #### Final processing ####
@@ -620,4 +620,4 @@ df_wide = pivot_to_df_wide(df_long)
 
 #### Export to file ####
 readr::write_csv(df_wide, path_full_wide)
-readr::write_csv(df_long_full, path_full_long)
+readr::write_csv(df_long, path_full_long)
