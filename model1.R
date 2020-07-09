@@ -107,10 +107,9 @@ results_table = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-# TODO: Change accordingly with the undocumented infections
 fm = glue("infectivesTotal ~ lag(infectivesTotal, {lag}):",
           "lag(susceptibleRateTotal, {lag})+",
-           paste(X_regressors, collapse="+")) %>%
+          paste(X_regressors, collapse="+")) %>%
   as.formula
 
 # Estimate the model by OLS
