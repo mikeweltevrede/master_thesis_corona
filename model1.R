@@ -34,7 +34,7 @@ regions = df_long$code %>% unique
 # that this does not depend on the region specifically but only the values at
 # that moment of time. As such, we do not need to loop and can simply apply the
 # function to each row.
-form = "" %>%
+form = "quadratic" %>%
   to_upper_camel_case
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
