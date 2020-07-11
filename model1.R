@@ -96,7 +96,7 @@ fm = glue("{infective_variable} ~ lag({infective_variable}, {lag}):",
 model = lm(fm, data=df_long)
 summary(model)
 
-png(glue("{output_path}/model1_lag{lag}_lmplot_lsdv{undoc_flag}.png"))
+pdf(glue("{output_path}/model1_lag{lag}_lmplot_lsdv{undoc_flag}.pdf"))
 par(mfrow=c(2,2))
 plot(model)
 par(mfrow=c(1,1))
@@ -116,7 +116,7 @@ fm = glue("infectivesTotal ~ lag(infectivesTotal, {lag}):",
 model = lm(fm, data=df_wide)
 summary(model)
 
-png(glue("{output_path}/model1_lag{lag}_lmplot_national{undoc_flag}.png"))
+pdf(glue("{output_path}/model1_lag{lag}_lmplot_national{undoc_flag}.pdf"))
 par(mfrow=c(2,2))
 plot(model)
 par(mfrow=c(1,1))
@@ -154,7 +154,7 @@ for (region in regions){
   # Estimate the model by OLS
   model = lm(fm, data=data)
   
-  png(glue("{output_path}/model1_lag{lag}_lmplot_{region}{undoc_flag}.png"))
+  pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}{undoc_flag}.pdf"))
   par(mfrow=c(2,2))
   plot(model)
   par(mfrow=c(1,1))
@@ -214,7 +214,7 @@ model = step(lm(fm, data=df_wide), k=log(nrow(df_wide)), trace=0,
                           as.formula,
                         "upper" = fm))
 
-png(glue("{output_path}/model1_lag{lag}_lmplot_national_bic{undoc_flag}.png"))
+pdf(glue("{output_path}/model1_lag{lag}_lmplot_national_bic{undoc_flag}.pdf"))
 par(mfrow=c(2,2))
 plot(model)
 par(mfrow=c(1,1))
@@ -257,7 +257,7 @@ for (region in regions){
                             as.formula,
                           "upper" = fm))
   
-  png(glue("{output_path}/model1_lag{lag}_lmplot_{region}_bic{undoc_flag}.png"))
+  pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}_bic{undoc_flag}.pdf"))
   par(mfrow=c(2,2))
   plot(model)
   par(mfrow=c(1,1))
@@ -353,7 +353,7 @@ for (sub_tbl in split(tbl_alpha, tbl_alpha$direction)){
     scale_colour_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#0072B2",
                                  "#D55E00", "#CC79A7"))
   print(g)
-  ggsave(glue("model1_lag{lag}_alphawithin_{direc}{undoc_flag}.png"),
+  ggsave(glue("model1_lag{lag}_alphawithin_{direc}{undoc_flag}.pdf"),
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
 
@@ -408,6 +408,6 @@ for (sub_tbl in split(tbl_alpha, tbl_alpha$direction)){
     scale_colour_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#0072B2",
                                  "#D55E00", "#CC79A7"))
   print(g)
-  ggsave(glue("model1_lag{lag}_alphawithin_{direc}_bic{undoc_flag}.png"),
+  ggsave(glue("model1_lag{lag}_alphawithin_{direc}_bic{undoc_flag}.pdf"),
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
