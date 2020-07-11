@@ -297,6 +297,109 @@ results_table_ms = rbind(
 table_ms = xtable(results_table_ms, math.style.exponents = TRUE)
 table_ms
 
+#### Models with model selection (AIC) ####
+results_table_ms_aic = tibble(variables = c(all_variables, "alpha"))
+
+#### National model ####
+# Construct formula
+# TODO: Idem dito
+fm = glue("infectivesTotal ~ lag(infectivesTotal, {lag}):",
+          "lag(susceptibleRateTotal, {lag})+",
+          paste(X_regressors, collapse="+")) %>%
+  as.formula
+
+# Use AIC for model selection - scope says we want to always keep
+# alpha_within in
+model = step(lm(fm, data=df_wide), k=2, trace=0,
+             scope=list("lower" = glue("infectivesTotal ~ ",
+                                       "lag(infectivesTotal, {lag}):",
+                                       "lag(susceptibleRateTotal, {lag})") %>%
+                          as.formula,
+                        "upper" = fm))
+
+pdf(glue("{output_path}/model1_lag{lag}_lmplot_national_aic{undoc_flag}.pdf"))
+par(mfrow=c(2,2))
+plot(model)
+par(mfrow=c(1,1))
+dev.off()
+
+# Retrieve parameter estimates
+estimates = coef(summary(model))[, "Estimate"]
+pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
+
+# Insert parameter estimates in the results table
+# TODO: Idem dito
+results_table_ms_aic = results_table_ms_aic %>%
+  left_join(tibble("variables" = c(all_variables, "alpha"),
+                   "National" = unname(
+                     c(estimates[all_variables], estimates[
+                       glue("lag(infectivesTotal, {lag}):",
+                            "lag(susceptibleRateTotal, {lag})")])),
+                   "National_pvals" = unname(
+                     c(pvals[all_variables], pvals[
+                       glue("lag(infectivesTotal, {lag}):",
+                            "lag(susceptibleRateTotal, {lag})")]))),
+            by="variables")
+
+#### Regional models ####
+# Construct formula
+fm = glue("{infective_variable} ~ lag({infective_variable}, {lag}):",
+          "lag(susceptibleRate, {lag})+",
+          paste(X_regressors, collapse="+")) %>%
+  as.formula
+
+for (region in regions){
+  # Select only the data for the relevant region
+  data = df_long %>% filter(code == !!region)
+  
+  # Use AIC for model selection
+  model = step(lm(fm, data=data), k=2, trace=0,
+               scope=list("lower" = glue("{infective_variable} ~ ",
+                                         "lag({infective_variable}, {lag}):",
+                                         "lag(susceptibleRate, {lag})") %>%
+                            as.formula,
+                          "upper" = fm))
+  
+  pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}_aic{undoc_flag}.pdf"))
+  par(mfrow=c(2,2))
+  plot(model)
+  par(mfrow=c(1,1))
+  dev.off()
+  
+  # Retrieve parameter estimates
+  estimates = coef(summary(model))[, "Estimate"]
+  pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
+  
+  # Insert parameter estimates in the results table
+  results_table_ms_aic = results_table_ms_aic %>%
+    left_join(tibble("variables" = c(all_variables, "alpha"),
+                     !!glue("{region}") := unname(
+                       c(estimates[all_variables], estimates[
+                         glue("lag({infective_variable}, {lag}):",
+                              "lag(susceptibleRate, {lag})")])),
+                     !!glue("{region}_pvals") := unname(
+                       c(pvals[all_variables], pvals[
+                         glue("lag({infective_variable}, {lag}):",
+                              "lag(susceptibleRate, {lag})")]))),
+              by="variables")
+}
+
+# Transpose and reorder columns
+results_table_ms_aic = results_table_ms_aic %>%
+  gather(region, val, 2:ncol(results_table_ms_aic)) %>%
+  spread(names(results_table_ms_aic)[1], val) %>%
+  select(region, alpha, everything())
+
+# Put the national results at the top
+results_table_ms_aic = rbind(
+  results_table_ms_aic %>% filter(str_detect(region, "National")),
+  results_table_ms_aic %>% filter(!str_detect(region, "National"))) %>%
+  column_to_rownames("region")
+
+# Return a LaTeX table
+table_ms_aic = xtable(results_table_ms_aic, math.style.exponents = TRUE)
+table_ms_aic
+
 #### Plot alpha over time ####
 df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
 
