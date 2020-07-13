@@ -29,7 +29,7 @@ new_data_path_long_cleaned = glue("{data_path}/data_long_cleaned.csv")
 path_full_long = glue("{data_path}/data_long_full.csv")
 path_full_wide = glue("{data_path}/data_wide_full.csv")
 
-path_wiki = glue("{data_path}/italy_wikipedia.xlsx")
+path_metadata = glue("{data_path}/metadata.xlsx")
 path_full_eurostat = glue("{data_path}/merged_eurostat.csv")
 path_mobility_report_official = glue("{data_path}/Global_Mobility_Report.csv")
 path_railroad = glue("{data_path}/eurostat/interregion_railroad_travel.csv")
