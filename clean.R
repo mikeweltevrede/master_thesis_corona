@@ -145,10 +145,17 @@ tryCatch(rm(df), warning = function(cond) {})
 df_long = read_csv(new_data_path) %>%
   arrange(code) %>%
   arrange(date)
-df_wide = pivot_to_df_wide(df_long)
+
+# On June 12, Campania reported -229 confirmed cases, whereas the number of new
+# cases in the week before that date only ranges from 0 to 5. This is to correct
+# for the number of wrong confirmed cases reported in the past. We have no way
+# to reliably determine how these were distributed and using our usual
+# propagation method would lead to 0 confirmed cases from May 13 till June 12.
+df_long = df_long %>%
+  filter(code != "CAM")
 
 # Take the first difference of the columns except for date
-df_wide = df_wide %>%
+df_wide = pivot_to_df_wide(df_long) %>%
   mutate_at(vars(!matches("date")), function(x){c(NA,diff(x))}) %>%
   drop_na
 
