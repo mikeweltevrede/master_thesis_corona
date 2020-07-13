@@ -178,7 +178,8 @@ readr::write_csv(df_long, new_data_path_long_cleaned)
 
 # We need to clean the data before being able to process it in R, also
 # to include new dates. Run the next line to do so (you may need to install
-# Miniconda as a Python interpreter).
+# Miniconda as a Python interpreter). This processes the negative numbers in
+# propagating the value backwards until no negative numbers remain.
 reticulate::py_run_file("clean_wide.py")
 
 # Read in the cleaned data
@@ -209,7 +210,6 @@ if (length(missing_dates) > 0){
 # only keep rows where the `region` is an Italian region, not a direction/NUTS-1
 # region or the entire country by right joining with df_meta, since df_meta only
 # contains NUTS-2 regions.
-
 df_eurostat = readr::read_csv(path_full_eurostat, col_types = do.call(
   cols, list(region=col_character()))) %>%
   right_join(df_meta %>% select(region, code), by="region")
@@ -227,7 +227,7 @@ growth_rate_pop_2020 = -0.0015
 date_diff = as.integer(df_wide$date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 
 # Add population variables for the base and total population
-for (regio in df_eurostat$code) {
+for (regio in unique(df_long$code)) {
   # Only select the data for this region
   df_region = df_wide %>%
     select(starts_with(regio))
@@ -327,7 +327,7 @@ for (form in c("Linear", "Quadratic", "DownwardsVertex",
 
   infective_variable = glue("infectives{form}")
   
-  for (regio in df_eurostat$code) {
+  for (regio in unique(df_long$code)) {
     # Only select the data for this region
     df_region = df_wide %>%
       select(starts_with(regio))
@@ -368,7 +368,7 @@ for (form in c("Linear", "Quadratic", "DownwardsVertex",
       add_column(!!glue("{regio}_susceptiblePopulation{form}") := suscept)
   }
 }  
-#   for (regio in df_eurostat$code){
+#   for (regio in unique(df_long$code)){
 #     # We now get the rates Inc and S. Do note that these will be extremely small.
 #     df_wide = df_wide %>%
 #       mutate(!!glue("{regio}_susceptibleRate{form}") :=
