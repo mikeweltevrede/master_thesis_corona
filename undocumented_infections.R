@@ -21,17 +21,20 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
     
     assert_that(!is.na(gamma),
                 msg=glue("For the functional form {form}, gamma cannot be NA."))
-  
-    # TODO: These conditions are likely dependent on beta and fmin; possibly
-    # derive conditions and change this accordingly
-    assert_that(gamma > 1/4 & gamma < 3/4,
-                msg=glue("For the functional form {form}, gamma should be ",
-                         "above 1/4 and below 3/4."))
-    
     
     a = (beta - gamma + (1-beta)*fmin)/(beta*(1-beta)*N^2)
     b = (gamma - beta^2 - (1-beta^2)*fmin)/(beta*(1-beta)*N)
     c = fmin
+    
+    # To ensure that the vertex lies beyond the domain (0, N), we check that if
+    # there is an extremum in the interval [0, N], that it has to be at 0 or N.
+    roots = uniroot.all(function(x){2*a*x + b}, c(0,N))
+    if (length(roots) == 1) {
+      assert_that((roots == 0) | (roots == N),
+                  msg = glue("For the functional form {form}, the vertex ",
+                             "should have TC_t<=0 or TC_t>={N}. However, it ",
+                             "is equal to {roots}"))
+    }
     
     return(a*TC^2 + b*TC + c)
     
@@ -71,5 +74,11 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
     c = (1 + 32*gamma - 12*gamma2 - 21*fmin)/(3*N)
     d = fmin
     
+    roots = uniroot.all(function(x){ 3*a*x^2 + 2*b*x + c }, c(0, N))
+    assert_that(length(roots) %in% c(0,1),
+                msg=glue("For the functional form {form}, at most 1 extremum ",
+                         "should occur but there are {length(roots)}"))
+    
+    return(a*TC^3 + b*TC^2 + c*TC + d)
   }
 }
