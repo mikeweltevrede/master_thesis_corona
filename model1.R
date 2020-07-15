@@ -22,7 +22,7 @@ df_wide = readr::read_csv(path_full_wide, col_types = do.call(
 # Incubation period
 lag = 5
 
-X_regressors = c("weekend", "weekNumber")
+X_regressors = c("weekend")
 all_variables = c("(Intercept)", X_regressors) %>%
   str_replace("weekend", "weekend1")
 
