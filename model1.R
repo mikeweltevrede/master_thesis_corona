@@ -89,7 +89,7 @@ df_long = df_long %>%
 #### Least Squares Dummy Variables (LSDV) regression ####
 fm = glue("{infective_variable} ~ lag({infective_variable}, {lag}):",
           "lag(susceptibleRate, {lag})+",
-           paste(X_regressors, collapse="+")) %>%
+          paste(X_regressors, collapse="+")) %>%
   paste("+factor(code)") %>%
   as.formula
 
