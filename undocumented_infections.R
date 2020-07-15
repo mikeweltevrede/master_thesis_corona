@@ -7,11 +7,13 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
                                    beta=0.5, beta1=0.25, gamma=2/5, gamma2=1/2,
                                    fmin=0){
   
-  assert_that(!is.na(N) & !is.na(TC), msg=glue("N and TC cannot be NA."))
+  assert_that(!is.na(N) & !is.na(TC) & !is.na(fmin),
+              msg="N, TC, and fmin cannot be NA.")
   
   if (form=="linear") {
-    a = 1/N
-    return(a*TC)
+    a = (1-fmin)/N
+    b = fmin
+    return(a*TC + b)
     
   } else if (form == "quadratic") {
     assert_that(!is.na(gamma),
@@ -31,16 +33,21 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
     b = (gamma - beta^2 - (1-beta^2)*fmin)/(beta*(1-beta)*N)
     c = fmin
     
-    return(a*TC^2+b*TC+c)
+    return(a*TC^2 + b*TC + c)
     
   } else if (form == "downwards_vertex") {
-    a = -1/N^2
-    b = 2/N
-    return(a*TC^2+b*TC)
+    a = (fmin-1)/N^2
+    b = 2*(fmin-1)/N
+    c = fmin
+    
+    return(a*TC^2 + b*TC + c)
     
   } else if (form == "upwards_vertex") {
-    a = 1/N^2
-    return(a*TC^2)
+    a = (1-fmin)/N^2
+    b = 0
+    c = fmin
+    
+    return(a*TC^2 + b*TC + c)
     
   } else if (form == "cubic") {
     assert_that(!is.na(gamma) & !is.na(gamma2),
@@ -51,17 +58,17 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
                 msg=glue("For the functional form {form}, gamma should be ",
                          "less than gamma2."))
     
-    a = (64*gamma-48*gamma2+8)/(3*N^3)
-    b = (-32*gamma+20*gamma2-2)/(N^2)
-    c = (64*gamma-24*gamma2+2)/(6*N)
+    a = (8 + 64*gamma - 48*gamma2 - 24*fmin)/(3*N^3)
+    b = (-2 - 32*gamma + 20*gamma2 + 14*fmin)/(N^2)
+    c = (1 + 32*gamma - 12*gamma2 - 21*fmin)/(3*N)
+    d = fmin
     
-    return(a*TC^3 + b*TC^2 + c*TC)
   }
 }
 
 # # Test it out
 # source("config.R")
-#
+# 
 # N = 100
 # x = 0:N
 # gamma_quadratic = 0.7
