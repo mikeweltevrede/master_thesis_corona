@@ -515,22 +515,23 @@ df_gmr = df_gmr %>%
 
 rm(temp) # Remove temp from the workspace
 
-# Transform into percentages (decimal form)
-df_gmr = df_gmr %>%
-  mutate(across(-c(region, date), function(x) {x/100 + 1}))
-
-# Add regional codes
+# Replace region name by regional codes
 df_gmr = df_meta %>%
   select(region, code) %>%
-  right_join(df_gmr , by="region") %>%
-  select(-region)
+  right_join(df_gmr, by="region") %>%
+  select(-region) %>%
+  
   # Make sure that the regions concur with df_long
   filter(code %in% unique(df_long$code)) %>%
+  
+  # We now are only interested in a decrease in the rail travellers, so we only
+  # select transitStations. Note that this is not only for train stations but
+  # similar places like public transport hubs
+  select(code, date, transitStations)
 
-# We now are only interested in a decrease in the rail travellers, so we only
-# select transitStations. Note that this is not only for train stations but
-# similar places like public transport hubs
-df_gmr = df_gmr %>% select(code, date, transitStations)
+# Transform into percentages (decimal form)
+df_gmr = df_gmr %>%
+  mutate(across(-c(code, date), function(x) {x/100 + 1}))
 
 # For railroad transport, we can multiply by the baseline value. The latest data
 # from Eurostat is from 2015. We assume that this value has changed in the same
