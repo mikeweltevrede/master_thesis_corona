@@ -524,6 +524,8 @@ df_gmr = df_meta %>%
   select(region, code) %>%
   right_join(df_gmr , by="region") %>%
   select(-region)
+  # Make sure that the regions concur with df_long
+  filter(code %in% unique(df_long$code)) %>%
 
 # We now are only interested in a decrease in the rail travellers, so we only
 # select transitStations. Note that this is not only for train stations but
@@ -538,12 +540,11 @@ df_rail = readr::read_csv(path_railroad,
                             C_LOAD = col_character()))) %>%
   filter(TIME == max(TIME))
 
-regions = df_gmr$code %>% unique
 baselines = vector()
 date_diff = as.integer(df_gmr$date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 all_dates = seq.Date(min(df_long$date), max(df_long$date), by="day")
 
-for (region_code in regions) {
+for (region_code in unique(df_gmr$code)) {
   if (is.na(region_code)){
     next
   }
