@@ -393,6 +393,7 @@ eurostat_variables = c("touristArrivals", "broadbandAccess",
                        "dischargeRateTB", "availableBeds",
                        "riskOfPovertyOrSocialExclusion", "medianAge",
                        "populationDensity")
+eurostat_variables = colnames(df_eurostat)
 
 # Only keep rows where the `region` is an Italian region, not a direction or the
 # entire country.
