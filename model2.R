@@ -21,7 +21,7 @@ regressors = c("touristArrivals", "broadbandAccess", "dischargeRateDiabetes",
                "dischargeRateHypertension", "dischargeRateCancer",
                "dischargeRateChd", "dischargeRateTB", "availableBeds",
                "riskOfPovertyOrSocialExclusion")
-X_regressors = c("weekend", "weekNumber, medianAge")
+X_regressors = c("weekend", "medianAge")
 
 # TODO: Check more correlations
 

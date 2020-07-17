@@ -1,5 +1,6 @@
 library(assertthat)
 library(glue)
+library(rootSolve)
 
 undocumented_infections = function(N, TC, form=c("linear", "quadratic",
                                                  "downwards_vertex",
@@ -13,6 +14,7 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
   if (form=="linear") {
     a = (1-fmin)/N
     b = fmin
+    
     return(a*TC + b)
     
   } else if (form == "quadratic") {
@@ -33,7 +35,7 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
       assert_that((roots == 0) | (roots == N),
                   msg = glue("For the functional form {form}, the vertex ",
                              "should have TC_t<=0 or TC_t>={N}. However, it ",
-                             "is equal to {roots}"))
+                             "is equal to {roots}."))
     }
     
     return(a*TC^2 + b*TC + c)
@@ -67,7 +69,7 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
     
     assert_that(beta1 < beta,
                 msg=glue("For the functional form {form}, beta1 should be ",
-                         "less than beta"))
+                         "less than beta."))
     
     a = (8 + 64*gamma - 48*gamma2 - 24*fmin)/(3*N^3)
     b = (-2 - 32*gamma + 20*gamma2 + 14*fmin)/(N^2)
@@ -77,7 +79,7 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
     roots = uniroot.all(function(x){ 3*a*x^2 + 2*b*x + c }, c(0, N))
     assert_that(length(roots) %in% c(0,1),
                 msg=glue("For the functional form {form}, at most 1 extremum ",
-                         "should occur but there are {length(roots)}"))
+                         "should occur but there are {length(roots)}."))
     
     return(a*TC^3 + b*TC^2 + c*TC + d)
   }
