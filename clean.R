@@ -320,8 +320,6 @@ df_long = df_long %>%
 # We also need df_wide to contain these variables when we loop over the regions
 df_wide = pivot_to_df_wide(df_long)
 
-# TODO: We need to split this for loop because we need totalPopulation to
-# compute the undocumented infections
 for (form in c("Linear", "Quadratic", "DownwardsVertex",
                "UpwardsVertex", "Cubic", "")) {
 
@@ -367,23 +365,9 @@ for (form in c("Linear", "Quadratic", "DownwardsVertex",
     df_wide = df_wide %>%
       add_column(!!glue("{regio}_susceptiblePopulation{form}") := suscept)
   }
-}  
-#   for (regio in unique(df_long$code)){
-#     # We now get the rates Inc and S. Do note that these will be extremely small.
-#     df_wide = df_wide %>%
-#       mutate(!!glue("{regio}_susceptibleRate{form}") :=
-#                .data[[glue("{regio}_susceptiblePopulation{form}")]] /
-#                .data[[glue("{regio}_totalPopulation")]]) %>%
-#       mutate(!!glue("{regio}_incidenceRate{form}") :=
-#                .data[[glue("{regio}_{infective_variable}")]] /
-#                .data[[glue("{regio}_totalPopulation")]])
-#   }
-# }
+}
 
-# # Sort the columns, keeping date as the first column.
-# df_wide = df_wide[, c("date", sort(colnames(df_wide)[-1]))]
-
-# Convert the data to long format.
+# Convert the data to long format
 df_long = df_wide %>%
   pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
 
@@ -401,7 +385,7 @@ for (form in c("Linear", "Quadratic", "DownwardsVertex",
              .data[[glue("totalPopulation")]])
 }
 
-#### Process Eurostat regressors (import on line 60) ####
+#### Process Eurostat regressors (import on line 213) ####
 # Define the variables we are interested in
 eurostat_variables = c("touristArrivals", "broadbandAccess",
                        "dischargeRateDiabetes", "dischargeRateHypertension",
@@ -492,13 +476,13 @@ df_gmr = readr::read_csv(path_mobility_report_official,
                              workplaces_percent_change_from_baseline=col_double(),
                              residential_percent_change_from_baseline=col_double()))) %>%
   filter(country_region_code == "IT") %>%
-  
+
   # Drop unused columns
   select(-country_region_code) %>%
   
   # Drop rows with NAs in column `sub_region_1` (region name)
   drop_na(any_of("sub_region_1")) %>%
-  
+    
   # Clean column names
   rename_at(vars(ends_with("_percent_change_from_baseline")),
             function(x){str_replace(x, "_percent_change_from_baseline", "")})
@@ -648,7 +632,7 @@ for (region_code in regions) {
                                     (df_gmr %>% filter(code == region_code) %>%
                                        .[["date"]]))][-1]
   
-  if (length(missing_dates) > 0){
+  if (length(missing_dates) > 0) {
     df_gmr = df_gmr %>%
       bind_rows(tibble(
         code = rep(region_code, length(missing_dates)),
@@ -672,7 +656,7 @@ df_gmr = df_gmr %>%
   transmute(date = date, code = code,
             railTravelers = round(transitStations*eval(baselines)))
 
-# Join the expanded eurostat data and the railway data with the long data.
+# Join the railway data with the long data
 df_long = df_long %>%
   left_join(df_gmr, by = c("date", "code"))
 
