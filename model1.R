@@ -129,11 +129,6 @@ df_wide = df_wide %>%
          infectivesNational = infectivesNational,
          populationDensityNational = totalPopulationNational/areaNational)
 
-pdf(glue("{output_path}/model1_lag{lag}_lmplot_lsdv{undoc_flag}.pdf"))
-par(mfrow=c(2,2))
-plot(model)
-par(mfrow=c(1,1))
-dev.off()
 
 #### Models without model selection ####
 results_table = tibble(variables = c(all_variables, "alpha"))
