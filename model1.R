@@ -1,3 +1,5 @@
+rm(list=ls())
+
 #### Model 1 - Within-region spread ####
 # We start with a simple model ignoring effects across regions:
 # I_rt = alpha_within*I_rt-tau*S_rt-tau + X_rt*delta + nu_rt
@@ -42,19 +44,16 @@ pivot_to_df_wide = function(df_long) {
 # Incubation period
 lag = 5
 
+# Set regressors
 X_regressors = c("weekend")
-all_variables = c("(Intercept)", X_regressors) %>%
-  str_replace("weekend", "weekend1")
-
-# Get all region abbreviations
-regions = df_long$code %>% unique
+all_variables = c("(Intercept)", paste0(X_regressors, 1))
 
 #### Data preprocessing ####
 # Transform the variable to include undocumented infections, if applicable. Note
 # that this does not depend on the region specifically but only the values at
 # that moment of time. As such, we do not need to loop and can simply apply the
 # function to each row.
-form = "quadratic" %>%
+form = "Quadratic" %>%
   to_upper_camel_case
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
@@ -64,10 +63,15 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
   
   undoc_flag = glue("_Undoc{form}")
   
+  print(glue("####Running models while modelling undocumented infections with ",
+             "the {form} functional form!####"))
+  
 } else if (form == ""){
   # Then do not use the undocumented infections modelling
   infective_variable = "infectives"
   undoc_flag = ""
+  
+  print("####Running models WITHOUT modelling undocumented infections!####")
   
 } else {
   sprintf(paste("The variable `form` is %s but it should be one of %s.",
@@ -129,6 +133,8 @@ df_wide = df_wide %>%
          infectivesNational = infectivesNational,
          populationDensityNational = totalPopulationNational/areaNational)
 
+# Get all region abbreviations
+regions = df_long$code %>% unique
 
 #### Models without model selection ####
 results_table = tibble(variables = c(all_variables, "alpha"))
@@ -155,7 +161,6 @@ estimates = coef(summary(model))[, "Estimate"]
 pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
 
 # Insert parameter estimates in the results table
-# TODO: Idem dito
 results_table = results_table %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
@@ -223,7 +228,7 @@ table_no_ms = xtable(results_table, math.style.exponents = TRUE)
 table_no_ms
 
 #### Models with model selection (AIC) ####
-results_table_ms_aic = tibble(variables = c(all_variables, "alpha"))
+results_table_aic = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
@@ -252,8 +257,7 @@ estimates = coef(summary(model))[, "Estimate"]
 pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
 
 # Insert parameter estimates in the results table
-# TODO: Idem dito
-results_table_ms_aic = results_table_ms_aic %>%
+results_table_aic = results_table_aic %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
                      c(estimates[all_variables], estimates[
@@ -295,7 +299,7 @@ for (region in regions){
   pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
   
   # Insert parameter estimates in the results table
-  results_table_ms_aic = results_table_ms_aic %>%
+  results_table_aic = results_table_aic %>%
     left_join(tibble("variables" = c(all_variables, "alpha"),
                      !!glue("{region}") := unname(
                        c(estimates[all_variables], estimates[
@@ -309,23 +313,23 @@ for (region in regions){
 }
 
 # Transpose and reorder columns
-results_table_ms_aic = results_table_ms_aic %>%
-  gather(region, val, 2:ncol(results_table_ms_aic)) %>%
-  spread(names(results_table_ms_aic)[1], val) %>%
+results_table_aic = results_table_aic %>%
+  gather(region, val, 2:ncol(results_table_aic)) %>%
+  spread(names(results_table_aic)[1], val) %>%
   select(region, alpha, everything())
 
 # Put the national results at the top
-results_table_ms_aic = rbind(
-  results_table_ms_aic %>% filter(str_detect(region, "National")),
-  results_table_ms_aic %>% filter(!str_detect(region, "National"))) %>%
+results_table_aic = rbind(
+  results_table_aic %>% filter(str_detect(region, "National")),
+  results_table_aic %>% filter(!str_detect(region, "National"))) %>%
   column_to_rownames("region")
 
 # Return a LaTeX table
-table_ms_aic = xtable(results_table_ms_aic, math.style.exponents = TRUE)
+table_ms_aic = xtable(results_table_aic, math.style.exponents = TRUE)
 table_ms_aic
 
 #### Models with model selection (BIC) ####
-results_table_ms_bic = tibble(variables = c(all_variables, "alpha"))
+results_table_bic = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
@@ -354,8 +358,7 @@ estimates = coef(summary(model))[, "Estimate"]
 pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
 
 # Insert parameter estimates in the results table
-# TODO: Idem dito
-results_table_ms_bic = results_table_ms_bic %>%
+results_table_bic = results_table_bic %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
                      c(estimates[all_variables], estimates[
@@ -397,7 +400,7 @@ for (region in regions){
   pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
   
   # Insert parameter estimates in the results table
-  results_table_ms_bic = results_table_ms_bic %>%
+  results_table_bic = results_table_bic %>%
     left_join(tibble("variables" = c(all_variables, "alpha"),
                      !!glue("{region}") := unname(
                        c(estimates[all_variables], estimates[
@@ -411,23 +414,23 @@ for (region in regions){
 }
 
 # Transpose and reorder columns
-results_table_ms_bic = results_table_ms_bic %>%
-  gather(region, val, 2:ncol(results_table_ms_bic)) %>%
-  spread(names(results_table_ms_bic)[1], val) %>%
+results_table_bic = results_table_bic %>%
+  gather(region, val, 2:ncol(results_table_bic)) %>%
+  spread(names(results_table_bic)[1], val) %>%
   select(region, alpha, everything())
 
 # Put the national results at the top
-results_table_ms_bic = rbind(
-  results_table_ms_bic %>% filter(str_detect(region, "National")),
-  results_table_ms_bic %>% filter(!str_detect(region, "National"))) %>%
+results_table_bic = rbind(
+  results_table_bic %>% filter(str_detect(region, "National")),
+  results_table_bic %>% filter(!str_detect(region, "National"))) %>%
   column_to_rownames("region")
 
 # Return a LaTeX table
-table_ms_bic = xtable(results_table_ms_bic, math.style.exponents = TRUE)
+table_ms_bic = xtable(results_table_bic, math.style.exponents = TRUE)
 table_ms_bic
 
 #### Plot alpha over time ####
-df_meta = readxl::read_xlsx(path_wiki, sheet = "Metadata")
+df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
 
 # Starting index - we want at least this number of observations
 start = 50
@@ -453,7 +456,6 @@ for (region in regions){
     model = lm(fm, data=data[1:t, ])
     
     # Retrieve the alpha estimate and append this to the list of alphas
-    # TODO: Unhardcode the lag
     alpha = model$coefficients[[glue("lag({infective_variable}, {lag}):",
                                      "lag(susceptibleRate, {lag})")]]
     alphas = c(alphas, alpha)
