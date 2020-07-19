@@ -140,8 +140,8 @@ results_table = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesTotal ~ lag(infectivesTotal, {lag}):",
-          "lag(susceptibleRateTotal, {lag})+",
+fm = glue("infectivesNational ~ lag(infectivesNational, {lag}):",
+          "lag(susceptibleRateNational, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -165,12 +165,12 @@ results_table = results_table %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
                      c(estimates[all_variables], estimates[
-                       glue("lag(infectivesTotal, {lag}):",
-                            "lag(susceptibleRateTotal, {lag})")])),
+                       glue("lag(infectivesNational, {lag}):",
+                            "lag(susceptibleRateNational, {lag})")])),
                    "National_pvals" = unname(
                      c(pvals[all_variables], pvals[
-                       glue("lag(infectivesTotal, {lag}):",
-                            "lag(susceptibleRateTotal, {lag})")]))),
+                       glue("lag(infectivesNational, {lag}):",
+                            "lag(susceptibleRateNational, {lag})")]))),
             by="variables")
 
 #### Regional models ####
@@ -232,18 +232,17 @@ results_table_ms_aic = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-# TODO: Idem dito
-fm = glue("infectivesTotal ~ lag(infectivesTotal, {lag}):",
-          "lag(susceptibleRateTotal, {lag})+",
+fm = glue("infectivesNational ~ lag(infectivesNational, {lag}):",
+          "lag(susceptibleRateNational, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
 # Use AIC for model selection - scope says we want to always keep
 # alpha_within in
 model = step(lm(fm, data=df_wide), k=2, trace=0,
-             scope=list("lower" = glue("infectivesTotal ~ ",
-                                       "lag(infectivesTotal, {lag}):",
-                                       "lag(susceptibleRateTotal, {lag})") %>%
+             scope=list("lower" = glue("infectivesNational ~ ",
+                                       "lag(infectivesNational, {lag}):",
+                                       "lag(susceptibleRateNational, {lag})") %>%
                           as.formula,
                         "upper" = fm))
 
@@ -263,12 +262,12 @@ results_table_ms_aic = results_table_ms_aic %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
                      c(estimates[all_variables], estimates[
-                       glue("lag(infectivesTotal, {lag}):",
-                            "lag(susceptibleRateTotal, {lag})")])),
+                       glue("lag(infectivesNational, {lag}):",
+                            "lag(susceptibleRateNational, {lag})")])),
                    "National_pvals" = unname(
                      c(pvals[all_variables], pvals[
-                       glue("lag(infectivesTotal, {lag}):",
-                            "lag(susceptibleRateTotal, {lag})")]))),
+                       glue("lag(infectivesNational, {lag}):",
+                            "lag(susceptibleRateNational, {lag})")]))),
             by="variables")
 
 #### Regional models ####
@@ -335,18 +334,17 @@ results_table_ms_bic = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-# TODO: Idem dito
-fm = glue("infectivesTotal ~ lag(infectivesTotal, {lag}):",
-          "lag(susceptibleRateTotal, {lag})+",
+fm = glue("infectivesNational ~ lag(infectivesNational, {lag}):",
+          "lag(susceptibleRateNational, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
 # Use BIC for model selection - scope says we want to always keep
 # alpha_within in
 model = step(lm(fm, data=df_wide), k=log(nrow(df_wide)), trace=0,
-             scope=list("lower" = glue("infectivesTotal ~ ",
-                                       "lag(infectivesTotal, {lag}):",
-                                       "lag(susceptibleRateTotal, {lag})") %>%
+             scope=list("lower" = glue("infectivesNational ~ ",
+                                       "lag(infectivesNational, {lag}):",
+                                       "lag(susceptibleRateNational, {lag})") %>%
                           as.formula,
                         "upper" = fm))
 
@@ -366,12 +364,12 @@ results_table_ms_bic = results_table_ms_bic %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
                      c(estimates[all_variables], estimates[
-                       glue("lag(infectivesTotal, {lag}):",
-                            "lag(susceptibleRateTotal, {lag})")])),
+                       glue("lag(infectivesNational, {lag}):",
+                            "lag(susceptibleRateNational, {lag})")])),
                    "National_pvals" = unname(
                      c(pvals[all_variables], pvals[
-                       glue("lag(infectivesTotal, {lag}):",
-                            "lag(susceptibleRateTotal, {lag})")]))),
+                       glue("lag(infectivesNational, {lag}):",
+                            "lag(susceptibleRateNational, {lag})")]))),
             by="variables")
 
 #### Regional models ####
