@@ -51,6 +51,7 @@ lag = 5
 # Get all region abbreviations
 regions = df_long$code %>% unique
 
+# Select regressors
 X_regressors = c("weekend")
 all_variables = c("(Intercept)", paste0(X_regressors, 1))
 

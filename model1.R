@@ -44,7 +44,7 @@ pivot_to_df_wide = function(df_long) {
 # Incubation period
 lag = 5
 
-# Set regressors
+# Select regressors
 X_regressors = c("weekend")
 all_variables = c("(Intercept)", paste0(X_regressors, 1))
 
