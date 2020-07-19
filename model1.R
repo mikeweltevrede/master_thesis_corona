@@ -16,8 +16,28 @@ library(xtable)
 # Import data
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(date = col_date(format = "%Y-%m-%d"))))
-df_wide = readr::read_csv(path_full_wide, col_types = do.call(
-  cols, list(date=col_date(format="%Y-%m-%d"))))
+
+pivot_to_df_wide = function(df_long) {
+  # Turn long data into wide data
+  df_wide = df_long %>%
+    pivot_wider(names_from = code,
+                values_from = all_of(colnames(df_long)[-c(1,2)]))
+  
+  # Column names are now of the form "variable_regionCode". We want to have them
+  # in the form "regionCode_variable".
+  colnames(df_wide) = colnames(df_wide) %>%
+    sapply(function(s) {
+      s %>%
+        str_split("_", simplify = TRUE) %>%
+        rev %>%
+        paste(collapse="_")
+    }, USE.NAMES=FALSE)
+  
+  # Order the columns alphabetically, keeping date at the start
+  df_wide = df_wide[, c("date", sort(colnames(df_wide[-1])))]
+  
+  return(df_wide)
+}
 
 # Incubation period
 lag = 5
@@ -60,6 +80,35 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
   infective_variable = "infectives"
   undoc_flag = ""
 }
+
+# Update population density according to the daily updated data instead of the
+# static value from Eurostat
+df_long = df_long %>%
+  mutate(populationDensity = totalPopulation/area)
+
+# Add weekend and lockdown dummies
+lockdown_start = "2020-03-10"
+lockdown_end = "2020-06-03"
+
+df_wide = pivot_to_df_wide(df_long) %>%
+  mutate(weekend =
+           lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
+           as.integer %>% as.factor,
+         lockdown =
+           ifelse(date > as.Date(lockdown_start, format = "%Y-%m-%d") &
+                    date < as.Date(lockdown_end, format = "%Y-%m-%d"),
+                  1, 0) %>%
+           as.factor)
+
+df_long = df_long %>%
+  mutate(weekend =
+           lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
+           as.integer %>% as.factor,
+         lockdown =
+           ifelse(date > as.Date(lockdown_start, format = "%Y-%m-%d") &
+                    date < as.Date(lockdown_end, format = "%Y-%m-%d"),
+                  1, 0) %>%
+           as.factor)
 
 # Add nationwide variables by summing the individual regions' variables
 susceptibleTotal = df_wide %>%
