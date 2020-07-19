@@ -226,13 +226,12 @@ for (region in regions){
   
   # Use AIC for model selection
   model = step(lm(fm, data=data), k=2, trace=0,
-               scope=list("lower" = glue("{infective_variable} ~ ",
-                                         "lag({infective_variable}, {lag}):",
-                                         "lag(susceptibleRate, {lag})+",
-                                         "lag(susceptibleRate, {lag}):",
-                                         "sumInfectives") %>%
-                            as.formula,
-                          "upper" = fm))
+               scope=list("lower" = glue(
+                 "{infective_variable} ~ ",
+                 "lag({infective_variable}, {lag}):lag(susceptibleRate, {lag})+",
+                 "lag(susceptibleRate, {lag}):sumInfectives") %>%
+                   as.formula,
+                 "upper" = fm))
   
   pdf(glue("{output_path}/model3_lag{lag}_lmplot_{region}_aic{undoc_flag}.pdf"))
   par(mfrow=c(2,2))
@@ -289,13 +288,12 @@ for (region in regions){
   
   # Use BIC for model selection
   model = step(lm(fm, data=data), k=log(nrow(data)), trace=0,
-               scope=list("lower" = glue("{infective_variable} ~ ",
-                                         "lag({infective_variable}, {lag}):",
-                                         "lag(susceptibleRate, {lag})+",
-                                         "lag(susceptibleRate, {lag}):",
-                                         "sumInfectives") %>%
-                            as.formula,
-                          "upper" = fm))
+               scope=list("lower" = glue(
+                 "{infective_variable} ~ ",
+                 "lag({infective_variable}, {lag}):lag(susceptibleRate, {lag})+",
+                 "lag(susceptibleRate, {lag}):sumInfectives") %>%
+                   as.formula,
+                 "upper" = fm))
   
   pdf(glue("{output_path}/model3_lag{lag}_lmplot_{region}_bic{undoc_flag}.pdf"))
   par(mfrow=c(2,2))

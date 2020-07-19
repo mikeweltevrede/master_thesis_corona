@@ -1,7 +1,6 @@
 rm(list=ls())
 
 #### Model 1 - Within-region spread ####
-# We start with a simple model ignoring effects across regions:
 # I_rt = alpha_within*I_rt-tau*S_rt-tau + X_rt*delta + nu_rt
 
 #### Setup ####
@@ -141,8 +140,8 @@ results_table = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational ~ lag(infectivesNational, {lag}):",
-          "lag(susceptibleRateNational, {lag})+",
+fm = glue("infectivesNational ~ ",
+          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -175,8 +174,8 @@ results_table = results_table %>%
 
 #### Regional models ####
 # Construct formula
-fm = glue("{infective_variable} ~ lag({infective_variable}, {lag}):",
-          "lag(susceptibleRate, {lag})+",
+fm = glue("{infective_variable} ~ ",
+          "lag({infective_variable}, {lag}):lag(susceptibleRate, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -232,8 +231,8 @@ results_table_aic = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational ~ lag(infectivesNational, {lag}):",
-          "lag(susceptibleRateNational, {lag})+",
+fm = glue("infectivesNational ~ ",
+          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -271,8 +270,8 @@ results_table_aic = results_table_aic %>%
 
 #### Regional models ####
 # Construct formula
-fm = glue("{infective_variable} ~ lag({infective_variable}, {lag}):",
-          "lag(susceptibleRate, {lag})+",
+fm = glue("{infective_variable} ~ ",
+          "lag({infective_variable}, {lag}):lag(susceptibleRate, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -333,8 +332,8 @@ results_table_bic = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational ~ lag(infectivesNational, {lag}):",
-          "lag(susceptibleRateNational, {lag})+",
+fm = glue("infectivesNational ~ ",
+          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -372,8 +371,8 @@ results_table_bic = results_table_bic %>%
 
 #### Regional models ####
 # Construct formula
-fm = glue("{infective_variable} ~ lag({infective_variable}, {lag}):",
-          "lag(susceptibleRate, {lag})+",
+fm = glue("{infective_variable} ~ ",
+          "lag({infective_variable}, {lag}):lag(susceptibleRate, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
@@ -435,8 +434,8 @@ df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
 # Starting index - we want at least this number of observations
 start = 50
 
-fm = glue("{infective_variable} ~ lag({infective_variable}, {lag}):",
-          "lag(susceptibleRate, {lag})+",
+fm = glue("{infective_variable} ~ ",
+          "lag({infective_variable}, {lag}):lag(susceptibleRate, {lag})+",
           paste(X_regressors, collapse="+")) %>%
   as.formula
 
