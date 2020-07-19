@@ -12,6 +12,7 @@ source("config.R")
 # Import packages
 library(glue)
 library(latex2exp)
+library(restriktor)
 library(snakecase)
 library(tidyverse)
 library(xtable)
@@ -52,6 +53,9 @@ regions = df_long$code %>% unique
 
 X_regressors = c("weekend")
 all_variables = c("(Intercept)", paste0(X_regressors, 1))
+
+# Should we apply the restriktor package to ensure that the alphas are positive?
+restrict = TRUE
 
 #### Data preprocessing ####
 # Transform the variable to include undocumented infections, if applicable. Note
@@ -177,6 +181,14 @@ for (region in regions){
   par(mfrow=c(1,1))
   dev.off()
   
+  # TODO: Check the maths behind this
+  if (restrict) {
+    model = restriktor(model,
+                       constraints = rbind(c(0, 1, 0, 0), # alpha_within > 0
+                                           c(0, 0, 1, 0)), # alpha_between > 0
+                       rhs = c(0,0))
+  }
+  
   # Retrieve parameter estimates
   estimates = coef(summary(model))[, "Estimate"]
   pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
@@ -239,6 +251,14 @@ for (region in regions){
   par(mfrow=c(1,1))
   dev.off()
   
+  # TODO: Check the maths behind this
+  if (restrict) {
+    model = restriktor(model,
+                       constraints = rbind(c(0, 1, 0, 0), # alpha_within > 0
+                                           c(0, 0, 1, 0)), # alpha_between > 0
+                       rhs = c(0,0))
+  }
+  
   # Retrieve parameter estimates
   estimates = coef(summary(model))[, "Estimate"]
   pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
@@ -300,6 +320,14 @@ for (region in regions){
   plot(model)
   par(mfrow=c(1,1))
   dev.off()
+  
+  # TODO: Check the maths behind this
+  if (restrict) {
+    model = restriktor(model,
+                       constraints = rbind(c(0, 1, 0, 0), # alpha_within > 0
+                                           c(0, 0, 1, 0)), # alpha_between > 0
+                       rhs = c(0,0))
+  }
   
   # Retrieve parameter estimates
   estimates = coef(summary(model))[, "Estimate"]
