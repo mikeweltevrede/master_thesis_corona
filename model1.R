@@ -111,39 +111,23 @@ df_long = df_long %>%
            as.factor)
 
 # Add nationwide variables by summing the individual regions' variables
-susceptibleTotal = df_wide %>%
+susceptiblePopulationNational = df_wide %>%
   select(ends_with("susceptiblePopulation")) %>%
   rowSums
-total = df_wide %>%
+totalPopulationNational = df_wide %>%
   select(ends_with("totalPopulation")) %>%
   rowSums
-infectivesTotal = df_wide %>% 
+infectivesNational = df_wide %>% 
   select(ends_with(glue("_{infective_variable}"))) %>% 
   rowSums
+areaNational = df_wide %>%
+  select(ends_with("area")) %>%
+  rowSums
 df_wide = df_wide %>%
-  mutate(susceptibleRateTotal = susceptibleTotal/total,
-         infectivesTotal = infectivesTotal)
-
-# Add weekend and weekday effect
-df_wide = df_wide %>%
-  mutate(weekNumber = lubridate::week(df_wide$date)) %>%
-  mutate(weekend = lubridate::wday(df_wide$date, label = TRUE)
-         %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
-
-df_long = df_long %>%
-  mutate(weekNumber = lubridate::week(df_long$date)) %>%
-  mutate(weekend = lubridate::wday(df_long$date, label = TRUE)
-         %in% c("Sat", "Sun") %>% as.integer %>% as.factor)
-
-#### Least Squares Dummy Variables (LSDV) regression ####
-fm = glue("{infective_variable} ~ lag({infective_variable}, {lag}):",
-          "lag(susceptibleRate, {lag})+",
-          paste(X_regressors, collapse="+")) %>%
-  paste("+factor(code)") %>%
-  as.formula
-
-model = lm(fm, data=df_long)
-summary(model)
+  mutate(susceptibleRateNational =
+           susceptiblePopulationNational/totalPopulationNational,
+         infectivesNational = infectivesNational,
+         populationDensityNational = totalPopulationNational/areaNational)
 
 pdf(glue("{output_path}/model1_lag{lag}_lmplot_lsdv{undoc_flag}.pdf"))
 par(mfrow=c(2,2))
