@@ -152,11 +152,11 @@ fm = glue("infectivesNational ~ ",
 # Estimate the model by OLS
 model = lm(fm, data=df_wide)
 
-pdf(glue("{output_path}/model1_lag{lag}_lmplot_national{undoc_flag}.pdf"))
-par(mfrow=c(2,2))
-plot(model)
-par(mfrow=c(1,1))
-dev.off()
+# pdf(glue("{output_path}/model1_lag{lag}_lmplot_national{undoc_flag}.pdf"))
+# par(mfrow=c(2,2))
+# plot(model)
+# par(mfrow=c(1,1))
+# dev.off()
 
 # TODO: Check the maths behind this
 if (restrict) {
@@ -198,11 +198,11 @@ for (region in regions){
   # Estimate the model by OLS
   model = lm(fm, data=data)
   
-  pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}{undoc_flag}.pdf"))
-  par(mfrow=c(2,2))
-  plot(model)
-  par(mfrow=c(1,1))
-  dev.off()
+  # pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}{undoc_flag}.pdf"))
+  # par(mfrow=c(2,2))
+  # plot(model)
+  # par(mfrow=c(1,1))
+  # dev.off()
   
   # TODO: Check the maths behind this
   if (restrict) {
@@ -264,11 +264,11 @@ model = step(lm(fm, data=df_wide), k=2, trace=0,
                           as.formula,
                         "upper" = fm))
 
-pdf(glue("{output_path}/model1_lag{lag}_lmplot_national_aic{undoc_flag}.pdf"))
-par(mfrow=c(2,2))
-plot(model)
-par(mfrow=c(1,1))
-dev.off()
+# pdf(glue("{output_path}/model1_lag{lag}_lmplot_national_aic{undoc_flag}.pdf"))
+# par(mfrow=c(2,2))
+# plot(model)
+# par(mfrow=c(1,1))
+# dev.off()
 
 # TODO: Check the maths behind this
 if (restrict) {
@@ -313,11 +313,11 @@ for (region in regions){
                             as.formula,
                           "upper" = fm))
   
-  pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}_aic{undoc_flag}.pdf"))
-  par(mfrow=c(2,2))
-  plot(model)
-  par(mfrow=c(1,1))
-  dev.off()
+  # pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}_aic{undoc_flag}.pdf"))
+  # par(mfrow=c(2,2))
+  # plot(model)
+  # par(mfrow=c(1,1))
+  # dev.off()
   
   # TODO: Check the maths behind this
   if (restrict) {
@@ -379,11 +379,11 @@ model = step(lm(fm, data=df_wide), k=log(nrow(df_wide)), trace=0,
                           as.formula,
                         "upper" = fm))
 
-pdf(glue("{output_path}/model1_lag{lag}_lmplot_national_bic{undoc_flag}.pdf"))
-par(mfrow=c(2,2))
-plot(model)
-par(mfrow=c(1,1))
-dev.off()
+# pdf(glue("{output_path}/model1_lag{lag}_lmplot_national_bic{undoc_flag}.pdf"))
+# par(mfrow=c(2,2))
+# plot(model)
+# par(mfrow=c(1,1))
+# dev.off()
 
 # TODO: Check the maths behind this
 if (restrict) {
@@ -428,11 +428,11 @@ for (region in regions){
                             as.formula,
                           "upper" = fm))
   
-  pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}_bic{undoc_flag}.pdf"))
-  par(mfrow=c(2,2))
-  plot(model)
-  par(mfrow=c(1,1))
-  dev.off()
+  # pdf(glue("{output_path}/model1_lag{lag}_lmplot_{region}_bic{undoc_flag}.pdf"))
+  # par(mfrow=c(2,2))
+  # plot(model)
+  # par(mfrow=c(1,1))
+  # dev.off()
   
   # TODO: Check the maths behind this
   if (restrict) {
