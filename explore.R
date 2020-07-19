@@ -27,3 +27,17 @@ dischargeRates = readr::read_csv(path_full_eurostat, col_types = do.call(
 GGally::ggcorr(dischargeRates, label=TRUE, hjust = 0.75, size = 4.5,
                layout.exp = 1, label_round = 2)
 ggsave("correlations_discharge_rates.png", path=output_path, dpi=300)
+
+
+# # Predict values -> Odd results with negative values and a completely different
+# # curve
+# fit_my_model = function(t, data) {
+#   model = lm(fm, data=data[1:t, ])
+#   return(predict(model, newdata=data[1:(t+1), ])[[t+1]])
+# }
+# 
+# start = 20
+# end = nrow(df_wide)-1
+# infectives = sapply(start:end, fit_my_model, data=df_wide)
+# plot(df_wide$infectivesTotal[start:end], type="l")
+# lines(infectives, col="red")
