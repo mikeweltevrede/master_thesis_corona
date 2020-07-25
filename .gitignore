@@ -3,10 +3,7 @@
 .vscode/
 
 data/COVID-19/
-env/
-images/
 literature/
-renv/
 rules_and_regulations/
 
 .Rhistory
