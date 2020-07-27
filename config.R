@@ -7,14 +7,15 @@ path_requirements = "requirements.txt"
 
 # Activate the Conda environment. If it does not exist yet, create it with the
 # required packages.
-if (env_name %in% conda_list()$name){
-  use_condaenv(env_name, required=TRUE)
-} else {
-  conda_create(env_name)
-  conda_install(env_name, packages=scan(file=path_requirements,
-                                        what=character(), quiet=TRUE))
-  use_condaenv(env_name, required=TRUE)
-}
+tryCatch(
+  use_condaenv(env_name),
+  error = function(e){
+    conda_create(env_name)
+    conda_install(env_name, packages=scan(file=path_requirements,
+                                          what=character(), quiet=TRUE))
+    use_condaenv(env_name)
+  }
+)
 
 # Path variables for data
 data_path = "data"
