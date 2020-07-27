@@ -56,7 +56,7 @@ restrict = FALSE
 # that this does not depend on the region specifically but only the values at
 # that moment of time. As such, we do not need to loop and can simply apply the
 # function to each row.
-form = "Quadratic" %>%
+form = "" %>%
   to_upper_camel_case
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
