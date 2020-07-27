@@ -133,6 +133,7 @@ df_wide = df_wide %>%
   mutate(susceptibleRateNational =
            susceptiblePopulationNational/totalPopulationNational,
          infectivesNational = infectivesNational,
+         infectivesRateNational = infectivesNational/totalPopulationNational,
          populationDensityNational = totalPopulationNational/areaNational)
 
 # Get all region abbreviations
@@ -143,13 +144,46 @@ results_table = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational ~ ",
+model_summ = glue("infectivesNational ~ ",
           "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
           paste(X_regressors, collapse="+")) %>%
-  as.formula
+  as.formula %>%
+  lm(data=df_wide) %>%
+  summary
+print(model_summ)
 
+model_summ = glue("infectivesNational ~ ",
+          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
+          "lag(infectivesNational, {lag})+",
+          paste(X_regressors, collapse="+")) %>%
+  as.formula %>%
+  lm(data=df_wide) %>%
+  summary
+print(model_summ)
+print(glue("R0: {-coef(model_summ)[4,1]/coef(model_summ)[2,1]}"))
+
+model_summ = glue("infectivesRateNational ~ ",
+          "lag(infectivesRateNational, {lag}):lag(susceptibleRateNational, {lag})+",
+          paste(X_regressors, collapse="+")) %>%
+  as.formula %>%
+  lm(data=df_wide) %>%
+  summary
+print(model_summ)
+
+model_summ = glue(
+  "infectivesRateNational ~ ",
+  "lag(infectivesRateNational, {lag}):lag(susceptibleRateNational, {lag})+",
+  "lag(infectivesRateNational, {lag})+",
+  paste(X_regressors, collapse="+")) %>%
+  as.formula %>%
+  lm(data=df_wide) %>%
+  summary
+print(model_summ)
+print(glue("R0: {-coef(model_summ)[4,1]/coef(model_summ)[2,1]}"))
+ 
 # Estimate the model by OLS
 model = lm(fm, data=df_wide)
+summary(model)
 
 # pdf(glue("{output_path}/model1_lag{lag}_lmplot_national{undoc_flag}.pdf"))
 # par(mfrow=c(2,2))
