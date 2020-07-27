@@ -49,7 +49,7 @@ X_regressors = c("weekend")
 all_variables = c("(Intercept)", paste0(X_regressors, 1))
 
 # Should we apply the restriktor package to ensure that the alphas are positive?
-restrict = TRUE
+restrict = FALSE
 
 #### Data preprocessing ####
 # Transform the variable to include undocumented infections, if applicable. Note
@@ -61,20 +61,16 @@ form = "Quadratic" %>%
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
                 "Cubic")){
-  infective_variable = glue("infectives{form}") %>%
-    snakecase::to_lower_camel_case()
-  
-  undoc_flag = glue("_Undoc{form}")
-  
   print(glue("####Running models while modelling undocumented infections with ",
              "the {form} functional form!####"))
+  infective_variable = glue("infectives{form}")
+  undoc_flag = glue("_Undoc{form}")
   
 } else if (form == ""){
   # Then do not use the undocumented infections modelling
+  print("####Running models WITHOUT modelling undocumented infections!####")
   infective_variable = "infectives"
   undoc_flag = ""
-  
-  print("####Running models WITHOUT modelling undocumented infections!####")
   
 } else {
   sprintf(paste("The variable `form` is %s but it should be one of %s.",
@@ -84,6 +80,7 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
           paste(c("Linear", "Quadratic", "DownwardsVertex",
                   "UpwardsVertex", "Cubic", ""), collapse=", ")) %>%
     print
+
   infective_variable = "infectives"
   undoc_flag = ""
 }
