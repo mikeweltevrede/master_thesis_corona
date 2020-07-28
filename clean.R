@@ -68,7 +68,7 @@ if (file.exists(new_data_path)) {
                       cols_only, # Only retain the columns specified below
                       list(
                         data=col_date(format="%Y-%m-%dT%H:%M:%S"), # Date
-                        denominazione_regione=col_character(), # region name
+                        denominazione_regione=col_character(), # Region name
                         deceduti=col_integer(), # Total number of deceased
                         dimessi_guariti=col_integer(), # Total number recovered
                         totale_casi=col_integer(), # Total positive tests
@@ -151,6 +151,7 @@ df_long = read_csv(new_data_path) %>%
 # for the number of wrong confirmed cases reported in the past. We have no way
 # to reliably determine how these were distributed and using our usual
 # propagation method would lead to 0 confirmed cases from May 13 till June 12.
+# Therefore, we drop the region of Campania from our analysis.
 df_long = df_long %>%
   filter(code != "CAM")
 
@@ -283,27 +284,44 @@ df_long = df_wide %>%
   pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
 
 # We add undocumented infections because the susceptible population depends on
-# the number of total infectives
+# the number of total infectives. For this, we need the cumulative number of
+# tested people instead of the daily numbers.
+df_long = df_long %>%
+  group_by(code) %>%
+  mutate(totalTested = cumsum(tested)) %>%
+  ungroup
+
 source("undocumented_infections.R")
+
+# We assume some values for fmin and the gammas for the quadratic and cubic form
+fmin = 0.1
+gamma_quadratic = 0.7
+gamma1_cubic = 0.6
+gamma2_cubic = 0.8
+
 df_long = df_long %>% 
   rowwise() %>%
   
-  # Compute f_t. Note that we assume the gammas for the quadratic and cubic form
+  # Compute f_t
   mutate(proportionDocumentedLinear =
-           undocumented_infections(totalPopulation, tested, form = "linear"),
+           undocumented_infections(totalPopulation, totalTested,
+                                   form = "Linear", fmin = fmin),
          proportionDocumentedQuadratic =
-           undocumented_infections(totalPopulation, tested, form = "quadratic",
-                                   gamma = 0.7, fmin = 0.1),
+           undocumented_infections(totalPopulation, totalTested,
+                                   form = "Quadratic", gamma = gamma_quadratic,
+                                   fmin = fmin),
          proportionDocumentedDownwardsVertex =
-           undocumented_infections(totalPopulation, tested,
-                                   form = "downwards_vertex"),
+           undocumented_infections(totalPopulation, totalTested,
+                                   form = "DownwardsVertex", fmin = fmin),
          proportionDocumentedUpwardsVertex =
-           undocumented_infections(totalPopulation, tested,
-                                   form = "upwards_vertex"),
+           undocumented_infections(totalPopulation, totalTested,
+                                   form = "UpwardsVertex", fmin = fmin),
          proportionDocumentedCubic =
-           undocumented_infections(totalPopulation, tested, form = "cubic",
-                                   gamma = 0.6, gamma2 = 0.8),
+           undocumented_infections(totalPopulation, totalTested, form = "Cubic",
+                                   gamma = gamma1_cubic, gamma2 = gamma2_cubic,
+                                   fmin = fmin),
   ) %>%
+  # Compute I_t = DI_t / f_t
   mutate(infectivesLinear = round(infectives / proportionDocumentedLinear),
          infectivesQuadratic =
            round(infectives / proportionDocumentedQuadratic),
@@ -311,79 +329,42 @@ df_long = df_long %>%
            round(infectives / proportionDocumentedDownwardsVertex),
          infectivesUpwardsVertex =
            round(infectives / proportionDocumentedUpwardsVertex),
-         infectivesCubic = round(infectives / proportionDocumentedCubic),
+         infectivesCubic = round(infectives / proportionDocumentedCubic)
   ) %>%
   # NAs are formed when no tests have been executed. Instead of counting these
-  # as NAs, TC_t=0 implies f_t=0. So, we replace the NAs with 0.
-  replace(is.na(.), 0)
+  # as NAs, TC_t=0 implies f_t=fmin. So, we replace the NAs with fmin.
+  replace(is.na(.), fmin)
 
-# We also need df_wide to contain these variables when we loop over the regions
-df_wide = pivot_to_df_wide(df_long)
+#### Compute the susceptible population. ####
+# Let:
+# S(t) = The total susceptible population at time t
+# N(t) = The total population at time t
+# D(t) = New deaths between time t-1 and t
+# I(t) = New confirmed cases between time t-1 and t
+# R(t) = New recoveries between time t-1 and t
 
-for (form in c("Linear", "Quadratic", "DownwardsVertex",
-               "UpwardsVertex", "Cubic", "")) {
-
-  infective_variable = glue("infectives{form}")
-  
-  for (regio in unique(df_long$code)) {
-    # Only select the data for this region
-    df_region = df_wide %>%
-      select(starts_with(regio))
-    
-    # Initialize the baseline values at time t=1
-    pop_region = df_eurostat %>%
-      filter(code == regio) %>%
-      .[["populationNumbers"]]
-    
-    # We divide by 366 on the next line because 2020 is a leap year
-    pop_base = round(pop_region * (1+growth_rate_pop_2019) *
-      (1+growth_rate_pop_2020)^(date_diff/366) - 
-      df_region[[glue("{regio}_deaths")]][1])
-    suscept = pop_base - df_region[[glue("{regio}_{infective_variable}")]][1]
-    
-    # The variables below are assumed to happen on day t at 5pm, namely the time
-    # at which new data is reported. That is, the new cases, deaths, and
-    # recoveries from that day contribute to the calculations rather than those of
-    # the day before. This is to be consistent with the definitions from the
-    # reports.
-    for (t in 2:nrow(df_wide)) {
-      
-      # Let:
-      # I(t) = New confirmed cases at time t
-      # S(t) = The total susceptible population at time t
-      # The susceptible population at time t (beginning of the day) is then
-      # defined as: S(t) = S(t-1) - I(t-1)
-      # This is because the people that die or recover have previously been tested
-      # positive and are therefore already included in the confirmed cases (under
-      # the assumption that only corona patients die). We also assume that other
-      # causes of death are negligible. Lastly, we assume that there are no
-      # births.
-      suscept = c(suscept, tail(suscept, 1) -
-                    df_region[[glue("{regio}_{infective_variable}")]][t])
-    }
-    
-    df_wide = df_wide %>%
-      add_column(!!glue("{regio}_susceptiblePopulation{form}") := suscept)
-  }
-}
-
-# Convert the data to long format
-df_long = df_wide %>%
-  pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
-
+# All data is reported at 17:00 (5pm) on day t. The susceptible population
+# at time t (so at 17:00) is then defined as:
+# S(t) = N(t) - D(t) - I(t) - R(t)
+# Note that we have already included deaths when calculating
+# totalPopulation. As such, totalPopulation(t) := N(t) - D(t).
 for (form in c("Linear", "Quadratic", "DownwardsVertex",
                "UpwardsVertex", "Cubic", "")) {
   
   infective_variable = glue("infectives{form}")
-  
   df_long = df_long %>%
-    mutate(!!glue("susceptibleRate{form}") :=
-             .data[[glue("susceptiblePopulation{form}")]] /
-             .data[[glue("totalPopulation")]])  %>%
-    mutate(!!glue("incidenceRate{form}") :=
-             .data[[infective_variable]] /
-             .data[[glue("totalPopulation")]])
+    group_by(code) %>%
+    mutate(
+      "susceptiblePopulation{form}" :=
+        totalPopulation - cumsum(recovered) - cumsum(!!sym(infective_variable)),
+      "susceptibleRate{form}" :=
+        .data[[glue("susceptiblePopulation{form}")]] /
+        .data[["totalPopulation"]],
+      "incidenceRate{form}" :=
+        .data[[infective_variable]] / .data[["totalPopulation"]])
 }
+
+df_wide = pivot_to_df_wide(df_long)
 
 #### Process Eurostat regressors (import on line 213) ####
 # Define the variables we are interested in
@@ -525,9 +506,10 @@ df_gmr = df_meta %>%
   # Make sure that the regions concur with df_long
   filter(code %in% unique(df_long$code)) %>%
   
-  # We now are only interested in a decrease in the rail travellers, so we only
+  # We now are only interested in a decrease in the rail travelers, so we only
   # select transitStations. Note that this is not only for train stations but
-  # similar places like public transport hubs
+  # similar places like public transport hubs.
+  # TODO: Use all variables?
   select(code, date, transitStations)
 
 # Transform into percentages (decimal form)

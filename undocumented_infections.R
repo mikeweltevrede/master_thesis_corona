@@ -2,22 +2,22 @@ library(assertthat)
 library(glue)
 library(rootSolve)
 
-undocumented_infections = function(N, TC, form=c("linear", "quadratic",
-                                                 "downwards_vertex",
-                                                 "upwards_vertex", "cubic"),
+undocumented_infections = function(N, TC, form=c("Linear", "Quadratic",
+                                                 "DownwardsVertex",
+                                                 "UpwardsVertex", "Cubic"),
                                    beta=1/2, beta1=1/4, gamma=1/4, gamma2=1/2,
                                    fmin=0){
   
   assert_that(!is.na(N) & !is.na(TC) & !is.na(fmin),
               msg="N, TC, and fmin cannot be NA.")
   
-  if (form=="linear") {
+  if (form=="Linear") {
     a = (1-fmin)/N
     b = fmin
     
     return(a*TC + b)
     
-  } else if (form == "quadratic") {
+  } else if (form == "Quadratic") {
     assert_that(!is.na(beta),
                 msg=glue("For the functional form {form}, beta cannot be NA."))
     
@@ -40,21 +40,21 @@ undocumented_infections = function(N, TC, form=c("linear", "quadratic",
     
     return(a*TC^2 + b*TC + c)
     
-  } else if (form == "downwards_vertex") {
+  } else if (form == "DownwardsVertex") {
     a = (fmin-1)/N^2
     b = 2*(fmin-1)/N
     c = fmin
     
     return(a*TC^2 + b*TC + c)
     
-  } else if (form == "upwards_vertex") {
+  } else if (form == "UpwardsVertex") {
     a = (1-fmin)/N^2
     b = 0
     c = fmin
     
     return(a*TC^2 + b*TC + c)
     
-  } else if (form == "cubic") {
+  } else if (form == "Cubic") {
     assert_that(!is.na(beta) & !is.na(beta1),
                 msg=glue("For the functional form {form}, the betas cannot ",
                          "be NA."))
