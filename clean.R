@@ -9,7 +9,7 @@ library(reticulate)
 library(tidyverse)
 library(zoo)
 
-# Read in metadata
+# Import metadata
 df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
 
 # Column names are now of the form "variable_regionCode". We want to have them
