@@ -54,12 +54,14 @@ sir_equations <- function(time, variables, parameters) {
   })
 }
 
-infective_variable = "infectivesNational"
-susceptible_variable = "susceptiblePopulationNational"
-recovered_variable = "recoveredNational"
-df = df_wide
-df = df[which(df[[infective_variable]] > 0)[1]:nrow(df), ]
+df = df_long %>% filter(code == "LOM")
+infective_variable = "infectives"
+susceptible_variable = "susceptiblePopulation"
+recovered_variable = "recovered"
 
+# We need to start with a non-zero value of I, so we drop the rows till we
+# encounter the first infectives
+df = df[which(df[[infective_variable]] > 0)[1]:nrow(df), ]
 
 initial_values <- c(
   S = df[[susceptible_variable]][1], # number of susceptibles at time = 0
@@ -95,21 +97,20 @@ sir_1 <- function(beta, gamma, S0, I0, R0, times) {
   return(as.data.frame(out))
 }
 
-ss <- function(beta, gamma, data=df){#, infective_variable = "infectivesNational",
-               #recovered_variable = "recoveredNational") {
-  N = data$totalPopulationNational[1]
-  I0 = data[["infectivesNational"]][1]
+ss <- function(beta, gamma, data=df){
+  N = data$totalPopulation[1]
+  I0 = data[["infectives"]][1]
   S0 = N - I0
-  R0 = data[["recoveredNational"]][1]
+  R0 = data[["recovered"]][1]
   times = seq(0, nrow(data)-1)
   predictions = sir_1(beta = beta, gamma = gamma,    # parameters
                       S0 = S0, I0 = I0, R0 = R0,     # variables initial values
                       times = times)                 # time points
-  return(sum((predictions$I[-1] - data[["infectivesNational"]][-1])^2))
+  return(sum((predictions$I[-1] - data[["infectives"]][-1])^2))
 }
 
 # Given gamma = 0.5, compute the beta for which the SSR is minimal
-beta_val = seq(from = 0.01, to = 0.9, le = 100)
+beta_val = seq(from = 0, to = 0.01, le = 100)
 ss_val = sapply(beta_val, ss, gamma = 0.5)
 beta_hat = beta_val[ss_val == min(ss_val)]
 plot(beta_val, ss_val, type = "l", lwd = 2,
@@ -129,14 +130,14 @@ abline(h = min(ss_val), lty = 2, col = "grey")
 abline(v = gamma_val[ss_val == min(ss_val)], lty = 2, col = "grey")
 
 # Try both at the same time
-n <- 15# number of parameter values to try
-beta_val <- seq(from = 0.01, to = 0.9, le = n)
-gamma_val <- seq(from = 0.01, to = 0.9, le = n)
+n <- 20 # number of parameter values to try
+beta_val <- seq(from = 0.01, to = 3, le = n)
+gamma_val <- seq(from = 0.01, to = 8, le = n)
 param_val <- expand.grid(beta_val, gamma_val)
 ss_val <- with(param_val, Map(ss, Var1, Var2))
 ss_val <- matrix(unlist(ss_val), n)
-persp(beta_val, gamma_val, -ss_val, theta = 40, phi = 30,
-      xlab = "beta", ylab = "gamma", zlab = "-sum of squares")
+persp(beta_val, gamma_val, ss_val, theta = 40, phi = 30,
+      xlab = "beta", ylab = "gamma", zlab = "sum of squares")
 
 
 model_fit <- function(beta, gamma, data, ...) {
