@@ -283,6 +283,7 @@ for (regio in unique(df_long$code)) {
 df_long = df_wide %>%
   pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
 
+#### Add undocumented infections ####
 # We add undocumented infections because the susceptible population depends on
 # the number of total infectives. For this, we need the cumulative number of
 # tested people instead of the daily numbers.
@@ -360,8 +361,11 @@ for (form in c("Linear", "Quadratic", "DownwardsVertex",
       "susceptibleRate{form}" :=
         .data[[glue("susceptiblePopulation{form}")]] /
         .data[["totalPopulation"]],
-      "incidenceRate{form}" :=
-        .data[[infective_variable]] / .data[["totalPopulation"]])
+      "infectivesRateTotal{form}" :=
+        cumsum(.data[[infective_variable]]) / .data[["totalPopulation"]],
+      "infectivesRate{form}" :=
+        .data[[infective_variable]] / .data[["totalPopulation"]]) %>%
+    ungroup()
 }
 
 df_wide = pivot_to_df_wide(df_long)
