@@ -4,10 +4,10 @@
 
 data/COVID-19/
 literature/
+renv/
 rules_and_regulations/
 
 .Rhistory
-.Rprofile
 notes.tex
 thesis.tex
 
