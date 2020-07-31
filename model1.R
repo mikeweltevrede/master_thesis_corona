@@ -63,7 +63,7 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
                 "Cubic")){
   print(glue("####Running models while modelling undocumented infections with ",
              "the {form} functional form!####"))
-  infective_variable = glue("infectives{form}")
+  infective_variable = glue("infectivesRate{form}")
   undoc_flag = glue("_Undoc{form}")
   
 } else if (form == ""){
@@ -81,7 +81,7 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
                   "UpwardsVertex", "Cubic", ""), collapse=", ")) %>%
     print
 
-  infective_variable = "infectives"
+  infective_variable = "infectivesRate"
   undoc_flag = ""
 }
 
@@ -207,11 +207,11 @@ results_table = results_table %>%
   left_join(tibble("variables" = c(all_variables, "alpha"),
                    "National" = unname(
                      c(estimates[all_variables], estimates[
-                       glue("lag(infectivesNational, {lag}):",
+                       glue("lag(infectivesRateNational, {lag}):",
                             "lag(susceptibleRateNational, {lag})")])),
                    "National_pvals" = unname(
                      c(pvals[all_variables], pvals[
-                       glue("lag(infectivesNational, {lag}):",
+                       glue("lag(infectivesRateNational, {lag}):",
                             "lag(susceptibleRateNational, {lag})")]))),
             by="variables")
 
