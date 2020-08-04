@@ -46,7 +46,8 @@ ggsave("correlations_discharge_rates.pdf", path=output_path)
 #### Plot undocumented infections factor over time ####
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(date = col_date(format = "%Y-%m-%d")))) %>%
-  mutate(proportionTested = totalTested / totalPopulation)
+  mutate(proportionTested = totalTested / totalPopulation,
+         proportionUndocumentedQuadratic = 1 - proportionDocumentedQuadratic)
 
 testedColor = "#0072B2"
 propColor = "#D55E00"
@@ -55,17 +56,17 @@ propColor = "#D55E00"
 # First, with the total number of tests executed...
 # For a secondary axis, we need a scaling factor; the 2 is hardcoded to make the
 # axis range from 0 to 1
-coeff = mean(df_long$totalTested / df_long$proportionDocumentedQuadratic) * 2
+coeff = mean(df_long$totalTested / df_long$proportionUndocumentedQuadratic) * 6
 
 ggplot(df_long, aes(x=date)) +
   geom_line(aes(y=totalTested), size=0.8, color=testedColor) + 
   facet_wrap(vars(code)) +
-  geom_line(aes(y=proportionDocumentedQuadratic * coeff), size=0.8,
-            color = propColor) + 
+  geom_line(aes(y=proportionUndocumentedQuadratic * coeff), size=0.8,
+            color = propColor) +
   xlab("") +
   scale_y_continuous(name = "Total number of tests executed\n",
                      sec.axis = sec_axis(
-                       ~./coeff, name="Proportion of infectives documented\n")) +
+                       ~./coeff, name="Proportion of infectives undocumented\n")) +
   theme(
     axis.text.y = element_text(color = testedColor),
     axis.text.y.right = element_text(color = propColor),
@@ -76,17 +77,17 @@ ggplot(df_long, aes(x=date)) +
 ggsave("tamponi_vs_ft.pdf", path=output_path)
 
 # Then for the quotient of tests to the total population
-coeff = mean(df_long$proportionTested / df_long$proportionDocumentedQuadratic) * 1.2
+coeff = mean(df_long$proportionTested / df_long$proportionUndocumentedQuadratic) * 3.6
 
 ggplot(df_long, aes(x=date)) +
   geom_line(aes(y=proportionTested), size=0.8, color=testedColor) + 
   facet_wrap(vars(code)) +
-  geom_line(aes(y=proportionDocumentedQuadratic * coeff), size=0.8,
+  geom_line(aes(y=proportionUndocumentedQuadratic * coeff), size=0.8,
             color = propColor) + 
   xlab("") +
   scale_y_continuous(name = "Tests executed over total population\n",
                      sec.axis = sec_axis(
-                       ~./coeff, name="Proportion of infectives documented\n")) +
+                       ~./coeff, name="Proportion of infectives undocumented\n")) +
   theme(
         axis.text.y = element_text(color = testedColor),
         axis.text.y.right = element_text(color = propColor),
