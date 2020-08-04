@@ -650,6 +650,21 @@ df_long = df_long %>%
   left_join(df_gmr, by = c("date", "code"))
 
 #### Final processing ####
+# Add weekend and lockdown dummies and some other variables
+lockdown_start = "2020-03-10"
+lockdown_end = "2020-06-03"
+
+df_long = df_long %>%
+  mutate(populationDensity = totalPopulation/area,
+         weekend =
+           lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
+           as.integer %>% as.factor,
+         lockdown =
+           ifelse(date > as.Date(lockdown_start, format = "%Y-%m-%d") &
+                    date < as.Date(lockdown_end, format = "%Y-%m-%d"),
+                  1, 0) %>%
+           as.factor)
+
 # The number of tests executed cannot be lower than the number of people tested
 # positive. We have now taken first differences and this still holds. That is,
 # if from one day to the next, more people are tested positive than tests are
@@ -660,6 +675,26 @@ df_long[index, "tested"] = df_long[index, "infectives"]
 
 # Pivot the long data to wide data
 df_wide = pivot_to_df_wide(df_long)
+
+# Add nationwide variables by summing the individual regions' variables
+susceptiblePopulationNational = df_wide %>%
+  select(ends_with("susceptiblePopulation")) %>%
+  rowSums
+totalPopulationNational = df_wide %>%
+  select(ends_with("totalPopulation")) %>%
+  rowSums
+infectivesNational = df_wide %>% 
+  select(ends_with(glue("_{infective_variable}"))) %>% 
+  rowSums
+areaNational = df_wide %>%
+  select(ends_with("area")) %>%
+  rowSums
+df_wide = df_wide %>%
+  mutate(susceptibleRateNational =
+           susceptiblePopulationNational/totalPopulationNational,
+         infectivesNational = infectivesNational,
+         infectivesRateNational = infectivesNational/totalPopulationNational,
+         populationDensityNational = totalPopulationNational/areaNational)
 
 #### Export to file ####
 readr::write_csv(df_wide, path_full_wide)

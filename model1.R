@@ -85,54 +85,8 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
   undoc_flag = ""
 }
 
-# Update population density according to the daily updated data instead of the
-# static value from Eurostat
-df_long = df_long %>%
-  mutate(populationDensity = totalPopulation/area)
-
-# Add weekend and lockdown dummies
-lockdown_start = "2020-03-10"
-lockdown_end = "2020-06-03"
-
-df_wide = pivot_to_df_wide(df_long) %>%
-  mutate(weekend =
-           lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
-           as.integer %>% as.factor,
-         lockdown =
-           ifelse(date > as.Date(lockdown_start, format = "%Y-%m-%d") &
-                    date < as.Date(lockdown_end, format = "%Y-%m-%d"),
-                  1, 0) %>%
-           as.factor)
 
 df_long = df_long %>%
-  mutate(weekend =
-           lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
-           as.integer %>% as.factor,
-         lockdown =
-           ifelse(date > as.Date(lockdown_start, format = "%Y-%m-%d") &
-                    date < as.Date(lockdown_end, format = "%Y-%m-%d"),
-                  1, 0) %>%
-           as.factor)
-
-# Add nationwide variables by summing the individual regions' variables
-susceptiblePopulationNational = df_wide %>%
-  select(ends_with("susceptiblePopulation")) %>%
-  rowSums
-totalPopulationNational = df_wide %>%
-  select(ends_with("totalPopulation")) %>%
-  rowSums
-infectivesNational = df_wide %>% 
-  select(ends_with(glue("_{infective_variable}"))) %>% 
-  rowSums
-areaNational = df_wide %>%
-  select(ends_with("area")) %>%
-  rowSums
-df_wide = df_wide %>%
-  mutate(susceptibleRateNational =
-           susceptiblePopulationNational/totalPopulationNational,
-         infectivesNational = infectivesNational,
-         infectivesRateNational = infectivesNational/totalPopulationNational,
-         populationDensityNational = totalPopulationNational/areaNational)
 
 # Get all region abbreviations
 regions = df_long$code %>% unique
