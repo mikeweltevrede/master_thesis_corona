@@ -69,7 +69,7 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
 } else if (form == ""){
   # Then do not use the undocumented infections modelling
   print("####Running models WITHOUT modelling undocumented infections!####")
-  infective_variable = "infectives"
+  infective_variable = "infectivesRate"
   undoc_flag = ""
   
 } else {
@@ -85,8 +85,15 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
   undoc_flag = ""
 }
 
+#### Adapt the lag to 1 and make the lagged dependent variable ####
+df_wide[["infectivesRateNationalLag"]] = df_wide$infectivesRateNational -
+  lag(df_wide$infectivesRateNational, 1)
 
 df_long = df_long %>%
+  group_by(code) %>%
+  mutate(infectivesRateLag :=
+           !!sym(infective_variable) - lag(!!sym(infective_variable), 1)) %>%
+  ungroup()
 
 # Get all region abbreviations
 regions = df_long$code %>% unique
@@ -171,6 +178,7 @@ results_table = results_table %>%
 
 #### Regional models ####
 # Construct formula
+# TODO: Make left-hand side lagged
 fm = glue("{infective_variable} ~ ",
           "lag({infective_variable}, {lag}):lag(susceptibleRate, {lag})+",
           paste(X_regressors, collapse="+")) %>%
