@@ -96,72 +96,34 @@ df_long = df_long %>%
   ungroup()
 
 # Get all region abbreviations
-regions = df_long$code %>% unique
+regions = unique(df_long$code)
 
 #### Models without model selection ####
 results_table = tibble(variables = c(all_variables, "alpha"))
 
 #### National model ####
 # Construct formula
-model_summ = glue("infectivesNational ~ ",
-          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
-          paste(X_regressors, collapse="+")) %>%
-  as.formula %>%
-  lm(data=df_wide) %>%
-  summary
-print(model_summ)
-
-model_summ = glue("infectivesNational ~ ",
-          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
-          "lag(infectivesNational, {lag})+",
-          paste(X_regressors, collapse="+")) %>%
-  as.formula %>%
-  lm(data=df_wide) %>%
-  summary
-print(model_summ)
-print(glue("R0: {-coef(model_summ)[4,1]/coef(model_summ)[2,1]}"))
-
-model_summ = glue("infectivesRateNational ~ ",
-          "lag(infectivesRateNational, {lag}):lag(susceptibleRateNational, {lag})+",
-          paste(X_regressors, collapse="+")) %>%
-  as.formula %>%
-  lm(data=df_wide) %>%
-  summary
-print(model_summ)
-
-model_summ = glue(
+lag = 5
+model_adda = glue(
   "infectivesRateNational ~ ",
-  "lag(infectivesRateNational, {lag}):lag(susceptibleRateNational, {lag})+",
-  "lag(infectivesRateNational, {lag})+",
+  "lag(infectivesRateNational, {lag}):lag(susceptibleRateNational, {lag}) +",
   paste(X_regressors, collapse="+")) %>%
   as.formula %>%
-  lm(data=df_wide) %>%
-  summary
-print(model_summ)
-print(glue("R0: {-coef(model_summ)[4,1]/coef(model_summ)[2,1]}"))
- 
-# Estimate the model by OLS
-model = lm(fm, data=df_wide)
-summary(model)
+  lm(data=df_wide)
+model_adda_summ = summary(model_adda)
 
-# pdf(glue("{output_path}/model1_lag{lag}_lmplot_national{undoc_flag}.pdf"))
-# par(mfrow=c(2,2))
-# plot(model)
-# par(mfrow=c(1,1))
-# dev.off()
-
-# TODO: Check the maths behind this
 if (restrict) {
-  model = restriktor(model,
-                     constraints = c(0, 1, 0), # alpha_within > 0
+  model = restriktor(model_adda,
+                     constraints = c(0, 1, 0, 0),
                      rhs = 0)
+} else {
+  model = model_adda
 }
 
-summary(model)
-
+#### Make parameter table ####
 # Retrieve parameter estimates
 estimates = coef(summary(model))[, "Estimate"]
-pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
+pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars => Stargazer package
 
 # Insert parameter estimates in the results table
 results_table = results_table %>%
@@ -472,7 +434,7 @@ table_ms_bic
 df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
 
 # Starting index - we want at least this number of observations
-start = 50
+start = 100
 
 fm = glue("{infective_variable} ~ ",
           "lag({infective_variable}, {lag}):lag(susceptibleRate, {lag})+",

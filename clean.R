@@ -249,6 +249,10 @@ for (regio in unique(df_long$code)) {
   # recoveries from that day contribute to the calculations rather than those of
   # the day before. This is to be consistent with the definitions from the
   # reports.
+  
+  # TODO: We can just create a column which is entirely equal to pop_base or
+  # total_pop and subtract the lagged pop_base*g_2020^(1/366) or cumsum of
+  # deaths.
   for (t in 2:nrow(df_wide)) {
     
     # This column assumes the growth rates above and no extraordinary deaths due
@@ -287,6 +291,8 @@ df_long = df_wide %>%
 # We add undocumented infections because the susceptible population depends on
 # the number of total infectives. For this, we need the cumulative number of
 # tested people instead of the daily numbers.
+
+# TODO: There are sudden 0 values in between, which is likely not accurate.
 df_long = df_long %>%
   group_by(code) %>%
   mutate(totalTested = cumsum(tested)) %>%
