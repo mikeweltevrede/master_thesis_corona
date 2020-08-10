@@ -40,9 +40,13 @@ df_wide = df_wide %>%
          susceptibleRateNational =
            susceptiblePopulationNational/totalPopulationNational,
          infectivesNational = infectivesNational,
+         infectivesRateNational = infectivesNational / totalPopulationNational,
          recoveredNational = recoveredNational,
          totalPopulationNational = totalPopulationNational,
          populationDensityNational = totalPopulationNational/areaNational)
+
+df_long = df_long %>%
+  mutate(recoveredRate = recovered/totalPopulation)
 
 ####
 sir_equations <- function(time, variables, parameters) {
@@ -109,8 +113,21 @@ ss <- function(beta, gamma, data=df){
   return(sum((predictions$I[-1] - data[["infectives"]][-1])^2))
 }
 
+ss_print <- function(beta, gamma, data=df){
+  N = data$totalPopulation[1]
+  I0 = data[["infectives"]][1]
+  S0 = N - I0
+  R0 = data[["recovered"]][1]
+  times = seq(0, nrow(data)-1)
+  predictions = sir_1(beta = beta, gamma = gamma,    # parameters
+                      S0 = S0, I0 = I0, R0 = R0,     # variables initial values
+                      times = times)                 # time points
+  print(predictions)
+  return(sum((predictions$I[-1] - data[["infectives"]][-1])^2))
+}
+
 # Given gamma = 0.5, compute the beta for which the SSR is minimal
-beta_val = seq(from = 0, to = 0.01, le = 100)
+beta_val = seq(from = 2, to = 3, le = 500)
 ss_val = sapply(beta_val, ss, gamma = 0.5)
 beta_hat = beta_val[ss_val == min(ss_val)]
 plot(beta_val, ss_val, type = "l", lwd = 2,
@@ -118,6 +135,8 @@ plot(beta_val, ss_val, type = "l", lwd = 2,
      ylab = "sum of squares")
 abline(h = min(ss_val), lty = 2, col = "grey")
 abline(v = beta_hat, lty = 2, col = "grey")
+
+ss_print(beta_hat, gamma = 0.5)
 
 # Given beta = beta_hat, compute the gamma for which the SSR is minimal
 gamma_val = seq(from = 0.01, to = 0.9, le = 100)
