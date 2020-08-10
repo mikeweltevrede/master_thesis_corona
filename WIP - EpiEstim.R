@@ -21,3 +21,8 @@ std_si = 4.75 # Du et al
 res = estimate_R(df_incidence, method="parametric_si",
                  config = make_config(list(mean_si = mean_si, std_si = std_si)))
 plot(res, legend = FALSE)
+
+df_LOM = df_long %>%
+  filter(code == "LOM")
+
+plot(df_LOM$date, (df_LOM$susceptiblePopulation / df_LOM$totalPopulation), type="l")
