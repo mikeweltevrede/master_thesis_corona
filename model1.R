@@ -41,8 +41,8 @@ pivot_to_df_wide = function(df_long) {
   return(df_wide)
 }
 
-# Incubation period
-lag = 5
+# Latent period
+lag = 3
 
 # Select regressors
 X_regressors = c("weekend")
@@ -454,7 +454,7 @@ for (region in regions){
   
   for (t in start:nrow(data)){
     # Estimate the model by OLS
-    model = lm(fm, data=data[1:t, ])
+    model = lm(fm, data=data[1:t, ]) # (data[t-start+1:t,])
     
     # TODO: Check the maths behind this
     if (restrict) {
