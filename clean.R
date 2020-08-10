@@ -467,8 +467,11 @@ df_gmr = readr::read_csv(path_mobility_report_official,
                              transit_stations_percent_change_from_baseline=col_double(),
                              workplaces_percent_change_from_baseline=col_double(),
                              residential_percent_change_from_baseline=col_double()))) %>%
-  filter(country_region_code == "IT") %>%
+  filter(country_region_code == "IT")
 
+write_csv(df_gmr, path_mobility_report_official)
+  
+df_gmr = df_gmr %>%
   # Drop unused columns
   select(-country_region_code) %>%
   
