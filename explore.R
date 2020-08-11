@@ -96,3 +96,20 @@ ggplot(df_long, aes(x=date)) +
         panel.spacing = unit(0.8, "lines"))
 
 ggsave("tamponiprop_vs_ft.pdf", path=output_path)
+
+#### Numbers of documented infections table ####
+
+data = df_long %>%
+  filter(code %in% c("CAL", "LOM", "VEN")) %>%
+  group_by(code) %>%
+  mutate(totalInfectives = cumsum(infectives),
+         totalInfectivesQuadratic = cumsum(infectivesQuadratic)) %>%
+  ungroup() %>%
+  select(date, code, totalInfectives, proportionDocumentedQuadratic,
+         totalInfectivesQuadratic)
+
+for (date in c("2020-04-01", "2020-06-01", "2020-08-01")) {
+  data %>%
+    filter(date == !!date) %>%
+    print()
+}
