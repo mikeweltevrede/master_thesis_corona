@@ -342,7 +342,7 @@ df_long = df_long %>%
   # as NAs, TC_t=0 implies f_t=fmin. So, we replace the NAs with fmin.
   replace(is.na(.), fmin)
 
-#### Compute the susceptible population. ####
+#### Compute the susceptible population ####
 # Let:
 # S(t) = The total susceptible population at time t
 # N(t) = The total population at time t
@@ -689,20 +689,8 @@ df_long = df_long %>%
   left_join(df_gmr, by = c("date", "code"))
 
 #### Final processing ####
-# Add weekend and lockdown dummies and some other variables
-lockdown_start = "2020-03-10"
-lockdown_end = "2020-06-03"
-
 df_long = df_long %>%
-  mutate(populationDensity = totalPopulation/area,
-         weekend =
-           lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
-           as.integer %>% as.factor,
-         lockdown =
-           ifelse(date > as.Date(lockdown_start, format = "%Y-%m-%d") &
-                    date < as.Date(lockdown_end, format = "%Y-%m-%d"),
-                  1, 0) %>%
-           as.factor)
+  mutate(populationDensity = totalPopulation/area)
 
 # The number of tests executed cannot be lower than the number of people tested
 # positive. We have now taken first differences and this still holds. That is,
@@ -715,7 +703,11 @@ df_long[index, "tested"] = df_long[index, "infectives"]
 # Pivot the long data to wide data
 df_wide = pivot_to_df_wide(df_long)
 
-# Add nationwide variables by summing the individual regions' variables
+# Add nationwide variables by summing the individual regions' variables as well
+# as weekend and lockdown dummies
+lockdown_start = "2020-03-10"
+lockdown_end = "2020-06-03"
+
 susceptiblePopulationNational = df_wide %>%
   select(ends_with("susceptiblePopulation")) %>%
   rowSums
@@ -733,7 +725,25 @@ df_wide = df_wide %>%
            susceptiblePopulationNational/totalPopulationNational,
          infectivesNational = infectivesNational,
          infectivesRateNational = infectivesNational/totalPopulationNational,
-         populationDensityNational = totalPopulationNational/areaNational)
+         populationDensityNational = totalPopulationNational/areaNational,
+         weekend =
+           lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
+           as.integer %>% as.factor,
+         lockdown =
+           ifelse(date > as.Date(lockdown_start, format = "%Y-%m-%d") &
+                    date < as.Date(lockdown_end, format = "%Y-%m-%d"),
+                  1, 0) %>%
+           as.factor)
+
+df_long = df_long %>%
+  mutate(weekend =
+           lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
+           as.integer %>% as.factor,
+         lockdown =
+           ifelse(date > as.Date(lockdown_start, format = "%Y-%m-%d") &
+                    date < as.Date(lockdown_end, format = "%Y-%m-%d"),
+                  1, 0) %>%
+           as.factor)
 
 #### Export to file ####
 readr::write_csv(df_wide, path_full_wide)
