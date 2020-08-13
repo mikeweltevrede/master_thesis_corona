@@ -10,7 +10,6 @@ source("config.R")
 # Import packages
 library(glue)
 library(latex2exp)
-library(restriktor)
 library(snakecase)
 library(tidyverse)
 library(xtable)
@@ -47,9 +46,6 @@ lag = 3
 # Select regressors
 X_regressors = c("weekend")
 all_variables = c("(Intercept)", paste0(X_regressors, 1))
-
-# Should we apply the restriktor package to ensure that the alphas are positive?
-restrict = FALSE
 
 #### Data preprocessing ####
 # Transform the variable to include undocumented infections, if applicable. Note
@@ -112,14 +108,6 @@ model_adda = glue(
   lm(data=df_wide)
 model_adda_summ = summary(model_adda)
 
-if (restrict) {
-  model = restriktor(model_adda,
-                     constraints = c(0, 1, 0, 0),
-                     rhs = 0)
-} else {
-  model = model_adda
-}
-
 #### Make parameter table ####
 # Retrieve parameter estimates
 estimates = coef(summary(model))[, "Estimate"]
@@ -158,13 +146,6 @@ for (region in regions){
   # plot(model)
   # par(mfrow=c(1,1))
   # dev.off()
-  
-  # TODO: Check the maths behind this
-  if (restrict) {
-    model = restriktor(model,
-                       constraints = c(0, 1, 0), # alpha_within > 0
-                       rhs = 0)
-  }
   
   # Retrieve parameter estimates
   estimates = coef(summary(model))[, "Estimate"]
@@ -225,13 +206,6 @@ model = step(lm(fm, data=df_wide), k=2, trace=0,
 # par(mfrow=c(1,1))
 # dev.off()
 
-# TODO: Check the maths behind this
-if (restrict) {
-  model = restriktor(model,
-                     constraints = c(0, 1, 0), # alpha_within > 0
-                     rhs = 0)
-}
-
 # Retrieve parameter estimates
 estimates = coef(summary(model))[, "Estimate"]
 pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
@@ -273,13 +247,6 @@ for (region in regions){
   # plot(model)
   # par(mfrow=c(1,1))
   # dev.off()
-  
-  # TODO: Check the maths behind this
-  if (restrict) {
-    model = restriktor(model,
-                       constraints = c(0, 1, 0), # alpha_within > 0
-                       rhs = 0)
-  }
   
   # Retrieve parameter estimates
   estimates = coef(summary(model))[, "Estimate"]
@@ -340,13 +307,6 @@ model = step(lm(fm, data=df_wide), k=log(nrow(df_wide)), trace=0,
 # par(mfrow=c(1,1))
 # dev.off()
 
-# TODO: Check the maths behind this
-if (restrict) {
-  model = restriktor(model,
-                     constraints = c(0, 1, 0), # alpha_within > 0
-                     rhs = 0)
-}
-
 # Retrieve parameter estimates
 estimates = coef(summary(model))[, "Estimate"]
 pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
@@ -388,13 +348,6 @@ for (region in regions){
   # plot(model)
   # par(mfrow=c(1,1))
   # dev.off()
-  
-  # TODO: Check the maths behind this
-  if (restrict) {
-    model = restriktor(model,
-                       constraints = c(0, 1, 0), # alpha_within > 0
-                       rhs = 0)
-  }
   
   # Retrieve parameter estimates
   estimates = coef(summary(model))[, "Estimate"]
@@ -456,13 +409,6 @@ for (region in regions){
     # Estimate the model by OLS
     model = lm(fm, data=data[1:t, ]) # (data[t-start+1:t,])
     
-    # TODO: Check the maths behind this
-    if (restrict) {
-      model = restriktor(model,
-                         constraints = c(0, 1, 0), # alpha_within > 0
-                         rhs = 0)
-    }
-    
     # Retrieve the alpha estimate and append this to the list of alphas
     alpha = coef(model)[[glue("lag({infective_variable}, {lag}):",
                               "lag(susceptibleRate, {lag})")]]
@@ -517,13 +463,6 @@ for (region in regions){
                               as.formula,
                             "upper" = fm))
     
-    # TODO: Check the maths behind this
-    if (restrict) {
-      model = restriktor(model,
-                         constraints = c(0, 1, 0), # alpha_within > 0
-                         rhs = 0)
-    }
-    
     # Retrieve the alpha estimate and append this to the list of alphas
     alpha = coef(model)[[glue("lag({infective_variable}, {lag}):",
                               "lag(susceptibleRate, {lag})")]]
@@ -577,12 +516,6 @@ for (region in regions){
                                            "lag(susceptibleRate, {lag})") %>%
                               as.formula,
                             "upper" = fm))
-    # TODO: Check the maths behind this
-    if (restrict) {
-      model = restriktor(model,
-                         constraints = c(0, 1, 0), # alpha_within > 0
-                         rhs = 0)
-    }
     
     # Retrieve the alpha estimate and append this to the list of alphas
     alpha = coef(model)[[glue("lag({infective_variable}, {lag}):",
