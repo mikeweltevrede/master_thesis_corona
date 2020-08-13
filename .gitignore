@@ -11,6 +11,8 @@ rules_and_regulations/
 notes.tex
 thesis.tex
 
+data/Global_Mobility_Report.csv
+
 *.aux
 *.bbl
 *.bcf
