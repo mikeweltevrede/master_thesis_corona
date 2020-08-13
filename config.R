@@ -33,6 +33,7 @@ path_full_wide = glue("{data_path}/data_wide_full.csv")
 path_metadata = glue("{data_path}/metadata.xlsx")
 path_full_eurostat = glue("{data_path}/merged_eurostat.csv")
 path_mobility_report_official = glue("{data_path}/Global_Mobility_Report.csv")
+path_mobility_report_cleaned = glue("{data_path}/Global_Mobility_Report_Cleaned.csv")
 path_railroad = glue("{data_path}/eurostat/interregion_railroad_travel.csv")
 
 # For images and such
