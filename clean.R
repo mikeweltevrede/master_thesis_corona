@@ -453,24 +453,54 @@ df_long = df_long %>%
 #   shopping centers, theme parks, museums, libraries, and movie theaters.
 # Residential: Mobility trends for places of residence.
 # Workplaces: Mobility trends for places of work.
-df_gmr = readr::read_csv(path_mobility_report_official,
-                         col_types = do.call(
-                           cols_only, list(
-                             country_region_code=col_character(),
-                             sub_region_1=col_character(),
-                             date=col_date(format = "%Y-%m-%d"),
-                             retail_and_recreation_percent_change_from_baseline=
-                               col_double(),
-                             grocery_and_pharmacy_percent_change_from_baseline=
-                               col_double(),
-                             parks_percent_change_from_baseline=col_double(),
-                             transit_stations_percent_change_from_baseline=col_double(),
-                             workplaces_percent_change_from_baseline=col_double(),
-                             residential_percent_change_from_baseline=col_double()))) %>%
-  filter(country_region_code == "IT")
 
-write_csv(df_gmr, path_mobility_report_official)
-  
+if (file.exists(path_mobility_report_cleaned)){
+  df_gmr = readr::read_csv(path_mobility_report_cleaned,
+                           col_types = do.call(
+                             cols_only, list(
+                               country_region_code=col_character(),
+                               sub_region_1=col_character(),
+                               sub_region_2=col_character(),
+                               date=col_date(format = "%Y-%m-%d"),
+                               retail_and_recreation_percent_change_from_baseline=
+                                 col_double(),
+                               grocery_and_pharmacy_percent_change_from_baseline=
+                                 col_double(),
+                               parks_percent_change_from_baseline=col_double(),
+                               transit_stations_percent_change_from_baseline=
+                                 col_double(),
+                               workplaces_percent_change_from_baseline=
+                                 col_double(),
+                               residential_percent_change_from_baseline=
+                                 col_double())))
+} else {
+  df_gmr = readr::read_csv(path_mobility_report_official,
+                           col_types = do.call(
+                             cols_only, list(
+                               country_region_code=col_character(),
+                               sub_region_1=col_character(),
+                               sub_region_2=col_character(),
+                               date=col_date(format = "%Y-%m-%d"),
+                               retail_and_recreation_percent_change_from_baseline=
+                                 col_double(),
+                               grocery_and_pharmacy_percent_change_from_baseline=
+                                 col_double(),
+                               parks_percent_change_from_baseline=col_double(),
+                               transit_stations_percent_change_from_baseline=
+                                 col_double(),
+                               workplaces_percent_change_from_baseline=
+                                 col_double(),
+                               residential_percent_change_from_baseline=
+                                 col_double()))) %>%
+    filter(country_region_code == "IT") %>%
+    
+    # Google recently added the NUTS 3 regions. We want to only have the
+    # region-wide (NUTS 2 region) data
+    filter(is.na(sub_region_2))
+
+  write_csv(df_gmr, path_mobility_report_cleaned)
+}
+
 df_gmr = df_gmr %>%
   # Drop unused columns
   select(-country_region_code) %>%
