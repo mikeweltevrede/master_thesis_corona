@@ -89,20 +89,50 @@ summary(model)
 
 #### Make parameter table ####
 # Retrieve parameter estimates
-estimates = coef(summary(model))[, "Estimate"]
-pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars => Stargazer package
+output_for_table = function(model){
+  
+  get_stars = function(pval, significance=3) {
+    if (pval < 0.01) {
+      stars = "***"
+    } else if (pval < 0.05) {
+      stars = "**"
+    } else if (pval < 0.1) {
+      stars = "*"
+    } else {
+      stars = ""
+    }
+  }
+  
+  stars = coef(summary(model))[, "Pr(>|t|)"] %>%
+    sapply(get_stars)
+  estimates = coef(summary(model))[, "Estimate"] %>%
+    signif(significance) %>%
+    paste0(stars)
+  names(estimates) = names(coef(summary(model))[, "Estimate"])
+  
+  tvals = coef(summary(model))[, "t value"] %>%
+    signif(significance) %>%
+    sapply(function(x){paste0("(", x, ")")})
+  
+  return(list("estimates"=estimates, "tvals"=tvals))
+}
+
+
+table_output = output_for_table(model)
+estimates = table_output$estimates
+tvals = table_output$tvals
 
 # Insert parameter estimates in the results table
 results_table = results_table %>%
   left_join(tibble("variables" = c(all_variables, "beta"),
                    "National" = unname(
-                     c(estimates[all_variables], estimates[
-                       glue("lag(infectivesRateNational, {lag}):",
-                            "lag(susceptibleRateNational, {lag})")])),
-                   "National_pvals" = unname(
-                     c(pvals[all_variables], pvals[
-                       glue("lag(infectivesRateNational, {lag}):",
-                            "lag(susceptibleRateNational, {lag})")]))),
+                     c(estimates[all_variables],
+                       estimates[glue("lag(infectivesRateNational, {lag}):",
+                                      "lag(susceptibleRateNational, {lag})")])),
+                   "National_tvals" = unname(
+                     c(tvals[all_variables],
+                       tvals[glue("lag(infectivesRateNational, {lag}):",
+                                  "lag(susceptibleRateNational, {lag})")]))),
             by="variables")
 
 #### Regional models ####
@@ -128,20 +158,21 @@ for (region in regions){
   # dev.off()
   
   # Retrieve parameter estimates
-  estimates = coef(summary(model))[, "Estimate"]
-  pvals = coef(summary(model))[, "Pr(>|t|)"] # TODO: SE with stars
+  table_output = output_for_table(model)
+  estimates = table_output$estimates
+  tvals = table_output$tvals
   
   # Insert parameter estimates in the results table
   results_table = results_table %>%
     left_join(tibble("variables" = c(all_variables, "beta"),
                      !!glue("{region}") := unname(
-                       c(estimates[all_variables], estimates[
-                         glue("lag({infective_variable}, {lag}):",
-                              "lag(susceptibleRate, {lag})")])),
-                     !!glue("{region}_pvals") := unname(
-                       c(pvals[all_variables], pvals[
-                         glue("lag({infective_variable}, {lag}):",
-                              "lag(susceptibleRate, {lag})")]))),
+                       c(estimates[all_variables],
+                         estimates[glue("lag({infective_variable}, {lag}):",
+                                        "lag(susceptibleRate, {lag})")])),
+                     !!glue("{region}_tvals") := unname(
+                       c(tvals[all_variables],
+                         tvals[glue("lag({infective_variable}, {lag}):",
+                                    "lag(susceptibleRate, {lag})")]))),
               by="variables")
 }
 
