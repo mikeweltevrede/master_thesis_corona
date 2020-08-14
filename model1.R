@@ -25,7 +25,7 @@ lag = 3
 
 # Select regressors
 X_regressors = c("weekend")
-all_variables = c("(Intercept)", paste0(X_regressors, 1))
+all_variables = c("(Intercept)", X_regressors)
 
 #### Data preprocessing ####
 # Transform the variable to include undocumented infections, if applicable. Note
@@ -79,14 +79,13 @@ results_table = tibble(variables = c(all_variables, "beta"))
 
 #### National model ####
 # Construct formula
-lag = 5
-model_adda = glue(
+model = glue(
   "infectivesRateNational ~ ",
   "lag(infectivesRateNational, {lag}):lag(susceptibleRateNational, {lag}) +",
   paste(X_regressors, collapse="+")) %>%
   as.formula %>%
   lm(data=df_wide)
-model_adda_summ = summary(model_adda)
+summary(model)
 
 #### Make parameter table ####
 # Retrieve parameter estimates
@@ -116,7 +115,8 @@ fm = glue("{infective_variable} ~ ",
 
 for (region in regions){
   # Select only the data for the relevant region
-  data = df_long %>% filter(code == !!region)
+  data = df_long %>%
+    filter(code == !!region)
   
   # Estimate the model by OLS
   model = lm(fm, data=data)
