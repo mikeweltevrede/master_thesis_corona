@@ -367,6 +367,8 @@ for (form in c("Linear", "Quadratic", "DownwardsVertex",
       "susceptibleRate{form}" :=
         .data[[glue("susceptiblePopulation{form}")]] /
         .data[["totalPopulation"]],
+      "infectivesTotal{form}" :=
+        cumsum(.data[[infective_variable]]),
       "infectivesRateTotal{form}" :=
         cumsum(.data[[infective_variable]]) / .data[["totalPopulation"]],
       "infectivesRate{form}" :=
@@ -708,23 +710,14 @@ df_wide = pivot_to_df_wide(df_long)
 lockdown_start = "2020-03-10"
 lockdown_end = "2020-06-03"
 
-susceptiblePopulationNational = df_wide %>%
-  select(ends_with("susceptiblePopulation")) %>%
-  rowSums
 totalPopulationNational = df_wide %>%
   select(ends_with("totalPopulation")) %>%
-  rowSums
-infectivesNational = df_wide %>% 
-  select(ends_with(glue("_{infective_variable}"))) %>% 
   rowSums
 areaNational = df_wide %>%
   select(ends_with("area")) %>%
   rowSums
 df_wide = df_wide %>%
-  mutate(susceptibleRateNational =
-           susceptiblePopulationNational/totalPopulationNational,
-         infectivesNational = infectivesNational,
-         infectivesRateNational = infectivesNational/totalPopulationNational,
+  mutate(totalPopulationNational = totalPopulationNational,
          populationDensityNational = totalPopulationNational/areaNational,
          weekend =
            lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
