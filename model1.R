@@ -87,8 +87,9 @@ results_table = tibble(variables = c(all_variables, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational ~ ",
-          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag}) +",
+fm = glue("infectivesNational{form} ~ ",
+          "lag(infectivesNational{form}, {lag}):",
+          "lag(susceptibleRateNational, {lag}) +",
   paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -138,11 +139,11 @@ results_table = results_table %>%
   left_join(tibble("variables" = c(all_variables, "beta"),
                    "National" = unname(
                      c(estimates[all_variables],
-                       estimates[glue("lag(infectivesNational, {lag}):",
+                       estimates[glue("lag(infectivesNational{form}, {lag}):",
                                       "lag(susceptibleRateNational, {lag})")])),
                    "National_tvals" = unname(
                      c(tvals[all_variables],
-                       tvals[glue("lag(infectivesNational, {lag}):",
+                       tvals[glue("lag(infectivesNational{form}, {lag}):",
                                   "lag(susceptibleRateNational, {lag})")]))),
             by="variables")
 
@@ -206,8 +207,9 @@ results_table_aic = tibble(variables = c(all_variables, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational ~ ",
-          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
+fm = glue("infectivesNational{form} ~ ",
+          "lag(infectivesNational{form}, {lag}):",
+          "lag(susceptibleRateNational, {lag})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -215,16 +217,16 @@ fm = glue("infectivesNational ~ ",
 if (rolling) {
   model = step(lm(fm, data=tail(df_wide, window)), k=2, trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational ~ ",
-                                "lag(infectivesNational, {lag}):",
+                 "lower" = glue("infectivesNational{form} ~ ",
+                                "lag(infectivesNational{form}, {lag}):",
                                 "lag(susceptibleRateNational, {lag})") %>%
                    as.formula,
                  "upper" = fm))
 } else {
   model = step(lm(fm, data=df_wide), k=2, trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational ~ ",
-                                "lag(infectivesNational, {lag}):",
+                 "lower" = glue("infectivesNational{form} ~ ",
+                                "lag(infectivesNational{form}, {lag}):",
                                 "lag(susceptibleRateNational, {lag})") %>%
                    as.formula,
                  "upper" = fm))
@@ -240,11 +242,11 @@ results_table_aic = results_table_aic %>%
   left_join(tibble("variables" = c(all_variables, "beta"),
                    "National" = unname(
                      c(estimates[all_variables],
-                       estimates[glue("lag(infectivesNational, {lag}):",
+                       estimates[glue("lag(infectivesNational{form}, {lag}):",
                                       "lag(susceptibleRateNational, {lag})")])),
                    "National_tvals" = unname(
                      c(tvals[all_variables],
-                       tvals[glue("lag(infectivesNational, {lag}):",
+                       tvals[glue("lag(infectivesNational{form}, {lag}):",
                                   "lag(susceptibleRateNational, {lag})")]))),
             by="variables")
 
@@ -320,8 +322,9 @@ results_table_bic = tibble(variables = c(all_variables, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational ~ ",
-          "lag(infectivesNational, {lag}):lag(susceptibleRateNational, {lag})+",
+fm = glue("infectivesNational{form} ~ ",
+          "lag(infectivesNational{form}, {lag}):",
+          "lag(susceptibleRateNational, {lag})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -329,16 +332,16 @@ fm = glue("infectivesNational ~ ",
 if (rolling) {
   model = step(lm(fm, data=tail(df_wide, window)), k=log(window), trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational ~ ",
-                                "lag(infectivesNational, {lag}):",
+                 "lower" = glue("infectivesNational{form} ~ ",
+                                "lag(infectivesNational{form}, {lag}):",
                                 "lag(susceptibleRateNational, {lag})") %>%
                    as.formula,
                  "upper" = fm))
 } else {
   model = step(lm(fm, data=df_wide), k=log(nrow(df_wide)), trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational ~ ",
-                                "lag(infectivesNational, {lag}):",
+                 "lower" = glue("infectivesNational{form} ~ ",
+                                "lag(infectivesNational{form}, {lag}):",
                                 "lag(susceptibleRateNational, {lag})") %>%
                    as.formula,
                  "upper" = fm))
@@ -354,11 +357,11 @@ results_table_bic = results_table_bic %>%
   left_join(tibble("variables" = c(all_variables, "beta"),
                    "National" = unname(
                      c(estimates[all_variables],
-                       estimates[glue("lag(infectivesNational, {lag}):",
+                       estimates[glue("lag(infectivesNational{form}, {lag}):",
                                       "lag(susceptibleRateNational, {lag})")])),
                    "National_tvals" = unname(
                      c(tvals[all_variables],
-                       tvals[glue("lag(infectivesNational, {lag}):",
+                       tvals[glue("lag(infectivesNational{form}, {lag}):",
                                   "lag(susceptibleRateNational, {lag})")]))),
             by="variables")
 
