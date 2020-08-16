@@ -41,7 +41,7 @@ lag = 3
 
 # Do we want to use a rolling window, i.e. only use the most recent `window`
 # observations?
-rolling = FALSE
+rolling = TRUE
 window = 100
 
 if (rolling) {
@@ -52,7 +52,7 @@ if (rolling) {
 
 # Determine if we want to model undocumented infectives and, if so, by which
 # method. Note that infective_variable is the number of new cases, i.e. Delta X.
-form = "" %>%
+form = "Quadratic" %>%
   to_upper_camel_case
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
@@ -327,7 +327,7 @@ fm = glue("infectivesNational ~ ",
 
 # Use BIC for model selection - scope says we want to always keep beta_within in
 if (rolling) {
-  model = step(lm(fm, data=tail(data, window)), k=log(window), trace=0,
+  model = step(lm(fm, data=tail(df_wide, window)), k=log(window), trace=0,
                scope=list(
                  "lower" = glue("infectivesNational ~ ",
                                 "lag(infectivesNational, {lag}):",
