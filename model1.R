@@ -102,9 +102,9 @@ summary(model)
 
 #### Make parameter table ####
 # Retrieve parameter estimates
-output_for_table = function(model, significance=3){
+output_for_table = function(model, significance=4){
   
-  get_stars = function(pval, significance=3) {
+  get_stars = function(pval) {
     if (pval < 0.01) {
       stars = "***"
     } else if (pval < 0.05) {
