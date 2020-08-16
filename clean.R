@@ -735,6 +735,30 @@ df_wide = df_wide %>%
                   1, 0) %>%
            as.factor)
 
+for (form in c("Linear", "Quadratic", "DownwardsVertex",
+               "UpwardsVertex", "Cubic", "")) {
+  
+  infective_variable = glue("infectives{form}")
+  
+  susceptiblePopulationNational = df_wide %>%
+    select(ends_with(glue("susceptiblePopulation{form}"))) %>%
+    rowSums
+  infectivesNational = df_wide %>% 
+    select(ends_with(glue("_{infective_variable}"))) %>% 
+    rowSums
+  
+  df_wide = df_wide %>%
+    mutate("susceptibleRateNational{form}" :=
+             susceptiblePopulationNational/totalPopulationNational,
+           "infectivesNational{form}" := infectivesNational,
+           "infectivesTotalNational{form}" := cumsum(infectivesNational),
+           "infectivesRateNational{form}" :=
+             !!sym(glue("infectivesNational{form}")) / totalPopulationNational,
+           "infectivesRateTotalNational{form}" :=
+             !!sym(glue("infectivesTotalNational{form}")) /
+             totalPopulationNational)
+}
+
 df_long = df_long %>%
   mutate(weekend =
            lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
