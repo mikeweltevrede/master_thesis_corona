@@ -1,8 +1,8 @@
 rm(list=ls())
 
 #### Model 1 - Within-region spread ####
-# Delta X_rt = beta_within*Delta X_rt-tau*S_rt-tau + delta*M_rt + nu_rt
-# X_rt is the absolute number of new cases!
+# Delta Y_rt = beta_within*Delta Y_rt-tau*S_rt-tau + delta*M_rt + nu_rt
+# Y_rt is the absolute number of cases!
 
 #### Set-up ####
 # Import standard variables and activate Python environment
@@ -57,14 +57,14 @@ form = "Quadratic" %>%
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
                 "Cubic")){
-  print(glue("####Running models while modelling undocumented infections with ",
-             "the {form} functional form!####"))
+  print(glue("#### Running models while modelling undocumented infections with",
+             " the {form} functional form! ####"))
   infective_variable = glue("infectives{form}")
   undoc_flag = glue("_Undoc{form}")
   
 } else if (form == ""){
   # Then do not use the undocumented infections modelling
-  print("####Running models WITHOUT modelling undocumented infections!####")
+  print("#### Running models WITHOUT modelling undocumented infections! ####")
   infective_variable = "infectives"
   undoc_flag = ""
   

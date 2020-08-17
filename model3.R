@@ -1,7 +1,7 @@
 rm(list=ls())
 
 #### Model 3 - Within and between-region spread ####
-# Delta Y_rt = beta_within*I_rt-tau*S_rt-tau +
+# Delta Y_rt = beta_within*Delta Y_rt-tau*S_rt-tau +
 #              beta_between*S_rt-tau*\sum_{c!=r}Delta Y_ct-tau +
 #              delta*M_rt + nu_rt
 # Y_rt is the absolute number of new cases!
@@ -87,6 +87,7 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
 df_sumInc = tibble(date = as.Date(NA),
                    code = character(),
                    sumInfectives = numeric())
+
 for (region in regions){
   df_sumInc = df_sumInc %>%
     bind_rows(
