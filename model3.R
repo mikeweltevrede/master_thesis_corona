@@ -430,17 +430,21 @@ for (region in regions){
     if (rolling) {
       model = step(lm(fm, data=data[(t-window+1):t, ]), k=2, trace=0,
                    scope=list(
-                     "lower" = glue("{infective_variable} ~ ",
-                                    "lag({infective_variable}, {lag}):",
-                                    "lag(susceptibleRate, {lag})") %>%
+                     "lower" = glue(
+                       "{infective_variable} ~ ",
+                       "lag({infective_variable}, {lag}):",
+                       "lag(susceptibleRate, {lag})+",
+                       "lag(susceptibleRate, {lag}):sumInfectives") %>%
                        as.formula,
                      "upper" = fm))
     } else {
       model = step(lm(fm, data=head(data, t)), k=2, trace=0,
                    scope=list(
-                     "lower" = glue("{infective_variable} ~ ",
-                                    "lag({infective_variable}, {lag}):",
-                                    "lag(susceptibleRate, {lag})") %>%
+                     "lower" = glue(
+                       "{infective_variable} ~ ",
+                       "lag({infective_variable}, {lag}):",
+                       "lag(susceptibleRate, {lag})+",
+                       "lag(susceptibleRate, {lag}):sumInfectives") %>%
                        as.formula,
                      "upper" = fm))
     }
@@ -505,17 +509,21 @@ for (region in regions){
     if (rolling) {
       model = step(lm(fm, data=data[(t-window+1):t, ]), k=log(window), trace=0,
                    scope=list(
-                     "lower" = glue("{infective_variable} ~ ",
-                                    "lag({infective_variable}, {lag}):",
-                                    "lag(susceptibleRate, {lag})") %>%
+                     "lower" = glue(
+                       "{infective_variable} ~ ",
+                       "lag({infective_variable}, {lag}):",
+                       "lag(susceptibleRate, {lag})+",
+                       "lag(susceptibleRate, {lag}):sumInfectives") %>%
                        as.formula,
                      "upper" = fm))
     } else {
       model = step(lm(fm, data=head(data, t)), k=log(t), trace=0,
                    scope=list(
-                     "lower" = glue("{infective_variable} ~ ",
-                                    "lag({infective_variable}, {lag}):",
-                                    "lag(susceptibleRate, {lag})") %>%
+                     "lower" = glue(
+                       "{infective_variable} ~ ",
+                       "lag({infective_variable}, {lag}):",
+                       "lag(susceptibleRate, {lag})+",
+                       "lag(susceptibleRate, {lag}):sumInfectives") %>%
                        as.formula,
                      "upper" = fm))
     }
