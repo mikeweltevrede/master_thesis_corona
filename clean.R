@@ -151,9 +151,11 @@ df_long = read_csv(new_data_path) %>%
 # for the number of wrong confirmed cases reported in the past. We have no way
 # to reliably determine how these were distributed and using our usual
 # propagation method would lead to 0 confirmed cases from May 13 till June 12.
-# Therefore, we drop the region of Campania from our analysis.
+# The same applies to Sicilia. On June 19, they reported -394 confirmed cases
+# while the number of new cases in the week before that date only ranges from 0
+# to 2. Therefore, we drop the region of Campania and Sicilia from our analysis.
 df_long = df_long %>%
-  filter(code != "CAM")
+  filter(code != "CAM" & code != "SIC")
 
 # Take the first difference of the columns except for date
 df_wide = pivot_to_df_wide(df_long) %>%
