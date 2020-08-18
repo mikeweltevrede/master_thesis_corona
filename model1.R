@@ -486,8 +486,12 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
     geom_smooth(method="loess", span=0.3, se=FALSE) +
     xlab("") +
     ylab(TeX("$\\beta_{within}$")) +
-    scale_colour_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#0072B2",
-                                 "#D55E00", "#CC79A7"))
+    scale_colour_manual(values=c("#0072B2", # Dark blue
+                                 "#D55E00", # Orange-brown
+                                 "#CC79A7", # Pink
+                                 "#009E73", # Green
+                                 "#56B4E9", # Light blue
+                                 "#E69F00")) # Yellow
   print(g)
   ggsave(
     glue("model1_lag{tau}_betawithin_{direc}{undoc_flag}{rolling_flag}.pdf"),
@@ -553,8 +557,12 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
     geom_smooth(method="loess", span=0.3, se=FALSE) +
     xlab("") +
     ylab(TeX("$\\beta_{within}$")) +
-    scale_colour_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#0072B2",
-                                 "#D55E00", "#CC79A7"))
+    scale_colour_manual(values=c("#0072B2", # Dark blue
+                                 "#D55E00", # Orange-brown
+                                 "#CC79A7", # Pink
+                                 "#009E73", # Green
+                                 "#56B4E9", # Light blue
+                                 "#E69F00")) # Yellow
   print(g)
   ggsave(
     glue("model1_lag{tau}_betawithin_{direc}_aic{undoc_flag}{rolling_flag}.pdf"),
@@ -619,8 +627,12 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
     geom_smooth(method="loess", span=0.3, se=FALSE) +
     xlab("") +
     ylab(TeX("$\\beta_{within}$")) +
-    scale_colour_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#0072B2",
-                                 "#D55E00", "#CC79A7"))
+    scale_colour_manual(values=c("#0072B2", # Dark blue
+                                 "#D55E00", # Orange-brown
+                                 "#CC79A7", # Pink
+                                 "#009E73", # Green
+                                 "#56B4E9", # Light blue
+                                 "#E69F00")) # Yellow
   print(g)
   ggsave(
     glue("model1_lag{tau}_betawithin_{direc}_bic{undoc_flag}{rolling_flag}.pdf"),
