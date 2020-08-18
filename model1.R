@@ -32,16 +32,17 @@ all_variables = c("(Intercept)", M_regressors)
 # You need to adapt, if desired, the following parameters:
 # tau: int, the latent period
 # rolling: boolean, whether to apply a rolling window
+# window_size: int, if using a rolling window, how large?
 # form: str, the form of undocumented infections to model with (if any)
 
 # Latent period; Incubation period has median value 5; latent period is
 # estimated to be 2 days shorter: 5-3=2
 tau = 3
 
-# Do we want to use a rolling window, i.e. only use the most recent `window`
+# Do we want to use a rolling window_size, i.e. only use the most recent `window_size`
 # observations?
 rolling = TRUE
-window = 100
+window_size = 100
 
 if (rolling) {
   rolling_flag = "_rolling"
@@ -93,7 +94,7 @@ fm = glue("infectivesNational{form} ~ ",
   as.formula
 
 if (rolling) {
-  model = lm(fm, data=tail(df_wide, window))
+  model = lm(fm, data=tail(df_wide, window_size))
 } else {
   model = lm(fm, data=df_wide)
 }
@@ -160,7 +161,7 @@ for (region in regions){
   
   # Estimate the model by OLS
   if (rolling) {
-    model = lm(fm, data=tail(data, window))
+    model = lm(fm, data=tail(data, window_size))
   } else {
     model = lm(fm, data=data)
   }
@@ -214,7 +215,7 @@ fm = glue("infectivesNational{form} ~ ",
 
 # Use AIC for model selection - scope says we want to always keep beta_within in
 if (rolling) {
-  model = step(lm(fm, data=tail(df_wide, window)), k=2, trace=0,
+  model = step(lm(fm, data=tail(df_wide, window_size)), k=2, trace=0,
                scope=list(
                  "lower" = glue("infectivesNational{form} ~ ",
                                 "lag(infectivesNational{form}, {tau}):",
@@ -263,7 +264,7 @@ for (region in regions){
   
   # Use AIC for model selection
   if (rolling) {
-    model = step(lm(fm, data=tail(data, window)), k=2, trace=0,
+    model = step(lm(fm, data=tail(data, window_size)), k=2, trace=0,
                  scope=list(
                    "lower" = glue("{infective_variable} ~ ",
                                   "lag({infective_variable}, {tau}):",
@@ -329,7 +330,7 @@ fm = glue("infectivesNational{form} ~ ",
 
 # Use BIC for model selection - scope says we want to always keep beta_within in
 if (rolling) {
-  model = step(lm(fm, data=tail(df_wide, window)), k=log(window), trace=0,
+  model = step(lm(fm, data=tail(df_wide, window_size)), k=log(window_size), trace=0,
                scope=list(
                  "lower" = glue("infectivesNational{form} ~ ",
                                 "lag(infectivesNational{form}, {tau}):",
@@ -378,7 +379,7 @@ for (region in regions){
   
   # Use BIC for model selection
   if (rolling) {
-    model = step(lm(fm, data=tail(data, window)), k=log(window), trace=0,
+    model = step(lm(fm, data=tail(data, window_size)), k=log(window_size), trace=0,
                  scope=list(
                    "lower" = glue("{infective_variable} ~ ",
                                   "lag({infective_variable}, {tau}):",
@@ -451,10 +452,10 @@ for (region in regions){
   data = df_long %>%
     filter(code == !!region)
   
-  for (t in window:nrow(data)){
+  for (t in window_size:nrow(data)){
     # Estimate the model by OLS
     if (rolling) {
-      model = lm(fm, data=data[(t-window+1):t, ])
+      model = lm(fm, data=data[(t-window_size+1):t, ])
     } else {
       model = lm(fm, data=head(data, t))
     }
@@ -467,7 +468,7 @@ for (region in regions){
   
   # Append the results to the table
   tbl_beta = tbl_beta %>%
-    bind_rows(tibble(date = data$date[window:nrow(data)],
+    bind_rows(tibble(date = data$date[window_size:nrow(data)],
                      betas = betas,
                      code = region) %>%
                 drop_na())
@@ -505,11 +506,11 @@ for (region in regions){
   data = df_long %>%
     filter(code == !!region)
   
-  for (t in window:nrow(data)){
+  for (t in window_size:nrow(data)){
     # Use AIC for model selection - scope says we want to always keep
     # beta_within in
     if (rolling) {
-      model = step(lm(fm, data=data[(t-window+1):t, ]), k=2, trace=0,
+      model = step(lm(fm, data=data[(t-window_size+1):t, ]), k=2, trace=0,
                    scope=list(
                      "lower" = glue("{infective_variable} ~ ",
                                     "lag({infective_variable}, {tau}):",
@@ -534,7 +535,7 @@ for (region in regions){
   
   # Append the results to the table
   tbl_beta = tbl_beta %>%
-    bind_rows(tibble(date = data$date[window:nrow(data)],
+    bind_rows(tibble(date = data$date[window_size:nrow(data)],
                      betas = betas,
                      code = region) %>%
                 drop_na())
@@ -571,11 +572,11 @@ for (region in regions){
   # Select only the data for the relevant region
   data = df_long %>% filter(code == !!region)
   
-  for (t in window:nrow(data)){
+  for (t in window_size:nrow(data)){
     # Use BIC for model selection - scope says we want to always keep
     # beta_within in
     if (rolling) {
-      model = step(lm(fm, data=data[(t-window+1):t, ]), k=log(window), trace=0,
+      model = step(lm(fm, data=data[(t-window_size+1):t, ]), k=log(window_size), trace=0,
                    scope=list(
                      "lower" = glue("{infective_variable} ~ ",
                                     "lag({infective_variable}, {tau}):",
