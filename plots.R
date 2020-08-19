@@ -42,6 +42,29 @@ df_long %>%
 
 ggsave("heterogeneity_over_regions.pdf", path=output_path)
 
+#### Infective rate per NUTS 1 region ####
+df_long %>%
+  group_by(direction, date) %>%
+  mutate(infectiveRate = sum(infectives) / sum(totalPopulation),
+         direction = as.factor(direction)) %>%
+  ungroup() %>%
+  select(date, direction, infectiveRate) %>%
+  distinct() %>%
+  ggplot(aes(x=date, y=infectiveRate, fill=direction)) +
+  geom_bar(stat="identity") +
+  facet_wrap(vars(direction)) +
+  xlab("") +
+  ylab("") +
+  theme(legend.position="none") +
+  scale_fill_manual(values=c("#0072B2", # Dark blue
+                             "#D55E00", # Orange-brown
+                             "#CC79A7", # Pink
+                             "#009E73", # Green
+                             "#56B4E9", # Light blue
+                             "#E69F00")) # Yellow
+
+ggsave("infective_rate_per_NUTS1.pdf", path=output_path)
+
 #### Infective rate per NUTS 2 region for Nord-Est ####
 for (direc in unique(df_long$direction)) {
   df_long %>%
