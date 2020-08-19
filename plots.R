@@ -42,26 +42,26 @@ df_long %>%
 
 ggsave("heterogeneity_over_regions.pdf", path=output_path)
 
-#### New ####
-for (direc in unique(df_long$direction)){
-  num_regions = df_long %>%
-    filter(direction == direc) %>%
-    .[["regionGH"]] %>%
-    unique %>%
-    length
-  g = ggplot(df_long %>% filter(direction == direc),
-             aes(date, infectivesRate, colour = regionGH, group = regionGH)) +
-    geom_line() +
-    ggtitle(direc) +
+#### Infective rate per NUTS 2 region for Nord-Est ####
+for (direc in unique(df_long$direction)) {
+  df_long %>%
+    filter(direction == !!direc) %>%
+    mutate(infectiveRate = infectives / totalPopulation,
+           regionGH = as.factor(regionGH)) %>%
+    select(date, regionGH, infectiveRate) %>%
+    distinct() %>%
+    ggplot(aes(x=date, y=infectiveRate, fill=regionGH)) +
+    geom_bar(stat="identity") +
+    facet_wrap(vars(regionGH)) +
     xlab("") +
-    ylab(TeX("Infectives rate")) +
-    scale_colour_manual(values=c("#0072B2", # Dark blue
-                                 "#D55E00", # Orange-brown
-                                 "#CC79A7", # Pink
-                                 "#009E73", # Green
-                                 "#56B4E9", # Light blue
-                                 "#E69F00")) # Yellow
-  print(g)
-  ggsave(glue("infective_rate_{direc}.pdf"), path=output_path,
-         width = 10.8, height = 7.47, units = "in")
+    ylab("") +
+    theme(legend.position="none") +
+    scale_fill_manual(values=c("#0072B2", # Dark blue
+                               "#D55E00", # Orange-brown
+                               "#CC79A7", # Pink
+                               "#009E73", # Green
+                               "#56B4E9", # Light blue
+                               "#E69F00")) # Yellow
+  
+  ggsave(glue("infective_rates_{direc}.pdf"), path=output_path)
 }
