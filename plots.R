@@ -1,5 +1,6 @@
 library(ggplot2)
 library(glue)
+library(latex2exp)
 library(tidyverse)
 
 source("config.R")
@@ -27,12 +28,17 @@ df_long %>%
   geom_point(aes(colour = factor(direction)), stat = "identity",
              position = position_dodge(width = 1), size=3) +
   geom_path(aes(colour = factor(direction)), alpha=0.3) +
-  geom_errorbar(data=plot_data,
-                aes(ymin=mean-2*se, ymax=mean+2*se,
+  geom_errorbar(aes(ymin=mean-2*se, ymax=mean+2*se,
                     color=direction), width=.3) +
   facet_grid(.~ direction, scales = "free", switch = "x", space = "free_x") + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
-        strip.placement = "outside", legend.position = "none")
+        strip.placement = "outside", legend.position = "none") +
+  scale_colour_manual(values=c("#0072B2", # Dark blue
+                               "#D55E00", # Orange-brown
+                               "#CC79A7", # Pink
+                               "#009E73", # Green
+                               "#56B4E9", # Light blue
+                               "#E69F00")) # Yellow
 
 ggsave("heterogeneity_over_regions.pdf", path=output_path)
 
@@ -49,8 +55,12 @@ for (direc in unique(df_long$direction)){
     ggtitle(direc) +
     xlab("") +
     ylab(TeX("Infectives rate")) +
-    scale_colour_manual(
-      values=RColorBrewer::brewer.pal(max(3, num_regions), "Dark2"))
+    scale_colour_manual(values=c("#0072B2", # Dark blue
+                                 "#D55E00", # Orange-brown
+                                 "#CC79A7", # Pink
+                                 "#009E73", # Green
+                                 "#56B4E9", # Light blue
+                                 "#E69F00")) # Yellow
   print(g)
   ggsave(glue("infective_rate_{direc}.pdf"), path=output_path,
          width = 10.8, height = 7.47, units = "in")
