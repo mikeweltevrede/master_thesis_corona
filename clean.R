@@ -466,16 +466,7 @@ if (file.exists(path_mobility_report_cleaned)){
                                sub_region_1=col_character(),
                                sub_region_2=col_character(),
                                date=col_date(format = "%Y-%m-%d"),
-                               retail_and_recreation_percent_change_from_baseline=
-                                 col_double(),
-                               grocery_and_pharmacy_percent_change_from_baseline=
-                                 col_double(),
-                               parks_percent_change_from_baseline=col_double(),
                                transit_stations_percent_change_from_baseline=
-                                 col_double(),
-                               workplaces_percent_change_from_baseline=
-                                 col_double(),
-                               residential_percent_change_from_baseline=
                                  col_double())))
 } else {
   df_gmr = readr::read_csv(path_mobility_report_official,
@@ -485,16 +476,7 @@ if (file.exists(path_mobility_report_cleaned)){
                                sub_region_1=col_character(),
                                sub_region_2=col_character(),
                                date=col_date(format = "%Y-%m-%d"),
-                               retail_and_recreation_percent_change_from_baseline=
-                                 col_double(),
-                               grocery_and_pharmacy_percent_change_from_baseline=
-                                 col_double(),
-                               parks_percent_change_from_baseline=col_double(),
                                transit_stations_percent_change_from_baseline=
-                                 col_double(),
-                               workplaces_percent_change_from_baseline=
-                                 col_double(),
-                               residential_percent_change_from_baseline=
                                  col_double()))) %>%
     filter(country_region_code == "IT") %>%
     
@@ -571,6 +553,12 @@ df_rail = readr::read_csv(path_railroad,
                             C_LOAD = col_character()))) %>%
   filter(TIME == max(TIME))
 
+# Since the amount of rail travellers was *in* 2015, this was reported at the
+# end of the year. As such, we need to start in 2016
+growth_rate_pop_2016 = 0.0014
+growth_rate_pop_2017 = 0.0002
+growth_rate_pop_2018 = -0.0008
+
 baselines = vector()
 date_diff = as.integer(df_gmr$date[1] - as.Date("2020-01-01", "%Y-%m-%d")) - 1
 all_dates = seq.Date(min(df_long$date), max(df_long$date), by="day")
@@ -600,7 +588,8 @@ for (region_code in unique(df_gmr$code)) {
   
   # We convert the amount of rail travellers in accordance with the population
   # growth rate. We divide by 366 on the next line because 2020 is a leap year
-  baseline = baseline * (1+growth_rate_pop_2019) *
+  baseline = baseline * (1+growth_rate_pop_2016) * (1+growth_rate_pop_2017) *
+    (1+growth_rate_pop_2018) * (1+growth_rate_pop_2019) *
     (1+growth_rate_pop_2020)^(date_diff/366) - 
     head(df_wide[[glue("{region_code}_deaths")]], 1)
   
@@ -686,11 +675,12 @@ for (region_code in unique(df_gmr$code)) {
 
 df_gmr = df_gmr %>%
   transmute(date = date, code = code,
-            railTravelers = round(transitStations*eval(baselines)))
+            transitStations = round(transitStations*eval(baselines)))
 
 # Join the railway data with the long data
 df_long = df_long %>%
-  left_join(df_gmr, by = c("date", "code"))
+  left_join(df_gmr, by = c("date", "code")) %>%
+  mutate(transitStations = transitStations / totalPopulation)
 
 #### Final processing ####
 df_long = df_long %>%
