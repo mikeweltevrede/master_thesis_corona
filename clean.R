@@ -675,7 +675,7 @@ for (region_code in unique(df_gmr$code)) {
 
 df_gmr = df_gmr %>%
   transmute(date = date, code = code,
-            transitStations = round(transitStations*eval(baselines)))
+            transitStations = round(transitStations*eval(baselines) / 366))
 
 # Join the railway data with the long data
 df_long = df_long %>%
