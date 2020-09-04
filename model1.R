@@ -26,7 +26,6 @@ regions = unique(df_long$code)
 
 # Select regressors
 M_regressors = c("weekend")
-all_variables = c("(Intercept)", M_regressors)
 
 #### Decide the parameters ####
 # You need to adapt, if desired, the following parameters:
@@ -83,11 +82,11 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
 
 #### Models without model selection ####
 # Create results table
-results_table = tibble(variables = c(all_variables, "beta"))
+results_table = tibble(variables = c(M_regressors, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational{form} ~ ",
+fm = glue("infectivesNational{form} ~ -1 + ",
           "lag(infectivesNational{form}, {tau}):",
           "lag(susceptibleRateNational, {tau}) +",
   paste(M_regressors, collapse="+")) %>%
@@ -118,14 +117,15 @@ output_for_table = function(model, significance=4){
   
   stars = coef(summary(model))[, "Pr(>|t|)"] %>%
     sapply(get_stars)
-  estimates = coef(summary(model))[, "Estimate"] %>%
+  estimates = coefficients(model) %>%
     signif(significance) %>%
     paste0(stars)
-  names(estimates) = names(coef(summary(model))[, "Estimate"])
+  names(estimates) = names(coefficients(model))
   
   tvals = coef(summary(model))[, "t value"] %>%
     signif(significance) %>%
     sapply(function(x){paste0("(", x, ")")})
+  names(tvals) = names(coefficients(model))
   
   return(list("estimates"=estimates, "tvals"=tvals))
 }
@@ -136,20 +136,20 @@ tvals = table_output$tvals
 
 # Insert parameter estimates in the results table
 results_table = results_table %>%
-  left_join(tibble("variables" = c(all_variables, "beta"),
+  left_join(tibble("variables" = c(M_regressors, "beta"),
                    "National" = unname(
-                     c(estimates[all_variables],
+                     c(estimates[M_regressors],
                        estimates[glue("lag(infectivesNational{form}, {tau}):",
                                       "lag(susceptibleRateNational, {tau})")])),
                    "National_tvals" = unname(
-                     c(tvals[all_variables],
+                     c(tvals[M_regressors],
                        tvals[glue("lag(infectivesNational{form}, {tau}):",
                                   "lag(susceptibleRateNational, {tau})")]))),
             by="variables")
 
 #### Regional models ####
 # Construct formula
-fm = glue("{infective_variable} ~ ",
+fm = glue("{infective_variable} ~ -1 + ",
           "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
@@ -173,13 +173,13 @@ for (region in regions){
   
   # Insert parameter estimates in the results table
   results_table = results_table %>%
-    left_join(tibble("variables" = c(all_variables, "beta"),
+    left_join(tibble("variables" = c(M_regressors, "beta"),
                      !!glue("{region}") := unname(
-                       c(estimates[all_variables],
+                       c(estimates[M_regressors],
                          estimates[glue("lag({infective_variable}, {tau}):",
                                         "lag(susceptibleRate, {tau})")])),
                      !!glue("{region}_tvals") := unname(
-                       c(tvals[all_variables],
+                       c(tvals[M_regressors],
                          tvals[glue("lag({infective_variable}, {tau}):",
                                     "lag(susceptibleRate, {tau})")]))),
               by="variables")
@@ -203,11 +203,11 @@ print(table_no_ms,
       file=glue("{output_path}/model1_table_no_ms{undoc_flag}{rolling_flag}.txt"))
 
 #### Models with model selection (AIC) ####
-results_table_aic = tibble(variables = c(all_variables, "beta"))
+results_table_aic = tibble(variables = c(M_regressors, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational{form} ~ ",
+fm = glue("infectivesNational{form} ~ -1 + ",
           "lag(infectivesNational{form}, {tau}):",
           "lag(susceptibleRateNational, {tau})+",
           paste(M_regressors, collapse="+")) %>%
@@ -217,7 +217,7 @@ fm = glue("infectivesNational{form} ~ ",
 if (rolling) {
   model = step(lm(fm, data=tail(df_wide, window_size)), k=2, trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational{form} ~ ",
+                 "lower" = glue("infectivesNational{form} ~ -1 + ",
                                 "lag(infectivesNational{form}, {tau}):",
                                 "lag(susceptibleRateNational, {tau})") %>%
                    as.formula,
@@ -225,7 +225,7 @@ if (rolling) {
 } else {
   model = step(lm(fm, data=df_wide), k=2, trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational{form} ~ ",
+                 "lower" = glue("infectivesNational{form} ~ -1 + ",
                                 "lag(infectivesNational{form}, {tau}):",
                                 "lag(susceptibleRateNational, {tau})") %>%
                    as.formula,
@@ -239,20 +239,20 @@ tvals = table_output$tvals
 
 # Insert parameter estimates in the results table
 results_table_aic = results_table_aic %>%
-  left_join(tibble("variables" = c(all_variables, "beta"),
+  left_join(tibble("variables" = c(M_regressors, "beta"),
                    "National" = unname(
-                     c(estimates[all_variables],
+                     c(estimates[M_regressors],
                        estimates[glue("lag(infectivesNational{form}, {tau}):",
                                       "lag(susceptibleRateNational, {tau})")])),
                    "National_tvals" = unname(
-                     c(tvals[all_variables],
+                     c(tvals[M_regressors],
                        tvals[glue("lag(infectivesNational{form}, {tau}):",
                                   "lag(susceptibleRateNational, {tau})")]))),
             by="variables")
 
 #### Regional models ####
 # Construct formula
-fm = glue("{infective_variable} ~ ",
+fm = glue("{infective_variable} ~ -1 + ",
           "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
@@ -266,7 +266,7 @@ for (region in regions){
   if (rolling) {
     model = step(lm(fm, data=tail(data, window_size)), k=2, trace=0,
                  scope=list(
-                   "lower" = glue("{infective_variable} ~ ",
+                   "lower" = glue("{infective_variable} ~ -1 + ",
                                   "lag({infective_variable}, {tau}):",
                                   "lag(susceptibleRate, {tau})") %>%
                      as.formula,
@@ -274,7 +274,7 @@ for (region in regions){
   } else {
     model = step(lm(fm, data=data), k=2, trace=0,
                  scope=list(
-                   "lower" = glue("{infective_variable} ~ ",
+                   "lower" = glue("{infective_variable} ~ -1 + ",
                                   "lag({infective_variable}, {tau}):",
                                   "lag(susceptibleRate, {tau})") %>%
                      as.formula,
@@ -288,13 +288,13 @@ for (region in regions){
   
   # Insert parameter estimates in the results table
   results_table_aic = results_table_aic %>%
-    left_join(tibble("variables" = c(all_variables, "beta"),
+    left_join(tibble("variables" = c(M_regressors, "beta"),
                      !!glue("{region}") := unname(
-                       c(estimates[all_variables],
+                       c(estimates[M_regressors],
                          estimates[glue("lag({infective_variable}, {tau}):",
                                         "lag(susceptibleRate, {tau})")])),
                      !!glue("{region}_tvals") := unname(
-                       c(tvals[all_variables],
+                       c(tvals[M_regressors],
                          tvals[glue("lag({infective_variable}, {tau}):",
                                     "lag(susceptibleRate, {tau})")]))),
               by="variables")
@@ -318,11 +318,11 @@ print(table_ms_aic,
       file=glue("{output_path}/model1_table_aic{undoc_flag}{rolling_flag}.txt"))
 
 #### Models with model selection (BIC) ####
-results_table_bic = tibble(variables = c(all_variables, "beta"))
+results_table_bic = tibble(variables = c(M_regressors, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational{form} ~ ",
+fm = glue("infectivesNational{form} ~ -1 + ",
           "lag(infectivesNational{form}, {tau}):",
           "lag(susceptibleRateNational, {tau})+",
           paste(M_regressors, collapse="+")) %>%
@@ -332,7 +332,7 @@ fm = glue("infectivesNational{form} ~ ",
 if (rolling) {
   model = step(lm(fm, data=tail(df_wide, window_size)), k=log(window_size), trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational{form} ~ ",
+                 "lower" = glue("infectivesNational{form} ~ -1 + ",
                                 "lag(infectivesNational{form}, {tau}):",
                                 "lag(susceptibleRateNational, {tau})") %>%
                    as.formula,
@@ -340,7 +340,7 @@ if (rolling) {
 } else {
   model = step(lm(fm, data=df_wide), k=log(nrow(df_wide)), trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational{form} ~ ",
+                 "lower" = glue("infectivesNational{form} ~ -1 + ",
                                 "lag(infectivesNational{form}, {tau}):",
                                 "lag(susceptibleRateNational, {tau})") %>%
                    as.formula,
@@ -354,20 +354,20 @@ tvals = table_output$tvals
 
 # Insert parameter estimates in the results table
 results_table_bic = results_table_bic %>%
-  left_join(tibble("variables" = c(all_variables, "beta"),
+  left_join(tibble("variables" = c(M_regressors, "beta"),
                    "National" = unname(
-                     c(estimates[all_variables],
+                     c(estimates[M_regressors],
                        estimates[glue("lag(infectivesNational{form}, {tau}):",
                                       "lag(susceptibleRateNational, {tau})")])),
                    "National_tvals" = unname(
-                     c(tvals[all_variables],
+                     c(tvals[M_regressors],
                        tvals[glue("lag(infectivesNational{form}, {tau}):",
                                   "lag(susceptibleRateNational, {tau})")]))),
             by="variables")
 
 #### Regional models ####
 # Construct formula
-fm = glue("{infective_variable} ~ ",
+fm = glue("{infective_variable} ~ -1 + ",
           "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
@@ -381,7 +381,7 @@ for (region in regions){
   if (rolling) {
     model = step(lm(fm, data=tail(data, window_size)), k=log(window_size), trace=0,
                  scope=list(
-                   "lower" = glue("{infective_variable} ~ ",
+                   "lower" = glue("{infective_variable} ~ -1 + ",
                                   "lag({infective_variable}, {tau}):",
                                   "lag(susceptibleRate, {tau})") %>%
                      as.formula,
@@ -389,7 +389,7 @@ for (region in regions){
   } else {
     model = step(lm(fm, data=data), k=log(nrow(data)), trace=0,
                  scope=list(
-                   "lower" = glue("{infective_variable} ~ ",
+                   "lower" = glue("{infective_variable} ~ -1 + ",
                                   "lag({infective_variable}, {tau}):",
                                   "lag(susceptibleRate, {tau})") %>%
                      as.formula,
@@ -403,13 +403,13 @@ for (region in regions){
   
   # Insert parameter estimates in the results table
   results_table_bic = results_table_bic %>%
-    left_join(tibble("variables" = c(all_variables, "beta"),
+    left_join(tibble("variables" = c(M_regressors, "beta"),
                      !!glue("{region}") := unname(
-                       c(estimates[all_variables],
+                       c(estimates[M_regressors],
                          estimates[glue("lag({infective_variable}, {tau}):",
                                         "lag(susceptibleRate, {tau})")])),
                      !!glue("{region}_tvals") := unname(
-                       c(tvals[all_variables],
+                       c(tvals[M_regressors],
                          tvals[glue("lag({infective_variable}, {tau}):",
                                     "lag(susceptibleRate, {tau})")]))),
               by="variables")
@@ -435,7 +435,7 @@ print(table_ms_bic,
 #### Plot beta over time ####
 df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
 
-fm = glue("{infective_variable} ~ ",
+fm = glue("{infective_variable} ~ -1 + ",
           "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
@@ -516,7 +516,7 @@ for (region in regions){
     if (rolling) {
       model = step(lm(fm, data=data[(t-window_size+1):t, ]), k=2, trace=0,
                    scope=list(
-                     "lower" = glue("{infective_variable} ~ ",
+                     "lower" = glue("{infective_variable} ~ -1 + ",
                                     "lag({infective_variable}, {tau}):",
                                     "lag(susceptibleRate, {tau})") %>%
                        as.formula,
@@ -524,7 +524,7 @@ for (region in regions){
     } else {
       model = step(lm(fm, data=head(data, t)), k=2, trace=0,
                    scope=list(
-                     "lower" = glue("{infective_variable} ~ ",
+                     "lower" = glue("{infective_variable} ~ -1 + ",
                                     "lag({infective_variable}, {tau}):",
                                     "lag(susceptibleRate, {tau})") %>%
                        as.formula,
@@ -586,7 +586,7 @@ for (region in regions){
     if (rolling) {
       model = step(lm(fm, data=data[(t-window_size+1):t, ]), k=log(window_size), trace=0,
                    scope=list(
-                     "lower" = glue("{infective_variable} ~ ",
+                     "lower" = glue("{infective_variable} ~ -1 + ",
                                     "lag({infective_variable}, {tau}):",
                                     "lag(susceptibleRate, {tau})") %>%
                        as.formula,
@@ -594,7 +594,7 @@ for (region in regions){
     } else {
       model = step(lm(fm, data=head(data, t)), k=log(t), trace=0,
                    scope=list(
-                     "lower" = glue("{infective_variable} ~ ",
+                     "lower" = glue("{infective_variable} ~ -1 + ",
                                     "lag({infective_variable}, {tau}):",
                                     "lag(susceptibleRate, {tau})") %>%
                        as.formula,
