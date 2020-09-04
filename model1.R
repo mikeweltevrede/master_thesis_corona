@@ -38,8 +38,8 @@ M_regressors = c("weekend")
 # estimated to be 2 days shorter: 5-3=2
 tau = 3
 
-# Do we want to use a rolling window_size, i.e. only use the most recent `window_size`
-# observations?
+# Do we want to use a rolling window_size, i.e. only use the most recent
+# `window_size` observations?
 rolling = TRUE
 window_size = 100
 
@@ -101,7 +101,7 @@ summary(model)
 
 #### Make parameter table ####
 # Retrieve parameter estimates
-output_for_table = function(model, significance=4){
+output_for_table = function(model, significance=6){
   
   get_stars = function(pval) {
     if (pval < 0.01) {

@@ -107,7 +107,7 @@ df_long = df_long %>%
 
 #### Models without model selection ####
 # Retrieve parameter estimates
-output_for_table = function(model, significance=4){
+output_for_table = function(model, significance=6){
   
   get_stars = function(pval) {
     if (pval < 0.01) {
@@ -123,14 +123,15 @@ output_for_table = function(model, significance=4){
   
   stars = coef(summary(model))[, "Pr(>|t|)"] %>%
     sapply(get_stars)
-  estimates = coef(summary(model))[, "Estimate"] %>%
+  estimates = coefficients(model) %>%
     signif(significance) %>%
     paste0(stars)
-  names(estimates) = names(coef(summary(model))[, "Estimate"])
+  names(estimates) = names(coefficients(model))
   
   tvals = coef(summary(model))[, "t value"] %>%
     signif(significance) %>%
     sapply(function(x){paste0("(", x, ")")})
+  names(tvals) = names(coefficients(model))
   
   return(list("estimates"=estimates, "tvals"=tvals))
 }
