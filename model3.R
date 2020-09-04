@@ -95,7 +95,7 @@ for (region in regions){
           map(regions[regions != region], starts_with, vars = colnames(.)) %>%
             unlist()) %>%
         select(ends_with(infective_variable)) %>%
-        mutate_all(dplyr::lag, n=lag) %>%
+        mutate_all(dplyr::lag, n=tau) %>%
         transmute(
           date = df_wide$date,
           code = region,
