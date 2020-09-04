@@ -88,3 +88,39 @@ for (direc in unique(df_long$direction)) {
   
   ggsave(glue("infective_rates_{direc}.pdf"), path=output_path)
 }
+
+#### Plot per day ####
+df_wide = readr::read_csv(path_full_wide, col_types = do.call(
+  cols, list(date = col_date(format = "%Y-%m-%d")))) %>%
+  mutate(weekday =
+           lubridate::wday(date, label = TRUE) %>%
+           as.factor)
+
+df_wide %>%
+  group_by(weekday) %>%
+  summarize(mean = mean(infectivesRateNational),
+            sd = sd(infectivesRateNational),
+            se = sd / sqrt(n()),
+            weekday = weekday,
+            .groups = "drop") %>%
+  distinct %>%
+  arrange(weekday) %>%
+  ggplot(aes(x=weekday, y=mean)) +
+  xlab("Day of the week") +
+  ylab(TeX("Mean national infectives rate ($\\pm 2 \\times$ standard error)")) +
+  geom_point(aes(colour = factor(weekday)), stat = "identity",
+             position = position_dodge(width = 1), size=3) +
+  geom_path(aes(colour = factor(weekday)), alpha=0.3) +
+  geom_errorbar(aes(ymin=mean-2*se, ymax=mean+2*se,
+                    color=weekday), width=.3) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        strip.placement = "outside", legend.position = "none") +
+  scale_colour_manual(values=c("#0072B2", # Dark blue
+                               "#D55E00", # Orange-brown
+                               "#CC79A7", # Pink
+                               "#009E73", # Green
+                               "#56B4E9", # Light blue
+                               "#F16F21", # Orange
+                               "#E69F00")) # Yellow
+
+ggsave("infective_rate_per_weekday.pdf", path=output_path)
