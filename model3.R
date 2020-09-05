@@ -18,8 +18,11 @@ library(tidyverse)
 library(xtable)
 
 # Import data
+df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
+
 df_long = readr::read_csv(path_full_long, col_types = do.call(
-  cols, list(date = col_date(format = "%Y-%m-%d"))))
+  cols, list(date = col_date(format = "%Y-%m-%d")))) %>%
+  left_join(df_meta %>% select(code, regionGH, direction), by="code")
 df_wide = readr::read_csv(path_full_wide, col_types = do.call(
   cols, list(date = col_date(format = "%Y-%m-%d"))))
 
@@ -340,13 +343,14 @@ print(table_bic,
       file=glue("{output_path}/model3_table_bic{undoc_flag}{rolling_flag}.txt"))
 
 #### Plot beta over time ####
-df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
-
 fm = glue("{infective_variable} ~ -1 +",
           "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
           "lag(susceptibleRate, {tau}):sumInfectives +",
           paste(M_regressors, collapse="+")) %>%
   as.formula
+
+withinColor = "#0072B2" # Dark blue
+betweenColor = "#D55E00" # Orange-brown
 
 #### Without model selection ####
 tbl_beta = tibble(date = as.Date(NA), Within=numeric(0), Between=numeric(0),
@@ -389,22 +393,37 @@ for (region in regions){
 
 # Add region and direction to the table
 tbl_beta = tbl_beta %>%
-  left_join(df_meta %>% select(c(region, code, direction)), by="code")
+  left_join(df_meta %>% select(c(regionGH, code, direction)), by="code")
 
 # Make a plot per direction; facet_wrap by regions
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
+  coeff = mean(sub_tbl$Within / sub_tbl$Between)
+  
   g = sub_tbl %>%
-    gather(key = "Beta", value = "value", -c(date, code, region, direction)) %>%
-    ggplot(aes(x = date, y = value)) + 
-    geom_point(aes(color = Beta)) +
-    geom_smooth(aes(color = Beta), method="loess", span=0.3, se=FALSE)  +
+    ggplot(aes(x = date)) + 
+    geom_point(aes(y = Within, color = withinColor)) +
+    geom_smooth(aes(y = Within, color = withinColor), method="loess", span=0.3,
+                se=FALSE)  +
+    facet_wrap("regionGH") +
+    geom_point(aes(y = Between*coeff, color = betweenColor)) +
+    geom_smooth(aes(y = Between*coeff, color = betweenColor), method="loess",
+                span=0.3, se=FALSE)  +
     xlab("") +
-    ylab("") +
-    facet_wrap("region") +
-    scale_colour_manual(values=c("#0072B2", # Dark blue
-                                 "#D55E00")) # Orange-brown
+    scale_y_continuous(name = TeX("$\\beta_{within}$\n"),
+                       sec.axis = sec_axis(
+                         ~./coeff, TeX("$\\beta_{between}$\n"))) +
+    scale_colour_manual(name = "Beta", 
+                        labels = c("Within", "Between"),
+                        values=c(withinColor, betweenColor)) + 
+    theme(
+      axis.text.y = element_text(color = withinColor),
+      axis.text.y.right = element_text(color = betweenColor),
+      axis.title.y = element_text(color = withinColor, size=12),
+      axis.title.y.right = element_text(color = betweenColor, size=12),
+      panel.spacing = unit(0.8, "lines"))
   print(g)
+  
   ggsave(
     glue("model3_lag{tau}_betas_{direc}{undoc_flag}{rolling_flag}.pdf"),
     path=output_path, width = 10.8, height = 6.62, units = "in")
@@ -468,22 +487,37 @@ for (region in regions){
 
 # Add region and direction to the table
 tbl_beta = tbl_beta %>%
-  left_join(df_meta %>% select(c(region, code, direction)), by="code")
+  left_join(df_meta %>% select(c(regionGH, code, direction)), by="code")
 
 # Make a plot per direction; facet_wrap by regions
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
+  coeff = mean(sub_tbl$Within / sub_tbl$Between)
+  
   g = sub_tbl %>%
-    gather(key = "Beta", value = "value", -c(date, code, region, direction)) %>%
-    ggplot(aes(x = date, y = value)) + 
-    geom_point(aes(color = Beta)) +
-    geom_smooth(aes(color = Beta), method="loess", span=0.3, se=FALSE)  +
+    ggplot(aes(x = date)) + 
+    geom_point(aes(y = Within, color = withinColor)) +
+    geom_smooth(aes(y = Within, color = withinColor), method="loess", span=0.3,
+                se=FALSE)  +
+    facet_wrap("regionGH") +
+    geom_point(aes(y = Between*coeff, color = betweenColor)) +
+    geom_smooth(aes(y = Between*coeff, color = betweenColor), method="loess",
+                span=0.3, se=FALSE)  +
     xlab("") +
-    ylab("") +
-    facet_wrap("region") +
-    scale_colour_manual(values=c("#0072B2", # Dark blue
-                                 "#D55E00")) # Orange-brown
+    scale_y_continuous(name = TeX("$\\beta_{within}$\n"),
+                       sec.axis = sec_axis(
+                         ~./coeff, TeX("$\\beta_{between}$\n"))) +
+    scale_colour_manual(name = "Beta", 
+                        labels = c("Within", "Between"),
+                        values=c(withinColor, betweenColor)) + 
+    theme(
+      axis.text.y = element_text(color = withinColor),
+      axis.text.y.right = element_text(color = betweenColor),
+      axis.title.y = element_text(color = withinColor, size=12),
+      axis.title.y.right = element_text(color = betweenColor, size=12),
+      panel.spacing = unit(0.8, "lines"))
   print(g)
+  
   ggsave(
     glue("model3_lag{tau}_betas_{direc}_aic{undoc_flag}{rolling_flag}.pdf"),
     path=output_path, width = 10.8, height = 6.62, units = "in")
@@ -547,22 +581,37 @@ for (region in regions){
 
 # Add region and direction to the table
 tbl_beta = tbl_beta %>%
-  left_join(df_meta %>% select(c(region, code, direction)), by="code")
+  left_join(df_meta %>% select(c(regionGH, code, direction)), by="code")
 
 # Make a plot per direction; facet_wrap by regions
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
+  coeff = mean(sub_tbl$Within / sub_tbl$Between)
+  
   g = sub_tbl %>%
-    gather(key = "Beta", value = "value", -c(date, code, region, direction)) %>%
-    ggplot(aes(x = date, y = value)) + 
-    geom_point(aes(color = Beta)) +
-    geom_smooth(aes(color = Beta), method="loess", span=0.3, se=FALSE)  +
+    ggplot(aes(x = date)) + 
+    geom_point(aes(y = Within, color = withinColor)) +
+    geom_smooth(aes(y = Within, color = withinColor), method="loess", span=0.3,
+                se=FALSE)  +
+    facet_wrap("regionGH") +
+    geom_point(aes(y = Between*coeff, color = betweenColor)) +
+    geom_smooth(aes(y = Between*coeff, color = betweenColor), method="loess",
+                span=0.3, se=FALSE)  +
     xlab("") +
-    ylab("") +
-    facet_wrap("region") +
-    scale_colour_manual(values=c("#0072B2", # Dark blue
-                                 "#D55E00")) # Orange-brown
+    scale_y_continuous(name = TeX("$\\beta_{within}$\n"),
+                       sec.axis = sec_axis(
+                         ~./coeff, TeX("$\\beta_{between}$\n"))) +
+    scale_colour_manual(name = "Beta", 
+                        labels = c("Within", "Between"),
+                        values=c(withinColor, betweenColor)) + 
+    theme(
+      axis.text.y = element_text(color = withinColor),
+      axis.text.y.right = element_text(color = betweenColor),
+      axis.title.y = element_text(color = withinColor, size=12),
+      axis.title.y.right = element_text(color = betweenColor, size=12),
+      panel.spacing = unit(0.8, "lines"))
   print(g)
+  
   ggsave(
     glue("model3_lag{tau}_betas_{direc}_bic{undoc_flag}{rolling_flag}.pdf"),
     path=output_path, width = 10.8, height = 6.62, units = "in")
