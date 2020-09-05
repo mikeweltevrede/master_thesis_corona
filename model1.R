@@ -35,7 +35,7 @@ M_regressors = c("weekend")
 # form: str, the form of undocumented infections to model with (if any)
 
 # Latent period; Incubation period has median value 5; latent period is
-# estimated to be 2 days shorter: 5-3=2
+# estimated to be 2 days shorter: 5-2=3
 tau = 3
 
 # Do we want to use a rolling window_size, i.e. only use the most recent
