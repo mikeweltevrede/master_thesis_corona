@@ -1,13 +1,13 @@
 % latex table generated in R 4.0.2 by xtable 1.8-4 package
-% Fri Sep 04 16:57:26 2020
+% Sat Sep 05 11:14:55 2020
 \begin{table}[ht]
 \centering
 \begin{tabular}{rll}
   \hline
  & beta & weekend \\ 
   \hline
-National & 0.953031*** & 1078.77 \\ 
-  National\_tvals & (42.6758) & (1.42207) \\ 
+National & 0.963694*** &  \\ 
+  National\_tvals & (45.6953) &  \\ 
   ABR & 0.818226*** &  \\ 
   ABR\_tvals & (18.4872) &  \\ 
   BAS & 0.726342*** &  \\ 
@@ -36,8 +36,6 @@ National & 0.953031*** & 1078.77 \\
   PUG\_tvals & (27.3898) &  \\ 
   SAR & 0.623193*** & 28.2826 \\ 
   SAR\_tvals & (10.3172) & (1.46068) \\ 
-  TN & 0.745709*** & 83.6487** \\ 
-  TN\_tvals & (14.8545) & (2.26761) \\ 
   TOS & 0.902411*** & 89.2518 \\ 
   TOS\_tvals & (28.1563) & (1.59714) \\ 
   UMB & 0.848931*** &  \\ 
