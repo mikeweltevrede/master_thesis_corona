@@ -1,27 +1,29 @@
 rm(list=ls())
 
 #### Panel data models ####
-# We estimate three panel data models: Pooled OLS, Fixed Effects, and Random
-# Effects. This is done for the following discretized SIR model:
+# We estimate two panel data models: Pooled OLS and Random Effects. This is done
+# for the following discretized SIR model:
 # I{rt} - I_{r,t-1} = beta*S_{r,t-tau}*I_{r,t-tau} - gamma*I_{r,t-1} + eta_{rt}
+# Fixed Effects is not estimated because the SIR model does not include an
+# intercept, also not a regional effect. Since, in essence, this is what fixed
+# effects takes into account, it does not make sense in this case.
 
-### Setup ####
-
+#### Setup ####
 # Import standard variables
-# source("config.R")
+source("config.R")
 
 # Import packages
+library(snakecase)
 library(plm)
 library(tidyverse)
 
 # Import data
-path_full_long = "data/data_long_full.csv"
 df_long = readr::read_csv(path_full_long, col_types = do.call(
   cols, list(date = col_date(format = "%Y-%m-%d"))))
 
 #### Decide the parameters ####
 # You need to adapt, if desired, the following parameters:
-# lag: int, the latent period
+# tau: int, the latent period
 # rolling: boolean, whether to apply a rolling window_size
 # window_size: int, if using a rolling window_size, how large?
 # form: str, the form of undocumented infections to model with (if any)
@@ -37,6 +39,12 @@ window_size = 100
 
 if (rolling) {
   rolling_flag = "_rolling"
+  
+  df_long = df_long %>% 
+    group_by(code) %>% 
+    slice(tail(row_number(), window_size)) %>%
+    ungroup()
+  
 } else {
   rolling_flag = ""
 }
@@ -73,130 +81,131 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
 }
 
 #### Data preparation ####
-# infectivesRateTotal is the number of active infectives divided by the total population
-# infectivesRate is the number of new cases divided by the total population
-# susceptibleRate is the total number of susceptibles divided by the total population
+tau = 1 # TODO: Test both 1 and 3; dependent on the location!
 
-df = df_long %>%
-  group_by() %>%
+df_long = df_long %>%
+  group_by(code) %>%
   transmute(
     date = date,
     code = code,
-    total := .data[[glue("infectivesRateTotal{form}")]],
-    dependent := .data[[glue("infectivesRate{form}")]],
-    SI := dplyr::lag(.data[[glue("susceptibleRate{form}")]], tau)*
-      dplyr::lag(.data[[glue("infectivesRateTotal{form}")]], tau),
-    Ilag := dplyr::lag(.data[[glue("infectivesRateTotal{form}")]], 1)) %>%
+    
+    # Density-dependent
+    X = .data[[glue("susceptiblePopulation{form}")]],
+    Xlag = dplyr::lag(X, 1),
+    dX = X - Xlag,
+    Y = .data[[glue("infectivesTotal{form}")]],
+    Ylag = dplyr::lag(Y, 1),
+    dY = Y - Ylag,
+    Z = cumsum(recovered) + cumsum(deaths),
+    Zlag = dplyr::lag(Z, 1),
+    dZ = Z - Zlag,
+    
+    # Frequency dependent
+    S = X / totalPopulation,
+    Slag = dplyr::lag(S, 1),
+    dS = S - Slag,
+    I = Y / totalPopulation,
+    Ilag = dplyr::lag(I, 1),
+    dI = I - Ilag,
+    R = Z / totalPopulation,
+    Rlag = dplyr::lag(R, 1),
+    dR = R - Rlag) %>%
   ungroup() %>%
   drop_na()
 
-if (rolling) {
-  df = df %>% 
-    group_by(code) %>% 
-    slice(tail(row_number(), window_size)) %>%
-    ungroup()
+# Density dependent
+print("#### Density dependent (X, Y, Z) ####")
+for (method in c("pooling", "random")) {
+  print(glue("\n\n## {toupper(method)} ##"))
+  
+  #### Estimate beta and gamma directly ####
+  model_s = plm(dX ~ -1 + Xlag:Ylag, data=df_long, model = method,
+               index = c("code", "date"))
+  model_r = plm(dZ ~ -1 + Ylag, data=df_long, model = method,
+               index = c("code", "date"))
+  
+  beta = -unname(coef(model_s))
+  gamma = unname(coef(model_r))
+  
+  if (beta < 0) {
+    print("Warning: Beta is negative!")
+  }
+  if (gamma < 0) {
+    print("Warning: Gamma is negative!")
+  }
+  
+  print(glue("Gamma: {gamma}"))
+  
+  r = beta / gamma
+  print(glue("Normal   | Beta: {beta}, R: {r}"))
+  
+  # Estimate beta with gamma as estimated above
+  df_long = df_long %>%
+    mutate(dependent := dY + !!gamma*Ylag)
+  
+  model_i = plm(dependent ~ -1 + Xlag:Ylag, data=df_long, model = method,
+               index = c("code", "date"))
+  
+  beta_twostep = unname(coef(model_i))
+  
+  if (beta_twostep < 0) {
+    print("Warning: Beta is negative!")
+  }
+  
+  r_twostep = beta_twostep / gamma
+  print(glue("Two-step | Beta: {beta_twostep}, R: {r_twostep}"))
 }
 
-#### Formula ####
-# I{r,t} - I_{r,t-1} = beta*S_{r,t-tau}*I_{r,t-tau} - gamma*I_{r,t-1} + eta_{rt}
-fm = as.formula("dependent ~ -1 + SI + Ilag")
+# Frequency dependent
+print("\n\n#### Frequency dependent (S, I, R) ####")
+for (method in c("pooling", "random")) {
+  print(glue("\n\n## {toupper(method)} ##"))
+  
+  #### Estimate beta and gamma directly ####
+  model_s = plm(dS ~ -1 + Slag:Ilag, data=df_long, model = method,
+                index = c("code", "date"))
+  model_r = plm(dR ~ -1 + Ilag, data=df_long, model = method,
+                index = c("code", "date"))
+  
+  beta = -unname(coef(model_s))
+  gamma = unname(coef(model_r))
+  
+  if (beta < 0) {
+    print("Warning: Beta is negative!")
+  }
+  if (gamma < 0) {
+    print("Warning: Gamma is negative!")
+  }
+  
+  print(glue("Gamma: {gamma}"))
+  
+  r = beta / gamma
+  print(glue("Normal   | Beta: {beta}, R: {r}"))
+  
+  # Estimate beta with gamma as estimated above
+  df_long = df_long %>%
+    mutate(dependent := dI + !!gamma*Ilag)
+  
+  model_i = plm(dependent ~ -1 + Slag:Ilag, data=df_long, model = method,
+                index = c("code", "date"))
+  
+  beta_twostep = unname(coef(model_i))
+  
+  if (beta_twostep < 0) {
+    print("Warning: Beta is negative!")
+  }
+  
+  r_twostep = beta_twostep / gamma
+  print(glue("Two-step | Beta: {beta_twostep}, R: {r_twostep}"))
+}
 
-#### Pooled OLS ####
-pols = plm(fm, data=df, model = "pooling", index = c("code", "date"))
-summary(pols) # NB: gamma (Ilag) is positive but should be negative?
+#### NLS? ####
+removed = function(infectives, gamma) {
+  gamma*infectives
+}
 
-#### Fixed Effects ####
-fe = plm(fm, data=df, model = "within", index = c("code", "date"))
-summary(fe) # NB: beta (SI) is negative but should be positive?
-fixef(fe) # Regional fixed effects
+nls(dY ~ -1 + Xlag:Ylag + removed(Ylag, gamma),
+    data=filter(df_long, code == "LOM"), start = list(gamma = 0.01), trace = TRUE)
 
-#### Random Effects ####
-re = plm(fm, data=df, model = "random", index = c("code", "date"))
-summary(re) # NB: gamma (Ilag) is positive but should be negative?
-
-phtest(fe, re) # p-value < 2.2e-16 => Prefer FE
-
-#### OLD ####
-# df_long = readr::read_csv(path_full_long, col_types = do.call(
-#   cols, list(date = col_date(format = "%Y-%m-%d")))) %>%
-#   mutate(proportionTested = totalTested / totalPopulation) %>%
-#   group_by(code) %>%
-#   mutate(
-#     infectivesTotal = cumsum(infectives),
-#     infectivesRateTotal = infectivesTotal / totalPopulation,
-#     infectivesLag = infectivesTotal - dplyr::lag(infectivesTotal, 1)) %>%
-#   ungroup()
-# 
-# fm = paste("infectivesLag ~ -1+",
-#            "dplyr::lag(infectivesRateTotal, 1):dplyr::lag(susceptibleRate, 1) + ",
-#            "dplyr::lag(infectivesRateTotal, 2)") %>% # Delay for recovery
-#   as.formula
-# 
-# re = plm(fm, data=df_long, index=c("code", "date"), model="random")
-# fe = plm(fm, data=df_long, index=c("code", "date"), model="within")
-# pooled = plm(fm, data=df_long, index=c("code", "date"), model="pooling")
-# 
-# summary(re)
-# summary(fe)
-# summary(pooled)
-# 
-# dates = unique(df_long$date)
-# betas = numeric(0)
-# gammas = numeric(0)
-# 
-# for (t in 100:length(dates)) {
-#   fm = paste("infectivesLag ~ -1+",
-#              "dplyr::lag(infectivesRateTotal, 1):dplyr::lag(susceptibleRate, 1)") %>% # Delay for recovery
-#     as.formula
-#   
-#   pooled = plm(fm, data=filter(df_long, date <= dates[t]), index="code", model="pooling")
-#   # gamma = coef(summary(pooled))["dplyr::lag(infectivesRateTotal, 2)",1]
-#   beta = coef(summary(pooled))["dplyr::lag(infectivesRateTotal, 1):dplyr::lag(susceptibleRate, 1)",1]
-#   
-#   betas = c(betas, beta)
-#   # gammas = c(gammas, gamma)
-# }
-# 
-# plot(betas, type="l", col="blue")
-# lines(-gammas, col = "red")
-# 
-# phtest(fe, re) # p-value < 2.2e-16 => Prefer FE
-# 
-# #### Make plot of R0 over time
-# dates = unique(df_long$date)
-# betas = numeric(0)
-# gammas = numeric(0)
-# Rs = numeric(0)
-# 
-# for (t in 30:length(dates)) {
-#   data = filter(df_long, date <= dates[t])
-#   
-#   fe = plm(fm, data=data, index="code",
-#               model="within")
-#   re = plm(fm, data=data, index="code",
-#            model="random")
-#   test = phtest(fe, re)
-#   
-#   if (test$p.value <= 0.05) {
-#     model = fe
-#   } else {
-#     model = re
-#   }
-#   
-#   model_summ = summary(model)
-#   
-#   beta = coef(model_summ)[
-#     "dplyr::lag(infectivesTotal, 1):dplyr::lag(susceptibleRate, 1)", "Estimate"]
-#   gamma = -coef(model_summ)["dplyr::lag(infectivesTotal, 1)", "Estimate"]
-#   
-#   betas = c(betas, beta)
-#   gammas = c(gammas, gamma)
-#   Rs = c(Rs, beta/gamma)
-# }
-# 
-# plot(betas, type="l", col="red")
-# lines(gammas, col="blue")
-# 
-# plot(Rs, type="l")
-# 
-# sum((betas-gammas)^2)
+# Google: nls r with function
+# https://rpubs.com/RobinLovelace/nls-function
