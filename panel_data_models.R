@@ -23,14 +23,9 @@ df_long = readr::read_csv(path_full_long, col_types = do.call(
 
 #### Decide the parameters ####
 # You need to adapt, if desired, the following parameters:
-# tau: int, the latent period
 # rolling: boolean, whether to apply a rolling window_size
 # window_size: int, if using a rolling window_size, how large?
 # form: str, the form of undocumented infections to model with (if any)
-
-# Latent period; Incubation period has median value 5; latent period is
-# estimated to be 2 days shorter: 5-3=2
-tau = 3
 
 # Do we want to use a rolling window_size, i.e. only use the most recent `window_size`
 # observations?
@@ -81,7 +76,9 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
 }
 
 #### Data preparation ####
-tau = 1 # TODO: Test both 1 and 3; dependent on the location!
+# Latent period; Incubation period has median value 5; latent period is
+# estimated to be 2 days shorter: 5-3=2
+tau = 3
 
 df_long = df_long %>%
   group_by(code) %>%
@@ -91,37 +88,97 @@ df_long = df_long %>%
     
     # Density-dependent
     X = .data[[glue("susceptiblePopulation{form}")]],
-    Xlag = dplyr::lag(X, 1),
-    dX = X - Xlag,
+    XlagOne = dplyr::lag(X, 1),
+    XlagTau = dplyr::lag(X, tau),
+    dX = X - dplyr::lag(X, 1),
     Y = .data[[glue("infectivesTotal{form}")]],
-    Ylag = dplyr::lag(Y, 1),
-    dY = Y - Ylag,
+    YlagOne = dplyr::lag(Y, 1),
+    YlagTau = dplyr::lag(Y, tau),
+    dY = Y - YlagOne,
     Z = cumsum(recovered) + cumsum(deaths),
     Zlag = dplyr::lag(Z, 1),
     dZ = Z - Zlag,
     
     # Frequency dependent
     S = X / totalPopulation,
-    Slag = dplyr::lag(S, 1),
-    dS = S - Slag,
+    SlagOne = dplyr::lag(S, 1),
+    SlagTau = dplyr::lag(S, tau),
+    dS = S - SlagOne,
     I = Y / totalPopulation,
-    Ilag = dplyr::lag(I, 1),
-    dI = I - Ilag,
+    IlagOne = dplyr::lag(I, 1),
+    IlagTau = dplyr::lag(I, tau),
+    dI = I - IlagOne,
     R = Z / totalPopulation,
     Rlag = dplyr::lag(R, 1),
     dR = R - Rlag) %>%
   ungroup() %>%
   drop_na()
 
-# Density dependent
-print("#### Density dependent (X, Y, Z) ####")
+for (tau_var in c("One", "Tau")) {
+  print(glue("\n\n#### Lag: {tau_var} ####"))
+  
+  for (transmission in c("frequency", "density")) {
+    print(glue("\n\n### Transmission: {transmission} ###"))
+    
+    X_var = ifelse(transmission == "frequency", "S", "X")
+    Y_var = ifelse(transmission == "frequency", "I", "Y")
+    Z_var = ifelse(transmission == "frequency", "R", "Z")
+    
+    fm_X = glue("d{X_var} ~ -1 + {X_var}lag{tau_var}:{Y_var}lag{tau_var}") %>%
+      as.formula
+    fm_Y_twostep = glue("d{Y_var}_twostep ~ -1 + ",
+                        "{X_var}lag{tau_var}:{Y_var}lag{tau_var}") %>%
+      as.formula
+    fm_Z = glue("d{Z_var} ~ -1 + {Y_var}lagOne") %>%
+      as.formula
+    
+    for (method in c("pooling", "random")) {
+      print(glue("\n\n## {toupper(method)} ##"))
+      
+      #### Estimate beta and gamma directly ####
+      model_s = plm(fm_X, data=df_long, model = method,
+                    index = c("code", "date"))
+      model_r = plm(fm_Z, data=df_long, model = method,
+                    index = c("code", "date"))
+      
+      beta = -unname(coef(model_s))
+      gamma = unname(coef(model_r))
+      r = beta / gamma
+      
+      # print(glue("Gamma: {gamma}"))
+      # print(glue("Normal   | Beta: {beta}, R: {r}"))
+      
+      # Estimate beta with gamma as estimated above
+      df_long[[glue("d{Y_var}_twostep")]] = df_long[[glue("d{Y_var}")]] +
+        gamma*df_long[[glue("{Y_var}lagOne")]]
+      
+      model_i = plm(fm_Y_twostep, data=df_long, model = method,
+                    index = c("code", "date"))
+      
+      print(summary(model_s))
+      print(summary(model_r))
+      print(summary(model_i))
+      
+      beta_twostep = unname(coef(model_i))
+      r_twostep = beta_twostep / gamma
+      
+      # print(glue("Two-step | Beta: {beta_twostep}, R: {r_twostep}"))
+    }
+  }
+}
+
+
+
+
+#### OLD ####
+
 for (method in c("pooling", "random")) {
   print(glue("\n\n## {toupper(method)} ##"))
   
   #### Estimate beta and gamma directly ####
-  model_s = plm(dX ~ -1 + Xlag:Ylag, data=df_long, model = method,
+  model_s = plm(dX ~ -1 + XlagOne:YlagOne, data=df_long, model = method,
                index = c("code", "date"))
-  model_r = plm(dZ ~ -1 + Ylag, data=df_long, model = method,
+  model_r = plm(dZ ~ -1 + YlagOne, data=df_long, model = method,
                index = c("code", "date"))
   
   beta = -unname(coef(model_s))
@@ -141,9 +198,9 @@ for (method in c("pooling", "random")) {
   
   # Estimate beta with gamma as estimated above
   df_long = df_long %>%
-    mutate(dependent := dY + !!gamma*Ylag)
+    mutate(dY_twostep := dY + !!gamma*YlagOne)
   
-  model_i = plm(dependent ~ -1 + Xlag:Ylag, data=df_long, model = method,
+  model_i = plm(dY_twostep ~ -1 + XlagOne:YlagOne, data=df_long, model = method,
                index = c("code", "date"))
   
   beta_twostep = unname(coef(model_i))
@@ -162,9 +219,9 @@ for (method in c("pooling", "random")) {
   print(glue("\n\n## {toupper(method)} ##"))
   
   #### Estimate beta and gamma directly ####
-  model_s = plm(dS ~ -1 + Slag:Ilag, data=df_long, model = method,
+  model_s = plm(dS ~ -1 + SlagOne:IlagOne, data=df_long, model = method,
                 index = c("code", "date"))
-  model_r = plm(dR ~ -1 + Ilag, data=df_long, model = method,
+  model_r = plm(dR ~ -1 + IlagOne, data=df_long, model = method,
                 index = c("code", "date"))
   
   beta = -unname(coef(model_s))
@@ -184,9 +241,9 @@ for (method in c("pooling", "random")) {
   
   # Estimate beta with gamma as estimated above
   df_long = df_long %>%
-    mutate(dependent := dI + !!gamma*Ilag)
+    mutate(dY_twostep := dI + !!gamma*IlagOne)
   
-  model_i = plm(dependent ~ -1 + Slag:Ilag, data=df_long, model = method,
+  model_i = plm(dY_twostep ~ -1 + SlagOne:IlagOne, data=df_long, model = method,
                 index = c("code", "date"))
   
   beta_twostep = unname(coef(model_i))
