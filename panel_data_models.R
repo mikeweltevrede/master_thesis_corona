@@ -263,13 +263,17 @@ for (transmission in c("frequency", "density")) {
         file=glue("{output_path}/panel_table{undoc_flag}{rolling_flag}",
                   "_{transmission}.txt"))
   
-#### NLS? ####
-removed = function(infectives, gamma) {
-  gamma*infectives
-}
+} # end transmission
 
-nls(dY ~ -1 + Xlag:Ylag + removed(Ylag, gamma),
-    data=filter(df_long, code == "LOM"), start = list(gamma = 0.01), trace = TRUE)
+# TODO: Make plots over time
 
-# Google: nls r with function
-# https://rpubs.com/RobinLovelace/nls-function
+#### NLS - TODO ####
+# removed = function(infectives, gamma) {
+#   gamma*infectives
+# }
+# 
+# nls(dY ~ -1 + Slag:Ilag + removed(Ilag, gamma),
+#     data=filter(df_long, code == "LOM"), start = list(gamma = 0.01), trace = TRUE)
+# 
+# # Google: nls r with function
+# # https://rpubs.com/RobinLovelace/nls-function
