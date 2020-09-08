@@ -1,0 +1,23 @@
+% latex table generated in R 4.0.2 by xtable 1.8-4 package
+% Tue Sep 08 12:23:42 2020
+\begin{table}[ht]
+\centering
+\begin{tabular}{rll}
+  \hline
+ & POLS & RE \\ 
+  \hline
+OneBeta & 0.0104427*** & 0.0104427*** \\ 
+  OneBeta\_Z & (31.988) & (31.988) \\ 
+  OneBetaTwostep & 0.0111008*** & 0.0111008*** \\ 
+  OneBetaTwostep\_Z & (49.8371) & (49.8371) \\ 
+  OneGamma & 0.00656447*** & 0.00656447*** \\ 
+  OneGamma\_Z & (32.9446) & (32.9446) \\ 
+  TauBeta & 0.010225*** & 0.010225*** \\ 
+  TauBeta\_Z & (30.7456) & (30.7456) \\ 
+  TauBetaTwostep & 0.0109482*** & 0.0109482*** \\ 
+  TauBetaTwostep\_Z & (47.8607) & (47.8607) \\ 
+  TauGamma & 0.00656447*** & 0.00656447*** \\ 
+  TauGamma\_Z & (32.9446) & (32.9446) \\ 
+   \hline
+\end{tabular}
+\end{table}

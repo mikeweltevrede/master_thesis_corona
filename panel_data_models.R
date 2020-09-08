@@ -16,6 +16,7 @@ source("config.R")
 library(snakecase)
 library(plm)
 library(tidyverse)
+library(xtable)
 
 # Import data
 df_long = readr::read_csv(path_full_long, col_types = do.call(
@@ -114,16 +115,68 @@ df_long = df_long %>%
   ungroup() %>%
   drop_na()
 
-for (tau_var in c("One", "Tau")) {
-  print(glue("\n\n#### Lag: {tau_var} ####"))
+output_for_table = function(model, method, significance=6){
   
-  for (transmission in c("frequency", "density")) {
-    print(glue("\n\n### Transmission: {transmission} ###"))
-    
-    X_var = ifelse(transmission == "frequency", "S", "X")
-    Y_var = ifelse(transmission == "frequency", "I", "Y")
-    Z_var = ifelse(transmission == "frequency", "R", "Z")
-    
+  get_stars = function(pval) {
+    if (pval < 0.01) {
+      stars = "***"
+    } else if (pval < 0.05) {
+      stars = "**"
+    } else if (pval < 0.1) {
+      stars = "*"
+    } else {
+      stars = ""
+    }
+  }
+  
+  if (method == "random") {
+    tvar = "z"
+  } else {
+    tvar = "t"
+  }
+  
+  stars = coef(summary(model))[, glue("Pr(>|{tvar}|)")] %>%
+    sapply(get_stars)
+  estimates = coefficients(model) %>%
+    signif(significance) %>%
+    paste0(stars)
+  names(estimates) = names(coefficients(model))
+  
+  zvals = coef(summary(model))[, glue("{tvar}-value")] %>%
+    signif(significance) %>%
+    sapply(function(x){paste0("(", x, ")")})
+  names(zvals) = names(coefficients(model))
+  
+  return(list("estimates"=estimates, "zvals"=zvals))
+}
+
+#### Regional models ####
+regions = unique(df_long$code)
+
+transmission = "frequency"
+X_var = ifelse(transmission == "frequency", "S", "X")
+Y_var = ifelse(transmission == "frequency", "I", "Y")
+Z_var = ifelse(transmission == "frequency", "R", "Z")
+
+# Transpose and reorder columns
+results_table_aic = results_table_aic %>%
+  gather(region, val, 2:ncol(results_table_aic)) %>%
+  spread(names(results_table_aic)[1], val) %>%
+  select(region, beta, everything())
+
+#### Panel Data Models ####
+for (transmission in c("frequency", "density")) {
+  results_table = tibble(model = c("POLS", "RE"))
+  
+  print(glue("\n\n### Transmission: {transmission} ###"))
+  
+  X_var = ifelse(transmission == "frequency", "S", "X")
+  Y_var = ifelse(transmission == "frequency", "I", "Y")
+  Z_var = ifelse(transmission == "frequency", "R", "Z")
+  
+  for (tau_var in c("One", "Tau")) {
+    print(glue("\n\n#### Lag: {tau_var} ####"))
+  
     fm_X = glue("d{X_var} ~ -1 + {X_var}lag{tau_var}:{Y_var}lag{tau_var}") %>%
       as.formula
     fm_Y_twostep = glue("d{Y_var}_twostep ~ -1 + ",
@@ -131,6 +184,13 @@ for (tau_var in c("One", "Tau")) {
       as.formula
     fm_Z = glue("d{Z_var} ~ -1 + {Y_var}lagOne") %>%
       as.formula
+    
+    betas = character(0)
+    betas_z = character(0)
+    betas_twostep = character(0)
+    betas_twostep_z = character(0)
+    gammas = character(0)
+    gammas_z = character(0)
     
     for (method in c("pooling", "random")) {
       print(glue("\n\n## {toupper(method)} ##"))
@@ -141,121 +201,68 @@ for (tau_var in c("One", "Tau")) {
       model_r = plm(fm_Z, data=df_long, model = method,
                     index = c("code", "date"))
       
-      beta = -unname(coef(model_s))
       gamma = unname(coef(model_r))
-      r = beta / gamma
-      
-      # print(glue("Gamma: {gamma}"))
-      # print(glue("Normal   | Beta: {beta}, R: {r}"))
+      # beta = -unname(coef(model_s))
+      # r = beta / gamma
       
       # Estimate beta with gamma as estimated above
-      df_long[[glue("d{Y_var}_twostep")]] = df_long[[glue("d{Y_var}")]] +
-        gamma*df_long[[glue("{Y_var}lagOne")]]
+      df_long[[glue("d{Y_var}_twostep")]] = 
+        df_long[[glue("d{Y_var}")]] + gamma*df_long[[glue("{Y_var}lagOne")]]
       
       model_i = plm(fm_Y_twostep, data=df_long, model = method,
                     index = c("code", "date"))
       
-      print(summary(model_s))
-      print(summary(model_r))
-      print(summary(model_i))
+      # beta_twostep = unname(coef(model_i))
+      # r_twostep = beta_twostep / gamma
       
-      beta_twostep = unname(coef(model_i))
-      r_twostep = beta_twostep / gamma
+      output_model_s = output_for_table(model_s, method)
+      output_model_i = output_for_table(model_i, method)
+      output_model_r = output_for_table(model_r, method)
       
-      # print(glue("Two-step | Beta: {beta_twostep}, R: {r_twostep}"))
-    }
-  }
-}
-
-
-
-
-#### OLD ####
-
-for (method in c("pooling", "random")) {
-  print(glue("\n\n## {toupper(method)} ##"))
+      beta_table = unname(output_model_s$estimates)
+      beta_z_table = unname(output_model_s$zvals)
+      
+      if (substring(beta_table, 1, 1) == "-") {
+        beta_table = substring(beta_table, 2)
+        beta_z_table = paste0("(", substring(beta_z_table, 3))
+        
+      } else {
+        beta_table = paste0("-", beta_table)
+        beta_z_table = paste0("(-", substring(beta_z_table, 3))
+      }
+      
+      betas = c(betas, beta_table)
+      betas_z = c(betas_z, beta_z_table)
+      betas_twostep = c(betas_twostep, unname(output_model_i$estimates))
+      betas_twostep_z = c(betas_twostep_z, unname(output_model_i$zvals))
+      gammas = c(gammas, unname(output_model_r$estimates))
+      gammas_z = c(gammas_z, unname(output_model_r$zvals))
+      
+    } # end method
+    
+    results_table = results_table %>%
+      left_join(tibble("model" = c("POLS", "RE"),
+                       !!glue("{tau_var}Beta") := betas,
+                       !!glue("{tau_var}Beta_Z") := betas_z,
+                       !!glue("{tau_var}BetaTwostep") := betas_twostep,
+                       !!glue("{tau_var}BetaTwostep_Z") := betas_twostep_z,
+                       !!glue("{tau_var}Gamma") := gammas,
+                       !!glue("{tau_var}Gamma_Z") := gammas_z
+                       ),
+                by="model")
+    
+  } # end tau
   
-  #### Estimate beta and gamma directly ####
-  model_s = plm(dX ~ -1 + XlagOne:YlagOne, data=df_long, model = method,
-               index = c("code", "date"))
-  model_r = plm(dZ ~ -1 + YlagOne, data=df_long, model = method,
-               index = c("code", "date"))
+  # Transpose tibble and set row names
+  results_table = results_table %>%
+    gather(col, val, 2:ncol(results_table)) %>%
+    spread(names(results_table)[1], val) %>%
+    column_to_rownames("col")
   
-  beta = -unname(coef(model_s))
-  gamma = unname(coef(model_r))
+  print(xtable(results_table),
+        file=glue("{output_path}/panel_table{undoc_flag}{rolling_flag}",
+                  "_{transmission}.txt"))
   
-  if (beta < 0) {
-    print("Warning: Beta is negative!")
-  }
-  if (gamma < 0) {
-    print("Warning: Gamma is negative!")
-  }
-  
-  print(glue("Gamma: {gamma}"))
-  
-  r = beta / gamma
-  print(glue("Normal   | Beta: {beta}, R: {r}"))
-  
-  # Estimate beta with gamma as estimated above
-  df_long = df_long %>%
-    mutate(dY_twostep := dY + !!gamma*YlagOne)
-  
-  model_i = plm(dY_twostep ~ -1 + XlagOne:YlagOne, data=df_long, model = method,
-               index = c("code", "date"))
-  
-  beta_twostep = unname(coef(model_i))
-  
-  if (beta_twostep < 0) {
-    print("Warning: Beta is negative!")
-  }
-  
-  r_twostep = beta_twostep / gamma
-  print(glue("Two-step | Beta: {beta_twostep}, R: {r_twostep}"))
-}
-
-# Frequency dependent
-print("\n\n#### Frequency dependent (S, I, R) ####")
-for (method in c("pooling", "random")) {
-  print(glue("\n\n## {toupper(method)} ##"))
-  
-  #### Estimate beta and gamma directly ####
-  model_s = plm(dS ~ -1 + SlagOne:IlagOne, data=df_long, model = method,
-                index = c("code", "date"))
-  model_r = plm(dR ~ -1 + IlagOne, data=df_long, model = method,
-                index = c("code", "date"))
-  
-  beta = -unname(coef(model_s))
-  gamma = unname(coef(model_r))
-  
-  if (beta < 0) {
-    print("Warning: Beta is negative!")
-  }
-  if (gamma < 0) {
-    print("Warning: Gamma is negative!")
-  }
-  
-  print(glue("Gamma: {gamma}"))
-  
-  r = beta / gamma
-  print(glue("Normal   | Beta: {beta}, R: {r}"))
-  
-  # Estimate beta with gamma as estimated above
-  df_long = df_long %>%
-    mutate(dY_twostep := dI + !!gamma*IlagOne)
-  
-  model_i = plm(dY_twostep ~ -1 + SlagOne:IlagOne, data=df_long, model = method,
-                index = c("code", "date"))
-  
-  beta_twostep = unname(coef(model_i))
-  
-  if (beta_twostep < 0) {
-    print("Warning: Beta is negative!")
-  }
-  
-  r_twostep = beta_twostep / gamma
-  print(glue("Two-step | Beta: {beta_twostep}, R: {r_twostep}"))
-}
-
 #### NLS? ####
 removed = function(infectives, gamma) {
   gamma*infectives
