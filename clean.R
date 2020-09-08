@@ -733,7 +733,10 @@ for (form in c("Linear", "Quadratic", "DownwardsVertex",
     rowSums
   
   df_wide = df_wide %>%
-    mutate("susceptibleRateNational{form}" :=
+    mutate(totalPopulationNational = totalPopulationNational,
+           "susceptiblePopulationNational{form}" :=
+             susceptiblePopulationNational,
+           "susceptibleRateNational{form}" :=
              susceptiblePopulationNational/totalPopulationNational,
            "infectivesNational{form}" := infectivesNational,
            "infectivesTotalNational{form}" := cumsum(infectivesNational),
