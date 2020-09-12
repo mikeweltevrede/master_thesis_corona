@@ -8,12 +8,10 @@ literature/
 rules_and_regulations/
 
 .Rhistory
-thesis.tex
 
 *.aux
 *.bbl
 *.bcf
-*.bib
 *.blg
 *.log
 *.out
