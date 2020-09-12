@@ -1,0 +1,370 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\setlength\parindent{0pt}
+
+\usepackage{amsmath}
+\usepackage{mathtools}
+
+\usepackage{enumitem,amssymb}
+\newlist{todolist}{itemize}{2}
+\setlist[todolist]{label=$\square$}
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\done}{\rlap{$\square$}{\raisebox{2pt}{\large\hspace{1pt}\cmark}}%
+	\hspace{-2.5pt}}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks = true,
+    allcolors  = {blue},
+}
+
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+
+\title{Master Thesis Corona - Notes}
+\author{Mike Weltevrede}
+\date{March 2020}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Model overview}
+
+Define:
+\begin{itemize}
+    \item $I(t):$ fraction of infected individuals at time $t$,
+    \item $R(t):$ fraction of recovered individuals at time $t$,
+    \item $S(t) = 1-I(t)-R(t):$ fraction of the population that is susceptible at time $t$,\\
+            \textbullet \quad \textit{This assumes that recovery implies immunity}
+    \item $a:$ rate at which new cases develop,
+    \item $b:$ rate of recovery.
+\end{itemize}
+
+Then $R_0 \coloneqq \frac{a}{b}$ is the effective reproduction rate of the virus. If $R_0 < 1$, the virus can be said to be subsiding. Policies are made to halt $a$.
+\\ \\
+\textbf{Standard Inflammatory Response model (SIR)}
+
+\[
+\begin{cases}
+    \frac{dI(t)}{dt} &= aS(t)I(t) - bI(t) \text{ $\xrightarrow{}$ daily increase in the fraction of \textbf{infected} individuals} \\
+    \frac{dR(t)}{dt} &= bI(t) \text{ $\xrightarrow{}$ daily increase in the fraction of \textbf{recovered} individuals}
+\end{cases}
+\]
+
+\newpage
+
+\textbf{Incidence rate at time $t$}
+
+I.e. the number of new infections in a population $P$.
+
+\begin{align*}
+    Inc(t)  &= \left( \frac{dI(t)}{dt} - \frac{dR(t)}{dt} \right)P\\
+            &= aS(t)I(t)P
+\end{align*}
+
+\textbf{Incidence rate in a region $r$ at time $t$ (Adda, page 922)}
+
+\begin{align*}
+    Inc(r,t)    &= Inc(r, t-lag) \cdot S(r, t-lag) \cdot \sum_{k} a(k, within)W(k, r, t-lag)\\
+                &+ \sum_{k, c \neq r} a(k,between)\widetilde{W}(k, c \neq r, t-lag) \cdot Inc(k, c \neq r, t-lag) \cdot S(k, c \neq r, t-lag) \\
+                &+ X(r,t) \cdot d + e(r,t) \numberthis \label{eq:adda_model}
+\end{align*}
+
+where
+
+\begin{itemize}
+    \item $a(k, within)W(k, r, t-lag):$ $k$ within-region spatial weights,
+    \item $a(k, between)\widetilde{W}(k, c \neq r, t-lag):$ $k$ across-region spatial weights for each other region $c$,
+    \item $lag$ is defined by Adda as the incubation period,
+\end{itemize}
+
+and
+
+\begin{itemize}
+    \item $W(k,t):$ known spatially heterogenous weights for which we will gather data. For connections within Europe, free data is available from \href{https://ec.europa.eu/eurostat/web/transport/data/main-tables}{EUROSTAT} and for the world from the \href{http://wdi.worldbank.org/table}{World Bank}.
+            \\ \textbullet \quad EUROSTAT: this data only contains up to 2017 or 2018.
+            \\ \textbullet \quad EUROSTAT and World Bank: this data only contains per country aggregated data, not a spatial matrix from country to country.
+            \\ \textbullet \quad \href{https://www.wttc.org/economic-impact/country-analysis/country-data}{WTTC}. This has PDFs with data (so not nicely importable) per country with the top 5 inbound and outbound travel in 2019. They say ``Note: Data are average shares over the 2015-2017 period. Source: Oxford Economics, national sources and UNWTO"
+            \\ \textbullet \quad \href{https://www.unwto.org/statistics}{UNWTO}, which provides data \href{https://webunwto.s3.eu-west-1.amazonaws.com/s3fs-public/2020-01/notaparaestudianteswebrev2019.pdf}{free of charge to students and academic researchers}. So, unfortunately, not open source.
+            \\ \textbullet \quad \href{https://dashboards.nsjaarverslag.nl/reizigersgedrag}{NS}, partially open source but not in a nice CSV format. Also, this is only available for 2018.
+    \item $a(k, \cdot):$ unknown coefficients to be estimated from the data,
+    \item $X(r,t):$ includes political regimes, development index and population density, but also includes region-time dummies to capture the effects of potentially unobserved characteristics, such as cultural norms and news, medical capacity shortages etc.
+\end{itemize}
+
+\section{Our contributions}
+\begin{enumerate}
+    \item \textbf{New data:}
+        \begin{itemize}
+            \item \textbf{COVID-19 data}: Daily data on new cases, recoveries and deaths from COVID-19 for all countries and provinces within many countries is available at https://github.com/CSSEGISandData/COVID-19 free of charge. However, airline transportation data is only partially available.
+            \item \textbf{Transportation data}: We will construct the spatial weights separately for different transportation means: airline, railway transport and road transport. For connections within Europe, free data is available from \href{https://ec.europa.eu/eurostat/web/transport/data/main-tables}{EUROSTAT}, and for the world from \href{http://wdi.worldbank.org/table/5.10}{the World Bank}. We will carefully assess all freely available data, and while there are private data sources which would lead to more accurate modelling, we refrain from using these, as we want to produce a model that can be used in real-time, free of charge by all researchers and policy-makers in the case of COVID-19 but also in case we experience a new viral disease outbreak in the future.
+            \item \textbf{Other characteristics subsumed in $X(r,t)$}: These are freely available from \href{https://data.worldbank.org/}{the World Bank}. We will address the issue of whether these characteristics should be included as additional covariates or as spatial weights.
+        \end{itemize}
+    \item \textbf{Real-time prediction of the infection rates:}\\
+    The model in equation \eqref{eq:adda_model} allows prediction of infection rates many days ahead with and without policy measures.
+        \begin{itemize}
+            \item \textbf{No endogeneity concerns}: Unlike Adda (2016), who was interested in the effect of a transportation strike or school closure on the coefficients $a(k, within)$ and $a(k, between)$, we are interested in forecasting the infection rate, and therefore endogeneity (contemporaneous changes in  policy measures and shocks in the new infection rates, such as availability of test kits) is not a problem in our analysis. We can also allow for time changes in the coefficients $a(k, within)$ and $a(k,between)$ as the virus spreads, as long as enough time-series observations are available for a particular country.
+            \item \textbf{Heterogeneity in spatial transmission}: we can allow for the coefficients $a(k, within)$ and $a(k, between)$ to depend on the region, as long as there are enough time-series observations in that region.
+            \item The data is counts of new infections with many zeros (or missing data) for many regions early on, therefore offering the possibility to model this via a \textbf{count maximum likelihood model} for spatial data with truncated observations.
+        \end{itemize}
+    \item \textbf{Predicting case fataility rates heterogeneously across countries:}\\
+    The case fatality rate can be estimated with higher accuracy as the outcomes of the patients can be predicted based on jointly modelling infection and recovery  data. 
+\end{enumerate}
+
+\section{Data}
+\subsection{Which country will we use?}
+\begin{itemize}
+    \item \href{https://github.com/CSSEGISandData/COVID-19}{https://github.com/CSSEGISandData/COVID-19} $\xrightarrow{}$ Only has region-based information for China and the USA (with information split by overseas territory for countries like mainland France and the Netherlands).
+    \item World Bank $\xrightarrow{}$ For the Netherlands, railway passenger data is confidential.
+    \item \href{https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_Italy#Statistics}{https://en.wikipedia.org/wiki/2020\_coronavirus\_pandemic\_in\_Italy\#Statistics} $\xrightarrow{}$ has detailed data on Italy by region, sex/age, and date (per region).
+    \item \href{https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_the_Netherlands#Statistics}{https://en.wikipedia.org/wiki/2020\_coronavirus\_pandemic\_in\_the\_Netherlands\#Statistics} $\xrightarrow{}$ has detailed data on the Netherlands per date (per province).
+    \item Dr. Boldea asked the RIVM for more detailed data.
+\end{itemize}
+
+We have decided to \textbf{use data on Italy} (first).
+
+\section{Journal}
+\begin{itemize}
+	\item[2020-03-18]
+	\textbf{Meeting \#1 with dr. Boldea}
+		\begin{itemize}
+			\item Which country shall we take? I.e. which has the most and/or the best data?
+				\subitem \textbullet~ \textbf{Answer: Italy.}
+			\item What actually is the dependent variable?
+				\subitem \textbullet~ \textbf{Answer: Mentioned in the meeting of March 25, we could model the growth rate (\#NewCases / \#TotalActiveCases).}
+			\item Can we make the link from Adda's model to SIR?
+				\subitem \textbf{Answer: I could not find a mathematical link. Adda simply seems to split it up in within-region, across-region, and $X$.}
+			\item We will look into prediction, we can likely not say much, if anything, about causality.
+		\end{itemize}
+	
+	\item[2020-03-22]
+	\textbf{Data exploration (R)}
+		\begin{itemize}
+			\item Tried to automate extracting tables from the Wikipedia page of Italy. This did not work.
+			\item Managed to program extracting the table for the Netherlands. The data cleaning did not work as planned.
+		\end{itemize}
+	
+	\item[2020-03-25]
+	\textbf{Meeting \#2 with dr. Boldea}
+		\begin{itemize}
+			\item It is likely that the distribution is \textbf{not stationary} over time since policies by the government have an effect.
+			\item How to construct weights on modelling connectivity and policy effectiveness?
+				\subitem \textbullet~ Within region connectivity: length of railroads, schools, etcetera.
+				\subitem \textbullet~ Across region connectivity: bordering regions have more weight, use airline data (Alitalia), tourism hotspots, etcetera.
+				
+			\item There are many development indicators available on Eurostat. Perhaps a PCA would be useful.
+				\subitem \textbullet~ Example: the more hospitals c.q. number of beds there are in a region, the more developed it may be.
+			\item Perhaps we should model growth rate (\#NewCases / \#TotalActiveCases).
+			\item Adda mentions overestimating and measurement error (which we will also have). Notice that Italy is then good because they (seem to) test a lot. Moreover, then we will receive an upper bound, which may be desirable.
+				\subitem \textbullet~\textbf{Question: Can we derive how much of an upper bound this is, e.g. at most 10\% away from the true answer?}
+		\end{itemize}
+	
+	\item[2020-03-26]
+	\textbf{Finding data - I have uploaded these to Github and Google Drive}
+		\begin{itemize}
+			\item Manually downloaded and cleaned the data for Italy from Wikipedia.
+			\item Looked into the regional data from Eurostat and downloaded 17 possibly interesting datasets, including demographics, internet access, number of hospital beds, transportation statistics, etcetera.
+		\end{itemize}
+	
+	\textbf{Data exploration}
+		\begin{itemize}
+			\item Used Python to explore the Wikipedia data and found nothing special; all relevant variables exhibit an exponential growth.
+		\end{itemize} 
+	
+	\item[2020-03-27]
+	\textbf{Data reading}
+		\begin{itemize}
+			\item Started to work on a data reader for the Eurostat data. It reads data and combines these. Still a work in progress (WIP).
+		\end{itemize}
+	
+	\item[2020-03-30]
+	\textbf{Data processing}
+		\begin{itemize}
+			\item Automated the Excel sheet so that we only need to add new data to the Wide sheet.
+			\item Wrote a Python script to compute the distance between cities given latitude and longitude.
+		\end{itemize}
+
+	\textbf{Data collection}
+		\begin{itemize}
+			\item \href{http://dati.istat.it/}{Official Italian Statistics} Navigated a bit. Did not seem to have much more interesting data than Eurostat. They do have \textbf{monthly and quarterly data} for some sources as well as \textbf{amount of passengers for domestic flights} (arrivals, departures and total but not specifically between which airports)
+				\[\text{Flights: DCSC\_INDTRAEREO\_30032020144404115.csv}\]
+			\item Looked into obtaining weather data for the regions. The ideal goal is day by day historical weather data.
+				\subitem \textbullet~ \href{https://www.yr.no/place/Italy}{yr.no}: Monthly data (average highest and lowest temperature, as well as average days of precipitation) for around 5 cities per region.
+				\subitem \textbullet~ \href{https://www.ilmeteo.it/portale/archivio-meteo}{Il Meteo}: This seems to only have it on a city basis and not even for all cities. It is difficult to navigate.
+		\end{itemize}
+	
+	\textbf{Thesis writing}
+	\begin{itemize}
+		\item Added specification of $W$, $\widetilde{W}$, and $X$.
+	\end{itemize}
+	
+	\item[2020-04-01]
+	\textbf{Meeting \#3 with dr. Boldea}
+	\begin{itemize}
+		\item We will start by fixing a region, i.e. setting the second line in Adda's model to zero, and then doing analysis for each region.
+		\item Given that there is uncertainty in the regressors and that we have no lag available (most data is annual), we likely need to use a Bayesian approach. How do we do this? Most approaches currently are on uncertainty in parameters.
+			\subitem \textbullet~ Jim Stock paper: he states that, by Bayes Theorem, we can split the symptomatic and asymptomatic effects. Check this out! Moreover, how does he reach a U-shaped $R_0$?
+		\item Note that for PCA, $\alpha$ is then also not identified up to a rotation, which is tough if we also want to do inference.
+		\item Italy started a total lockdown. Likely, the number of passengers by train then went to 0. Before that, it must slowly decay. How do we decide to decay it? Do we have Italian sources or can we extrapolate trends in other countries to Italy?
+		\item Recall that Italy does not do random testing. They did do this in Germany and Iceland. Can we use this?
+		\item There is no time lag, but do note that policy enacts with a lag. As such, we would have $W^r_t$ and $W^r_{t-lag}$ How can we take this into account? Is there information on this? 
+		\item Age may have a nonlinear effect on transmission (younger people likely transmit the disease more), so we can include $age^2$ too.
+	\end{itemize}
+	
+	\item[2020-04-02]
+	\textbf{Reading up}
+	\begin{itemize}
+		\item Found papers discussing Bayesian approaches to model uncertainty and uncertainty in regressors, most notably (Neff, 1996).
+		\item Started a Coursera course on Bayesian Statistics in R (one-week trial, not continued but Datacamp also has Bayesian courses for R).
+	\end{itemize}
+	
+	\item[2020-04-03]
+	\textbf{Reading up}
+	\begin{itemize}
+		\item Started a Datacamp course on Time Series Analysis in Python.
+	\end{itemize}
+
+	\textbf{Data collection}
+	\begin{itemize}
+		\item Redownloaded data and retrieved new data, such as amount of doctors and freight transport.
+	\end{itemize}
+	
+	\textbf{Thesis writing}
+	\begin{itemize}
+		\item Started specifying my own model.
+	\end{itemize}
+
+	\textbf{Data processing}
+	\begin{itemize}
+		\item Improved the Python script to process the Eurostat data and ran this to update the file.
+	\end{itemize}
+	
+	\item[2020-04-06]
+	\textbf{Modelling}
+	\begin{itemize}
+		\item Explored modelling options (see modelling.ipynb).
+	\end{itemize}
+
+	\item[2020-04-07]
+	\textbf{Reading up}
+	\begin{itemize}
+		\item Explored papers (concerning Bayesian approaches to model uncertainty).
+	\end{itemize}
+
+	\textbf{Programming}
+	\begin{itemize}
+		\item Clean Wikipedia data; replace missing values and process negative values (see clean\_wide.py).
+	\end{itemize}
+	
+	\item[2020-04-08]
+	\textbf{Reading up}
+	\begin{itemize}
+		\item Started a Datacamp course on Time Series Analysis in R, seeing as we switched languages.
+	\end{itemize}
+
+	\textbf{Meeting \#4 with dr. Boldea}
+	\begin{itemize}
+		\item Spatio-temporal models are quite different from regular panel data models so we cannot apply a Tobit model. Code and slides will be shared.
+		\item Regarding the concerns on predicting rates due to misspecification of the denominator: we will likely incorporate asymptomatic patients later so this may not be an issue.
+		\item Because we measure with error, we can consider an auxiliary model where some unobserved weighting matrix is a combination of the other weighting measures plus some error:
+		\[OW = a(b_1W_1 + \cdots + b_KW_K + error).\]
+		So, the from the old formulation of
+		\[Inc_{r,t-lag} S_{r,t-lag} \sum_{k=1}^K a^k_{within}W^k_{r, t-lag}\]
+		we would go to
+		\[Inc_{r,t-lag} S_{r,t-lag} \cdot aOW.\]
+		This is akin to a random coefficients model (so look into this) and it is usually estimated with maximum likelihood.
+	\end{itemize}
+	
+	\item[2020-04-09 and 2020-04-10]
+	Did some general things, mostly reading up on spatiotemporal modelling and fixing/experimenting with code.
+	
+	\item[2020-04-12]
+	\textbf{Reading up}
+	\begin{itemize}
+		\item Looked into the SPLM package in R and the associated paper for theoretical knowledge on spatial panel data models.
+	\end{itemize}
+	
+	\item[2020-04-13]
+	\textbf{Coding}
+	\begin{itemize}
+		\item Created an R script to interpolate the amount of travellers by railroad.
+	\end{itemize}
+	
+	\item[2020-04-14]
+	\textbf{Data collection}
+	\begin{itemize}
+		\item Started to fill out the Google Mobility Report in a spreadsheet. Since no numbers are available for the dates apart from March 29, we have to estimate these from the graphs.
+	\end{itemize}
+
+	\textbf{Programming}
+	\begin{itemize}
+		\item Generalised the interpolation script for all 6 subjects in the Google Mobility Report.
+	\end{itemize}
+	
+	\item[2020-04-15]
+	\textbf{Meeting \#5 with dr. Boldea}
+	\begin{itemize}
+		\item Spatial spillover happens with a time lag (e.g. if people travel). As such, spatial lag is not applicable in our model.
+		\item We can simply define our lagged regressors in $X$, e.g. $w_{t-1}y_{t-1}$.
+		\item We have $T>57$ time periods, which is large enough, and $N=21$ regions. For panel data models, we don't need both $N$ and $T$ to be large enough. The problems regarding consistency only apply for small $T$.
+		\item Random Effects: we can use GLS; the random effects do not change over time. As such, there is no effect on the mean, just the variance.
+		\item Fixed Effects: we can use (pooled) OLS. We do not need to do within-transformations as these are done to correct for a small (fixed) amount of time periods $T$! To add fixed region effects, simply add a dummy for each region.
+		\item Adda's definitions are: $Inc = \frac{\text{\#new cases}}{\text{\#population}}$ and $S = \frac{\text{\#susceptible people}}{\text{\#population}}$.
+		\item If we use the same regressors, we can test whether estimating GLS is the same as estimating OLS equation-by-equation. They should yield the same results as long as we have homoskedastic errors that are uncorrelated across regions.
+			\begin{enumerate}
+				\item Estimate OLS;
+				\item Compute the residuals;
+				\item Construct the covariance matrix of residuals;
+				\item Estimate GLS with this;
+				\item Do a Hausman test.
+			\end{enumerate}
+		\item With $T \approx 56$, we cannot have too many regressors. We will look into regressors that deal with the transport of passengers, health care (e.g. death rate for comorbidities of COVID-19 and available (ICU) beds, and, if available, a measure of increase in testing capacity). We will use ratios of the total instead of the absolute number (NOT standardised). We can later apply Ridge or LASSO.
+		\item To look into: policy is an endogenous effect since it depends on the past. Perhaps we can look into what would have happened in the short term and long term is the policy was not enacted.
+	\end{itemize}
+	
+	\item[2020-04-19]
+	\textbf{Programming}
+	\begin{itemize}
+		\item Progress on the data cleaning process. I added the calculation of the susceptible and incidence rate.
+	\end{itemize}
+	
+	\textbf{Journal not kept between this day and the next}
+	
+	\item[2020-04-23]
+	\textbf{Meeting \#6 with dr. Boldea}
+	\begin{itemize}
+		\item Consider the email concerning the consistency of the FE estimator for dynamic models. This is a bit different since we do not only have a lag of the dependent variable but a product with various variables. Usually, $\alpha$ depends on $(1-\alpha)^T \to 0$ (in the backwards substitution part). Dr. Boldea will look into a proof and/or possible conditions on $\alpha$.
+		\item As $T \to \infty$, endogeneity disappears.
+		\item Regarding IV/GMM: Arellano-Bond is likely to have weak instruments if the spread is rapid so results are imprecise. Prof. Cizek is looking into how to get around this, but GMM is likely less applicable.
+		\item Regarding variables:
+		\begin{itemize}
+			\item Broadband access is more a measure of development. Perhaps we can consider other development indices. Look into these and correlations.
+			\item Instead of death rate from comorbidities, the discharge number is likely more of a good indicator of the incidence rate. Possibly, we should not split this into multiple comorbidities but rather use just one variable.
+			\item Notice that air passengers arrived and departed have nearly the same coefficient with opposite signs. Most arrived passengers likely leave so these are highly collinear. Same with maritime passengers. We should only use one of the two. Moreover, can we set these to nearly 0 at the moment of lockdown?
+		\end{itemize}
+		\item Can we find some way of finding information on vaccination for tubercolosis? Even nationwide would be good.
+		\item We should use Information Criteria to select our model and avoid multiple testing. Which variables should stay or go?
+		\item Should we go for out-of-sample or in-sample analysis? For policy analysis, we should consider whether we have to deal with exogeneity (as lags are long enough) or endogeneity. For simulations, we would assume that the model specification is good and then estimate $\alpha$. One thing to consider too: can we use $\alpha_W$ instead of $\alpha W$ or quadratic effects: $\alpha W + \beta W^2$?
+		\item Next things to do:
+			\begin{itemize}
+				\item Which variables should be kept in?
+				\item Use recovery rate over death or combine them.
+				\item Add crossregion variables.
+				\item Can we use the Stock \& Watson paper to augment scenarios for tested/infected? This depends on clustering.
+				\item Are the residuals stationary?
+				\item Only then, simulate policy and do IC for in-sample model selection.
+			\end{itemize}
+	\end{itemize}
+
+	\textbf{Journal not kept between this day and the next}
+	
+	\item[2020-05-01]
+	\textbf{Meeting \#7 with dr. Boldea}
+	\begin{itemize}
+		\item X
+	\end{itemize}
+\end{itemize}
+
+\end{document}
