@@ -3,15 +3,12 @@
 .vscode/
 
 data/COVID-19/
+data/Global_Mobility_Report.csv
 literature/
-renv/
 rules_and_regulations/
 
 .Rhistory
-notes.tex
 thesis.tex
-
-data/Global_Mobility_Report.csv
 
 *.aux
 *.bbl

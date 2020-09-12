@@ -33,18 +33,6 @@ df_long = readr::read_csv(path_full_long, col_types = do.call(
 rolling = TRUE
 window_size = 100
 
-if (rolling) {
-  rolling_flag = "_rolling"
-  
-  df_long = df_long %>% 
-    group_by(code) %>% 
-    slice(tail(row_number(), window_size)) %>%
-    ungroup()
-  
-} else {
-  rolling_flag = ""
-}
-
 # Determine if we want to model undocumented infectives and, if so, by which
 # method. Note that infective_variable is the number of new cases, i.e. Delta X.
 form = "Quadratic" %>%
@@ -116,6 +104,16 @@ df_long = df_long %>%
   drop_na()
 
 output_for_table = function(model, method, significance=6){
+if (rolling) {
+  rolling_flag = "_rolling"
+  
+  df_long = df_long %>% 
+    group_by(code) %>% 
+    slice(tail(row_number(), window_size)) %>%
+    ungroup()
+} else {
+  rolling_flag = ""
+}
   
   get_stars = function(pval) {
     if (pval < 0.01) {
