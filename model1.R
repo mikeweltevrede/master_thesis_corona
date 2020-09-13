@@ -1,8 +1,8 @@
 rm(list=ls())
 
-#### Model 1 - Within-region spread ####
-# Delta Y_rt = beta_within*Delta Y_rt-tau*S_rt-tau + delta*M_rt + nu_rt
-# Y_rt is the absolute number of cases!
+#### Within-region spread model ####
+# Delta i_rt = beta_within*S_rt-tau*Delta i_rt-tau + delta*X_rt + nu_rt
+# i_rt is the absolute number of cases!
 
 #### Set-up ####
 # Import standard variables and activate Python environment
@@ -49,7 +49,7 @@ if (rolling) {
 }
 
 # Determine if we want to model undocumented infectives and, if so, by which
-# method. Note that infective_variable is the number of new cases, i.e. Delta X.
+# method. Note that infective_variable is the number of new cases, i.e. \Delta i
 form = "Quadratic" %>%
   to_upper_camel_case
 
@@ -340,8 +340,8 @@ fm = glue("infectivesNational{form} ~ -1 + ",
 
 # Use BIC for model selection - scope says we want to always keep beta_within in
 if (rolling) {
-  model = step(lm(fm, data=tail(df_wide, window_size)), k=log(window_size), trace=0,
-               scope=list(
+  model = step(lm(fm, data=tail(df_wide, window_size)), k=log(window_size),
+               trace=0, scope=list(
                  "lower" = glue("infectivesNational{form} ~ -1 + ",
                                 "dplyr::lag(infectivesNational{form}, {tau}):",
                                 "dplyr::lag(susceptibleRateNational, {tau})") %>%
@@ -392,8 +392,8 @@ for (region in regions){
   
   # Use BIC for model selection
   if (rolling) {
-    model = step(lm(fm, data=tail(data, window_size)), k=log(window_size), trace=0,
-                 scope=list(
+    model = step(lm(fm, data=tail(data, window_size)), k=log(window_size),
+                 trace=0, scope=list(
                    "lower" = glue("{infective_variable} ~ -1 + ",
                                   "dplyr::lag({infective_variable}, {tau}):",
                                   "dplyr::lag(susceptibleRate, {tau})") %>%
@@ -599,8 +599,8 @@ for (region in regions){
     # Use BIC for model selection - scope says we want to always keep
     # beta_within in
     if (rolling) {
-      model = step(lm(fm, data=data[(t-window_size+1):t, ]), k=log(window_size), trace=0,
-                   scope=list(
+      model = step(lm(fm, data=data[(t-window_size+1):t, ]), k=log(window_size),
+                   trace=0, scope=list(
                      "lower" = glue("{infective_variable} ~ -1 + ",
                                     "dplyr::lag({infective_variable}, {tau}):",
                                     "dplyr::lag(susceptibleRate, {tau})") %>%
