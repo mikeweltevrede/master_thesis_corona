@@ -1,5 +1,5 @@
 % latex table generated in R 4.0.2 by xtable 1.8-4 package
-% Sun Sep 13 12:10:43 2020
+% Sun Sep 13 19:05:16 2020
 \begin{table}[ht]
 \centering
 \begin{tabular}{rll}
@@ -7,7 +7,9 @@
  & beta & weekend \\ 
   \hline
 National & 0.775721*** &  \\ 
+  National\_POLS & 0.734046*** & 172.755*** \\ 
   National\_tvals & (15.7144) &  \\ 
+  National\_tvals\_POLS & (59.835) & (3.88619) \\ 
   ABR & 0.592532*** &  \\ 
   ABR\_tvals & (9.24777) &  \\ 
   BAS & 0.30046*** & 18.8456** \\ 
