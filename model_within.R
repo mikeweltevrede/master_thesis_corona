@@ -10,7 +10,9 @@ source("config.R")
 
 # Import packages
 library(glue)
+library(gtools)
 library(latex2exp)
+library(plm)
 library(snakecase)
 library(tidyverse)
 library(xtable)
@@ -29,7 +31,7 @@ M_regressors = c("weekend")
 
 #### Decide the parameters ####
 # You need to adapt, if desired, the following parameters:
-# tau: int, the latent period
+# tau: int, the maximum incubation period
 # rolling: boolean, whether to apply a rolling window
 # window_size: int, if using a rolling window, how large?
 # form: str, the form of undocumented infections to model with (if any)
@@ -40,17 +42,23 @@ tau = 14
 # Do we want to use a rolling window_size, i.e. only use the most recent
 # `window_size` observations?
 rolling = TRUE
-window_size = 100
+window_size = 100 + tau
 
 if (rolling) {
   rolling_flag = "_rolling"
+  
+  df_long_trimmed = df_long %>% 
+    group_by(code) %>% 
+    slice(tail(row_number(), window_size)) %>%
+    ungroup()
+  
 } else {
   rolling_flag = ""
 }
 
 # Determine if we want to model undocumented infectives and, if so, by which
 # method. Note that infective_variable is the number of new cases, i.e. \Delta i
-form = "Quadratic" %>%
+form = "" %>%
   to_upper_camel_case
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
@@ -79,6 +87,52 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
   undoc_flag = ""
 }
 
+# Function to add stars to the estimates according to the p-values, as well as
+# putting the t-statistics between parentheses
+output_for_table = function(model, method="ols", significance=6){
+  
+  get_stars = function(pval) {
+    if (pval < 0.01) {
+      stars = "***"
+    } else if (pval < 0.05) {
+      stars = "**"
+    } else if (pval < 0.1) {
+      stars = "*"
+    } else {
+      stars = ""
+    }
+  }
+  
+  if (method == "ols") {
+    tvar = "t"
+    tvardash = paste0(tvar, " ")
+    
+  } else {
+    
+    if (method == "random") {
+      tvar = "z"
+    } else {
+      tvar = "t"
+    }
+    
+    tvardash = paste0(tvar, "-")
+  }
+  
+  stars = coef(summary(model))[, glue("Pr(>|{tvar}|)")] %>%
+    sapply(get_stars)
+  estimates = coefficients(model) %>%
+    signif(significance) %>%
+    paste0(stars)
+  names(estimates) = names(coefficients(model))
+  
+  tvals = coef(summary(model))[, glue("{tvardash}value")] %>%
+    signif(significance) %>%
+    sapply(function(x){paste0("(", x, ")")})
+  names(tvals) = names(coefficients(model))
+  
+  return(list("estimates"=estimates, "tvals"=tvals))
+}
+
 #### Models without model selection ####
 # Create results table
 results_table = tibble(variables = c(M_regressors, "beta"))
@@ -96,39 +150,11 @@ if (rolling) {
 } else {
   model = lm(fm, data=df_wide)
 }
+
 summary(model)
 
 #### Make parameter table ####
 # Retrieve parameter estimates
-output_for_table = function(model, significance=6){
-  
-  get_stars = function(pval) {
-    if (pval < 0.01) {
-      stars = "***"
-    } else if (pval < 0.05) {
-      stars = "**"
-    } else if (pval < 0.1) {
-      stars = "*"
-    } else {
-      stars = ""
-    }
-  }
-  
-  stars = coef(summary(model))[, "Pr(>|t|)"] %>%
-    sapply(get_stars)
-  estimates = coefficients(model) %>%
-    signif(significance) %>%
-    paste0(stars)
-  names(estimates) = names(coefficients(model))
-  
-  tvals = coef(summary(model))[, "t value"] %>%
-    signif(significance) %>%
-    sapply(function(x){paste0("(", x, ")")})
-  names(tvals) = names(coefficients(model))
-  
-  return(list("estimates"=estimates, "tvals"=tvals))
-}
-
 table_output = output_for_table(model)
 estimates = table_output$estimates
 tvals = table_output$tvals
@@ -148,7 +174,7 @@ results_table = results_table %>%
                               "dplyr::lag(susceptibleRateNational, {tau})")]))),
             by="variables")
 
-#### Regional models ####
+#### Pooled OLS ####
 # Construct formula
 fm = glue("{infective_variable} ~ -1 + ",
           "dplyr::lag({infective_variable}, {tau}):",
@@ -156,6 +182,35 @@ fm = glue("{infective_variable} ~ -1 + ",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
+if (rolling) {
+  model = plm(fm, data=df_long_trimmed, model="pooling",
+              index = c("code", "date"))
+} else {
+  model = plm(fm, data=df_long, model="pooling",
+              index = c("code", "date"))
+}
+
+summary(model)
+
+table_output = output_for_table(model, method="pooling")
+estimates = table_output$estimates
+tvals = table_output$tvals
+
+results_table = results_table %>%
+  left_join(tibble("variables" = c(M_regressors, "beta"),
+                   "National_POLS" := unname(
+                     c(estimates[M_regressors],
+                       estimates[
+                         glue("dplyr::lag({infective_variable}, {tau}):",
+                              "dplyr::lag(susceptibleRate, {tau})")])),
+                   "National_tvals_POLS" = unname(
+                     c(tvals[M_regressors],
+                       tvals[
+                         glue("dplyr::lag({infective_variable}, {tau}):",
+                              "dplyr::lag(susceptibleRate, {tau})")]))),
+            by="variables")
+
+#### Regional models ####
 for (region in regions){
   # Select only the data for the relevant region
   data = df_long %>%
@@ -257,6 +312,87 @@ results_table_aic = results_table_aic %>%
                               "dplyr::lag(susceptibleRateNational, {tau})")]))),
             by="variables")
 
+#### Pooled OLS ####
+aicbic_plm <- function(object, criterion) {
+  # Credit: Rookie @ StackOverflow: https://stackoverflow.com/users/2525157/rookie
+  # https://stackoverflow.com/questions/46186527/how-to-calculate-bic-and-aic-for-a-gmm-model-in-r-using-plm
+  
+  model_summary = summary(object)
+  
+  u.hat = residuals(model_summary) # extract residuals
+  
+  np = length(model_summary$coefficients[, 1]) # number of parameters
+  n = nrow(model_summary$model) # number of data
+  SSR  = log( (sum(u.hat^2)/(n))) # log sum of squares
+  
+  if (criterion == "AIC") {
+    return(round(2*np + n*(log(2*pi) + SSR  + 1), 1))
+  } else if (criterion == "BIC") {
+    return(round(log(n)*np + n*(log(2*pi) + SSR + 1), 1))
+  }
+}
+
+# Construct formula
+fm_base = glue("{infective_variable} ~ -1 + ",
+               "dplyr::lag({infective_variable}, {tau}):",
+               "dplyr::lag(susceptibleRate, {tau})") %>%
+  as.formula
+
+if (rolling) {
+  model = plm(fm_base, data=df_long_trimmed, model="pooling",
+              index = c("code", "date"))
+} else {
+  model = plm(fm_base, data=df_long, model="pooling",
+              index = c("code", "date"))
+}
+
+aic_best = aicbic_plm(model, "AIC")
+
+for (i in 1:length(M_regressors)) {
+  combos = combinations(length(M_regressors), i, v=M_regressors)
+  
+  for (r in 1:nrow(combos)) {
+    fm_temp = glue("{infective_variable} ~ -1 + ",
+                      "dplyr::lag({infective_variable}, {tau}):",
+                      "dplyr::lag(susceptibleRate, {tau})+",
+                      paste(combos[r, ], collapse="+")) %>%
+      as.formula
+    
+    if (rolling) {
+      model_temp = plm(fm_temp, data=df_long_trimmed, model="pooling",
+                  index = c("code", "date"))
+    } else {
+      model_temp = plm(fm_temp, data=df_long, model="pooling",
+                  index = c("code", "date"))
+    }
+    
+    aic = aicbic_plm(model_temp, "AIC")
+    
+    if (aic < aic_best) {
+      aic_best = aic
+      model = model_temp
+    }
+  }
+}
+
+table_output = output_for_table(model, method="pooling")
+estimates = table_output$estimates
+tvals = table_output$tvals
+
+results_table_aic = results_table_aic %>%
+  left_join(tibble("variables" = c(M_regressors, "beta"),
+                   "National_POLS" := unname(
+                     c(estimates[M_regressors],
+                       estimates[
+                         glue("dplyr::lag({infective_variable}, {tau}):",
+                              "dplyr::lag(susceptibleRate, {tau})")])),
+                   "National_tvals_POLS" = unname(
+                     c(tvals[M_regressors],
+                       tvals[
+                         glue("dplyr::lag({infective_variable}, {tau}):",
+                              "dplyr::lag(susceptibleRate, {tau})")]))),
+            by="variables")
+
 #### Regional models ####
 # Construct formula
 fm = glue("{infective_variable} ~ -1 + ",
@@ -340,8 +476,8 @@ fm = glue("infectivesNational{form} ~ -1 + ",
 
 # Use BIC for model selection - scope says we want to always keep beta_within in
 if (rolling) {
-  model = step(lm(fm, data=tail(df_wide, window_size)), k=log(window_size),
-               trace=0, scope=list(
+  model = step(lm(fm, data=tail(df_wide, window_size)),
+               k=log(window_size), trace=0, scope=list(
                  "lower" = glue("infectivesNational{form} ~ -1 + ",
                                 "dplyr::lag(infectivesNational{form}, {tau}):",
                                 "dplyr::lag(susceptibleRateNational, {tau})") %>%
@@ -375,6 +511,68 @@ results_table_bic = results_table_bic %>%
                        tvals[
                          glue("dplyr::lag(infectivesNational{form}, {tau}):",
                               "dplyr::lag(susceptibleRateNational, {tau})")]))),
+            by="variables")
+
+#### Pooled OLS ####
+# Construct formula
+fm_base = glue("{infective_variable} ~ -1 + ",
+               "dplyr::lag({infective_variable}, {tau}):",
+               "dplyr::lag(susceptibleRate, {tau})") %>%
+  as.formula
+
+if (rolling) {
+  model = plm(fm_base, data=df_long_trimmed, model="pooling",
+              index = c("code", "date"))
+} else {
+  model = plm(fm_base, data=df_long, model="pooling",
+              index = c("code", "date"))
+}
+
+bic_best = aicbic_plm(model, "BIC")
+
+for (i in 1:length(M_regressors)) {
+  combos = combinations(length(M_regressors), i, v=M_regressors)
+  
+  for (r in 1:nrow(combos)) {
+    model_temp = glue("{infective_variable} ~ -1 + ",
+                      "dplyr::lag({infective_variable}, {tau}):",
+                      "dplyr::lag(susceptibleRate, {tau})+",
+                      paste(combos[r, ], collapse="+")) %>%
+      as.formula
+    
+    if (rolling) {
+      model_temp = plm(fm_temp, data=df_long_trimmed, model="pooling",
+                       index = c("code", "date"))
+    } else {
+      model_temp = plm(fm_temp, data=df_long, model="pooling",
+                       index = c("code", "date"))
+    }
+    
+    bic = aicbic_plm(model_temp, "BIC")
+    
+    if (bic < bic_best) {
+      bic_best = bic
+      model = model_temp
+    }
+  }
+}
+
+table_output = output_for_table(model, method="pooling")
+estimates = table_output$estimates
+tvals = table_output$tvals
+
+results_table_bic = results_table_bic %>%
+  left_join(tibble("variables" = c(M_regressors, "beta"),
+                   "National_POLS" := unname(
+                     c(estimates[M_regressors],
+                       estimates[
+                         glue("dplyr::lag({infective_variable}, {tau}):",
+                              "dplyr::lag(susceptibleRate, {tau})")])),
+                   "National_tvals_POLS" = unname(
+                     c(tvals[M_regressors],
+                       tvals[
+                         glue("dplyr::lag({infective_variable}, {tau}):",
+                              "dplyr::lag(susceptibleRate, {tau})")]))),
             by="variables")
 
 #### Regional models ####
