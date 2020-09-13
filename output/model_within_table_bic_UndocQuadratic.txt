@@ -1,0 +1,49 @@
+% latex table generated in R 4.0.2 by xtable 1.8-4 package
+% Sun Sep 13 12:10:43 2020
+\begin{table}[ht]
+\centering
+\begin{tabular}{rll}
+  \hline
+ & beta & weekend \\ 
+  \hline
+National & 0.775721*** &  \\ 
+  National\_tvals & (15.7144) &  \\ 
+  ABR & 0.592532*** &  \\ 
+  ABR\_tvals & (9.24777) &  \\ 
+  BAS & 0.30046*** & 18.8456** \\ 
+  BAS\_tvals & (3.92063) & (2.36508) \\ 
+  BZ & 0.582887*** &  \\ 
+  BZ\_tvals & (9.01381) &  \\ 
+  CAL & 0.422681*** & 47.8387** \\ 
+  CAL\_tvals & (5.848) & (2.3471) \\ 
+  EMR & 0.718644*** &  \\ 
+  EMR\_tvals & (13.1969) &  \\ 
+  FVG & 0.63699*** &  \\ 
+  FVG\_tvals & (10.4892) &  \\ 
+  LAZ & 0.753844*** &  \\ 
+  LAZ\_tvals & (14.3932) &  \\ 
+  LIG & 0.741112*** &  \\ 
+  LIG\_tvals & (13.8425) &  \\ 
+  LOM & 0.742682*** &  \\ 
+  LOM\_tvals & (14.4885) &  \\ 
+  MAR & 0.686476*** &  \\ 
+  MAR\_tvals & (12.0635) &  \\ 
+  MOL & 0.291995*** & 22.7589*** \\ 
+  MOL\_tvals & (3.85392) & (3.00515) \\ 
+  PIE & 0.781655*** &  \\ 
+  PIE\_tvals & (15.7112) &  \\ 
+  PUG & 0.685934*** &  \\ 
+  PUG\_tvals & (11.8519) &  \\ 
+  SAR & 0.483364*** &  \\ 
+  SAR\_tvals & (6.94913) &  \\ 
+  TOS & 0.711178*** &  \\ 
+  TOS\_tvals & (12.7719) &  \\ 
+  UMB & 0.382188*** &  \\ 
+  UMB\_tvals & (5.21527) &  \\ 
+  VDA & 0.411927*** & 49.5968*** \\ 
+  VDA\_tvals & (5.65714) & (2.61962) \\ 
+  VEN & 0.734028*** &  \\ 
+  VEN\_tvals & (13.7298) &  \\ 
+   \hline
+\end{tabular}
+\end{table}

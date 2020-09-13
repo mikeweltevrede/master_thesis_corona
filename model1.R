@@ -34,9 +34,8 @@ M_regressors = c("weekend")
 # window_size: int, if using a rolling window, how large?
 # form: str, the form of undocumented infections to model with (if any)
 
-# Latent period; Incubation period has median value 5; latent period is
-# estimated to be 2 days shorter: 5-2=3
-tau = 3
+# Maximum incubation period
+tau = 14
 
 # Do we want to use a rolling window_size, i.e. only use the most recent
 # `window_size` observations?
@@ -200,7 +199,8 @@ results_table = rbind(
 # Return a LaTeX table
 table_no_ms = xtable(results_table, math.style.exponents = TRUE)
 print(table_no_ms,
-      file=glue("{output_path}/model1_table_no_ms{undoc_flag}{rolling_flag}.txt"))
+      file=glue("{output_path}/model_within_table_no_ms{undoc_flag}",
+                "{rolling_flag}.txt"))
 
 #### Models with model selection (AIC) ####
 results_table_aic = tibble(variables = c(M_regressors, "beta"))
@@ -315,7 +315,8 @@ results_table_aic = rbind(
 # Return a LaTeX table
 table_ms_aic = xtable(results_table_aic, math.style.exponents = TRUE)
 print(table_ms_aic,
-      file=glue("{output_path}/model1_table_aic{undoc_flag}{rolling_flag}.txt"))
+      file=glue("{output_path}/model_within_table_aic{undoc_flag}",
+                "{rolling_flag}.txt"))
 
 #### Models with model selection (BIC) ####
 results_table_bic = tibble(variables = c(M_regressors, "beta"))
@@ -430,7 +431,8 @@ results_table_bic = rbind(
 # Return a LaTeX table
 table_ms_bic = xtable(results_table_bic, math.style.exponents = TRUE)
 print(table_ms_bic,
-      file=glue("{output_path}/model1_table_bic{undoc_flag}{rolling_flag}.txt"))
+      file=glue("{output_path}/model_within_table_bic{undoc_flag}",
+                "{rolling_flag}.txt"))
 
 #### Plot beta over time ####
 df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
@@ -493,9 +495,9 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
                                  "#56B4E9", # Light blue
                                  "#E69F00")) # Yellow
   print(g)
-  ggsave(
-    glue("model1_lag{tau}_betawithin_{direc}{undoc_flag}{rolling_flag}.pdf"),
-    path=output_path, width = 10.8, height = 6.62, units = "in")
+  ggsave(glue("model_within_lag{tau}_betawithin_{direc}{undoc_flag}",
+              "{rolling_flag}.pdf"),
+         path=output_path, width = 10.8, height = 6.62, units = "in")
 }
 
 #### With model selection (AIC) ####
@@ -564,9 +566,9 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
                                  "#56B4E9", # Light blue
                                  "#E69F00")) # Yellow
   print(g)
-  ggsave(
-    glue("model1_lag{tau}_betawithin_{direc}_aic{undoc_flag}{rolling_flag}.pdf"),
-    path=output_path, width = 10.8, height = 6.62, units = "in")
+  ggsave(glue("model_within_lag{tau}_betawithin_{direc}_aic{undoc_flag}",
+              "{rolling_flag}.pdf"),
+         path=output_path, width = 10.8, height = 6.62, units = "in")
 }
 
 #### With model selection (BIC) ####
@@ -634,7 +636,7 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
                                  "#56B4E9", # Light blue
                                  "#E69F00")) # Yellow
   print(g)
-  ggsave(
-    glue("model1_lag{tau}_betawithin_{direc}_bic{undoc_flag}{rolling_flag}.pdf"),
-    path=output_path, width = 10.8, height = 6.62, units = "in")
+  ggsave(glue("model_within_lag{tau}_betawithin_{direc}_bic{undoc_flag}",
+              "{rolling_flag}.pdf"),
+         path=output_path, width = 10.8, height = 6.62, units = "in")
 }
