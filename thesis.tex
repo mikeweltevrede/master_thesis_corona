@@ -4,12 +4,8 @@
 %%%% Layout %%%%
 \usepackage{geometry}
 \geometry{a4paper, left=1in, right=1in, top=2in}
-\usepackage{hyperref}
-\hypersetup{linktoc=all}
 \usepackage[toc, page]{appendix}
 \usepackage[labelfont=bf, hypcap, labelsep=period, skip=0.5\baselineskip]{caption}
-\usepackage{url}
-\Urlmuskip=0mu plus 1mu
 \usepackage{chngcntr} % Number equations/figures/tables as (section.#)
 \counterwithin{equation}{section}
 \counterwithin{figure}{section}
@@ -85,9 +81,6 @@
 \usepackage{graphicx}
 \usepackage{subcaption} % For subfigures
 \usepackage[dvipsnames]{xcolor}
-% \usepackage{tikz}
-% \usetikzlibrary{external}
-% \tikzexternalize[prefix=tikz/]
 \usepackage{pgfplots}
 \pgfplotsset{compat = newest}
 \usepackage{rotating}
@@ -95,7 +88,6 @@
 %%%% TODO notes %%%%
 \usepackage{todonotes}
 \makeatletter
-%  \renewcommand{\todo}[2][]{\tikzexternaldisable\@todo[#1]{#2}\tikzexternalenable}
 \makeatother
 
 %%%% Bibliography %%%%
@@ -104,7 +96,11 @@
 \addbibresource{thesis.bib}
 
 %%%% Miscellaneous %%%%
-% NA
+\usepackage{hyperref}
+\hypersetup{linktoc=all}
+\usepackage{url}
+\Urlmuskip=0mu plus 1mu
+\usepackage{comment}
 
 %%%% Begin document %%%%
 \title{Master Thesis}
@@ -280,10 +276,7 @@
 	Figure \ref{fig:incidence_Centro_weekday} shows us that, although the mean incidence rate for Sunday is usually the highest, there is no statistical evidence to infer that there is a higher incidence rate on certain days. This can be concluded because the given error bars of two times the standard deviation overlap. As such, our intuition is likely not as strong on this subject. Nonetheless, we include the variable in the model because an inspection in isolation is not necessarily an indication that the variable is not predictive for the intended dependent variable.
 	
 	\newpage
-	\section{Methodology} \label{sec:methodology}
-	In this section, we discuss our models and the thought process behind them. In Section \ref{sec:sir_model}, we describe the most commonly used model in epidemiology: the SIR model. In Section \ref{sec:model_within}, we present a model ignoring effects across regions and for which the transmission rate parameter is determined by the previous infectives. Subsequently, Section \ref{sec:model_within_between} presents a model that takes effects across regions into account for which the transmission rate parameter is determined by the previous infectives. Having discussed the models presented by \textcite{adda2016economic}, we consider how to do model selection for these two models to determine the best set of regressors to use in Section \ref{sec:model_selection}. After this, we develop our own discrete SIR model in Section \ref{sec:discrete_sir_model}, which is estimated by panel data methods and Bayesian estimation. Lastly, Section \ref{sec:undocumented_modelling} describes how undocumented infectives are modelled.
-	
-	\section{The SIR model}\label{sec:sir_model}
+	\section{SIR model}\label{sec:sir_model}
 	In this section, we explain the most commonly used model in epidemiology, namely the Standard Inflammatory Response (SIR) model \parencite{kermack1927contribution, anderson1992infectious}. We follow the notation by \textcite{keeling2011modeling} throughout this thesis. The SIR model splits the total population into three groups. $S$ denotes the fraction of individuals who are susceptible to being infected, $I$ denotes the fraction of individuals who are currently infected, also called infectives, and $R$ denotes the fraction of individuals who have been removed from the model, be that because they successfully recovered from the disease or because they have deceased. We furthermore define $s$ to be the number of susceptible individuals, $i$ to be the number of infectives, and $r$ to be the number of recovered individuals, so that $S = s/N$, $I = i/N$, and $R = r/N$, where $N$ is the total population size. As such, at any point in time, we have that
 	\[S,I,R \in [0,1] \text{ and } S+I+R=1.\]
 	\[s,i,r \in [0,N] \text{ and } s+i+r=N.\]
@@ -313,83 +306,80 @@
 	One of the main measures resulting from the SIR model is the estimation of the effective reproduction number $R_{eff} \coloneqq \beta / \gamma$. An epidemic is said to develop if $R_{eff} > 1$. This is clear because $R_{eff} > 1$ implies that $\beta > \gamma$, i.e. the spread of the virus exceeds the recovery rate: individuals in a society become infected more quickly than they recover. The reproduction number $R_{eff}$ is widely used to indicate whether an ongoing epidemic is dying out. For instance, the Italian health ministry has posted an article on May 9, 2020 to communicate that the $R_0$, being the basic reproduction rate, for COVID-19 was below 1 in Italy, at between 0.5 and 0.7 \parencite{saluteR0}.
 	
 	\section{Within-Region Spread Model} \label{sec:model_within}
-	In this section, we present the stripped down model by \textcite{adda2016economic} ignoring effects across regions. Recall that the SIR model is postulated in continuous time. \textcite{adda2016economic} provides a discrete-time model that seems to be based on the SIR model. \textcite{adda2016economic} does not discuss how the discretization is carried out. Therefore, we discuss how the discretization appears to be carried out. Recall from \eqref{eq:SIR_model_I} that $\frac{dI}{dt} = \beta SI - \gamma I$. As such, the discretized version (for a region $r$) is:
+	\subsection{Methodology} \label{subsec:model_within_methodology}
+	In this section, we present the stripped down model by \textcite{adda2016economic} ignoring effects across regions. Recall that the SIR model is postulated in continuous time. \textcite{adda2016economic} provides a discrete-time model that seems to be based on the SIR model. \textcite{adda2016economic} does not discuss how the discretization is carried out. Therefore, we discuss how the discretization appears to be carried out. Recall from \eqref{eq:SIR_model_I} that $\frac{dI}{dt} = \beta SI - \gamma I$. As such, the discretized version (for a region $p$) is:
 	    \begin{equation}\label{eq:discretized_sir}
-	        I_{r,t} - I_{r,t-1} = \beta S_{r,t-1}I_{r,t-1} - \gamma I_{r,t-1}.
+	        I_{p,t} - I_{p,t-1} = \beta S_{p,t-1}I_{p,t-1} - \gamma I_{p,t-1}.
 	    \end{equation}
 	   
-	There are a few things to note. Firstly, if we want to estimate this equation's parameters, an error occurs. This is added to the model through an error term denoted by $\eta_{r,t}$:
+	There are a few things to note. Firstly, if we want to estimate this equation's parameters, an error occurs. This is added to the model through an error term denoted by $\eta_{p,t}$:
 	    \begin{equation}\label{eq:discretized_sir_error}
-	        I_{r,t} - I_{r,t-1} = \beta S_{r,t-1}I_{r,t-1} - \gamma I_{r,t-1} + \eta_{r,t}.
+	        I_{p,t} - I_{p,t-1} = \beta S_{p,t-1}I_{p,t-1} - \gamma I_{p,t-1} + \eta_{p,t}.
 	    \end{equation}
 	
 	Secondly, individuals that get infected do not immediately infect others because there is a so-called latent period, which is the period between an infection and the moment that the infective is infectious. For COVID-19, the latent period is estimated to be approximately 2 days shorter than the incubation period \parencite{he2020temporal}. The incubation period is the period between an infection and the moment that the infected individual starts showing symptoms, at which point the infective is said to be symptomatic. The incubation period for COVID-19 is estimated to be above 2 and below 11.5 \parencite{lauer2020incubation}, 12.5 \parencite{li2020incubation}, or 14 days \parencite{linton2020incubation}. This is a large range, but this is not rare. For instance, the incubation period for chicken pox is estimated to be between 9 and 21 days \parencite{papadopoulos2018chickenpox}. While the maximum incubation period is not agreed upon by \textcite{lauer2020incubation} and \textcite{li2020incubation}, their results on the median are similar. \textcite{lauer2020incubation} report a median incubation period of 5.1 days (95\% CI: 4.5 to 5.8 days), while \textcite{li2020incubation} report a median incubation period of 5.2 days (95\% CI: 4.1 to 7.0 days). For comparison, \textcite{linton2020incubation} give the result of a mean incubation period of 5.0 days (95\% CI: 4.2 to 6.0 days) when excluding Wuhan residents and 5.6 days (95\% CI: 5.0 to 6.3 days) when including Wuhan residents. \\
 	
-	Because the latent period is estimated to be shorter than the incubation period, there are infectives who are able to infect others before showing symptoms. We call these people pre-symptomatic, which is distinctive from asymptomatic people in the sense that asymptomatic people do not develop symptoms and pre-symptomatic people will develop symptoms but they develop a higher viral load just before said symptoms are apparent. On June 9, 2020, the World Health Organization said that it is unclear whether asymptomatic people can actually spread the virus but that pre-symptomatic people may actually be able to infect others \parencite{bloomberg2020AsymptomaticSpread}. This may be an issue when considering policies such as self-isolation when one is sick, because an infective may have already spread the virus before feeling sick. \textcite{bloomberg2020AsymptomaticSpread} moreover reiterate the WHO's statement that studies have been done that show that asymptomatic people can spread the virus but that more research needs to be done to show how many of these infectious asymptomatic people exist. We discuss how we model pre-symptomatic individuals in Section \ref{sec:undocumented_modelling}. \\
+	Because the latent period is estimated to be shorter than the incubation period, there are infectives who are able to infect others before showing symptoms. We call these people pre-symptomatic, which is distinctive from asymptomatic people in the sense that asymptomatic people do not develop symptoms and pre-symptomatic people will develop symptoms but they develop a higher viral load just before said symptoms are apparent. On June 9, 2020, the World Health Organization said that pre-symptomatic people may actually be able to infect others \parencite{bloomberg2020AsymptomaticSpread}. This may be an issue when considering policies such as self-isolation when one is sick, because an infective may have already spread the virus before feeling sick. \textcite{bloomberg2020AsymptomaticSpread} moreover reiterate the WHO's statement that studies have been done that show that asymptomatic people can spread the virus but that more research needs to be done to show how many of these infectious asymptomatic people exist. We discuss how we model pre-symptomatic individuals in the form of undocumented infectives in Section \ref{sec:undocumented_modelling}. \\
 	
 	\textcite{adda2016economic} models the transmission lag by making the lag on the right hand side of \eqref{eq:discretized_sir_error} dependent on the incubation period. This is denoted by the parameter $\tau$:
 	    \begin{equation}\label{eq:discretized_sir_tau}
-	        I_{r,t} - I_{r,t-1} = \beta S_{r,t-\tau}I_{r,t-\tau} - \gamma I_{r,t-\tau} + \eta_{r,t}.
+	        I_{p,t} - I_{p,t-1} = \beta S_{p,t-\tau}I_{p,t-\tau} - \gamma I_{p,t-\tau} + \eta_{p,t}.
 	    \end{equation}
 	
-	For instance, \textcite{adda2016economic} chooses $\tau$ equal to one week for acute diarrhea and flu-like illnesses as these have an incubation period of less than a week. Due to the results from \textcite{lauer2020incubation}, \textcite{li2020incubation}, and \textcite{linton2020incubation}, indicating an incubation period for COVID-19 of roughly five days, and the result from \textcite{he2020temporal} that the latent period is roughly two days shorter than the incubation period, we choose $\tau = 3$. \\
+	For instance, \textcite{adda2016economic} chooses $\tau$ equal to one week for acute diarrhea and flu-like illnesses as these have an incubation period of less than a week. Due to the results from \textcite{lauer2020incubation}, \textcite{li2020incubation}, and \textcite{linton2020incubation}, indicating an incubation period for COVID-19 of at most 14 days, we choose $\tau = 14$. \\
 	
 	\textcite{adda2016economic} adds regressors to the model as control variables, such as the region fixed effects, week effects and year effects in levels. Note that regressors can be added to the model to capture possible effects that would otherwise be included in the error, confounding the estimation of the transmission parameter $\beta$. \textcite{adda2016economic} denotes this tensor of regressors by $X$, not to be confused with the notation by \textcite{keeling2011modeling} for the number of infectives. This leads to the following formulation:
 	    \begin{equation}\label{eq:discretized_sir_regressors}
-        	I_{r,t} - I_{r,t-1} = \beta S_{r,t-\tau}I_{r,t-\tau} - \gamma I_{r,t-\tau} + \delta X_{r,t} + \eta_{r,t}.
+        	I_{p,t} - I_{p,t-1} = \beta S_{p,t-\tau}I_{p,t-\tau} - \gamma I_{p,t-\tau} + \delta X_{p,t} + \eta_{p,t}.
     	\end{equation}
     	
 	For our application, the data does not span multiple years. As such, we do not have year effects. Also note that week effects would capture a time trend because we do not have the same week number multiple times for the same region. Therefore, we will not include a week effect. We do add a weekend effect. More information and reasoning is provided in Section \ref{subsec:regressor_data}. \\
 	
-	There are two other key differences in the model specification by \textcite{adda2016economic} compared to \eqref{eq:discretized_sir_regressors} that are not clear from the paper. First of all, \textcite{adda2016economic} replaces the incidence rate $I_{r,t-\tau}$, also called the incidence rate, by the number of new cases $i_{r,t-\tau} - i_{r,t-\tau-1}$. Similarly, \textcite{adda2016economic} puts the dependent variable to be the number of new cases instead of the incidence rate. Second of all, \textcite{adda2016economic} does not include the term $\gamma I_{r,t-\tau}$ in the model. Presumably, this is because \textcite{adda2016economic} considers the number of new cases instead of the total number of infectives and, therefore, the number of recovered individuals do not impact that value. In this section and Section \ref{sec:model_within_between}, we will continue with this model to see how the models perform in the case of COVID-19. Even though the mathematical derivation of the model does not explicitly derive from the SIR model, it may still provide correct estimates. \\
+	There are two other key differences in the model specification by \textcite{adda2016economic} compared to \eqref{eq:discretized_sir_regressors} that are not clear from the paper. First of all, \textcite{adda2016economic} replaces the incidence rate $I_{p,t-\tau}$, also called the incidence rate, by the number of new cases $i_{p,t-\tau} - i_{p,t-\tau-1}$. Similarly, \textcite{adda2016economic} puts the dependent variable to be the number of new cases instead of the incidence rate. Second of all, \textcite{adda2016economic} does not include the term $\gamma I_{p,t-\tau}$ in the model. Presumably, this is because \textcite{adda2016economic} considers the number of new cases instead of the total number of infectives and, therefore, the number of recovered individuals do not impact that value. In this section and Section \ref{subsec:model_within_between_methodology}, we will continue with this model to see how the models perform in the case of COVID-19. Even though the mathematical derivation of the model does not explicitly derive from the SIR model, it may still provide correct estimates. \\
 	
-	Now we present the final model, ignoring effects across regions, by \textcite{adda2016economic}. Defining $\Delta i_{r,t} \coloneqq  \coloneqq i_{r,t} - i_{r,t-1}$ and following the notation by \textcite{keeling2011modeling}, the within-region model is given by:
+	Now we present the final model, ignoring effects across regions, by \textcite{adda2016economic}. Defining $\Delta i_{p,t} \coloneqq  \coloneqq i_{p,t} - i_{p,t-1}$ and following the notation by \textcite{keeling2011modeling}, the within-region model is given by:
 	\begin{equation} \label{eq:model_within}
-	    \Delta i_{r,t} = \beta_{within}S_{r,t-\tau}\Delta i_{r,t-\tau} + \delta X_{r,t} + \eta_{r,t}
+	    \Delta i_{p,t} = \beta_{within}S_{p,t-\tau}\Delta i_{p,t-\tau} + \delta X_{p,t} + \eta_{p,t}
 	\end{equation}
 	
 	The model is estimated by ordinary least squares (OLS). The moment condition that needs to be satisfied due to the strict exogeneity assumption is
-	    \[E\left[ \eta_{r,t} \left( \beta_{within}S_{r,t-\tau}\Delta i_{r,t-\tau} + \delta X_{r,t} \right) \right] = 0.\]
+	    \[E\left[ \eta_{p,t} \left( \beta_{within}S_{p,t-\tau}\Delta i_{p,t-\tau} + \delta X_{p,t} \right) \right] = 0.\]
 	
-	A general assumption that is made, is that the idiosyncratic error $\eta_{r,t}$ is uncorrelated with the regressors in the tensor $X_{r,t}$. That is, we assume that $E\left[\eta_{r,t} \,\middle|\, X_{r,t}\right] = 0$. Now note that we need to only consider the relation between $\eta_{r,t}$ and $S_{r,t-\tau}\Delta i_{r,t-\tau}$. The reason why we assume that $E\left[\eta_{r,t} \,\middle|\, S_{r,t-\tau}\Delta i_{r,t-\tau}\right] = 0$ is that, for a large enough lag $\tau$, the error is not correlated with past data at that lag. That is, the people that are classified as infectives at time $t-\tau$ do not have an effect on the error that we make when considering the infectives at time $t$ under a correct model specification. As such, we assume that the moment condition holds.
+	A general assumption that is made, is that the idiosyncratic error $\eta_{p,t}$ is uncorrelated with the regressors in the tensor $X_{p,t}$. That is, we assume that $E\left[\eta_{p,t} \,\middle|\, X_{p,t}\right] = 0$. Now note that we need to only consider the relation between $\eta_{p,t}$ and $S_{p,t-\tau}\Delta i_{p,t-\tau}$. The reason why we assume that $E\left[\eta_{p,t} \,\middle|\, S_{p,t-\tau}\Delta i_{p,t-\tau}\right] = 0$ is that, for a large enough lag $\tau$, the error is not correlated with past data at that lag. That is, the people that are classified as infectives at time $t-\tau$ do not have an effect on the error that we make when considering the infectives at time $t$ under a correct model specification. As such, we assume that the moment condition holds. \\
 	
-    \subsection{Results} \label{subsec:results_within}
+	Naively, one could consider constructing a model for the entire nation of Italy. Even though this does not take into account regional differences, as described in Section \ref{sec:problem_description}, it may achieve good results if regions are sufficiently similar. However, as we have already seen in Section \ref{sec:problem_description}, there is indeed a difference among regions and pooling the data is likely not a good solution. For good measure, we also estimate a national model. This is done in two ways, the first of which is simply by adding the values of $s$, $i$, and $r$ of all regions together to obtain the national numbers, for which the model from \eqref{eq:model_within} is estimated. The results from this model will be indicated by National (OLS) in the results section. The second method is to apply pooled OLS (POLS), which is a panel data estimation method. This model ignores the individual regional effect, hence treating the data as one large cross-section. This means that the $T$ observations for some region $i$ are actually treated to be cross-sectional observations of $T$ different individuals. These results will be indicated by National (POLS) in the results section.
+	
+    \subsection{Results} \label{subsec:model_within_results}
 	In this section, we present the results for the within-region spread model. Firstly, we present the results where the data is pooled to a national level. Subsequently, results are presented for the models per region to which model selection is applied with the Akaike Information Criterion (AIC). For both result sets, we present the results from the regular model as well as modelling the undocumented infectives with a quadratic form with $\gamma = 0.7$ and $f^{min} = 0.1$ as in \eqref{eq:quadratic_functional_form}. \\
 	
 	For all models, we apply a rolling window of 100 days, meaning that the used data spans May 9 till August 16. The reason behind this is that infections from the past should not dominate the latest estimates of the transmission rate parameters. When the (first) wave has passed and the transmission rate is low, including the data from during the peak moment of the pandemic will influence the transmission rate. We will illustrate this at the end of the section. \\
 	
-	Naively, one could consider constructing a model for the entire nation of Italy. Even though this does not take into account regional differences, as described in Section \ref{sec:problem_description}, it may achieve good results if regions are sufficiently similar. However, as we have already seen in Section \ref{sec:problem_description}, there is indeed a difference among regions and pooling the data is likely not a good solution. The results from estimating \eqref{eq:model_within} with OLS for the national data are given in Table \ref{tab:results_within_national}. Model selection with AIC is not applied.
+	The results from estimating a national-level model, as mentioned at the end of the previous section, are given in Table \ref{tab:results_within_national}. Model selection with AIC is not applied.
 	
-	\begin{longtable}{@{}lrrrlrrrl@{}}
-		\caption{Estimates from Within-Region Spread Model on a national level. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
-		\label{tab:results_within_national}\\
-		\toprule
-		& \multicolumn{4}{c}{Regular model} & \multicolumn{4}{c}{Modelling undocumented infectives} \\
-		                \cmidrule(lr){2-5}
-                        \cmidrule(lr){6-9}
-		& Estimate & Std. Error & $t$ value & $p$ value & Estimate & Std. Error & $t$ value & $p$ value \\* \midrule
-		\endfirsthead
-		
-		\multicolumn{9}{c}{{\bfseries Table \thetable\ continued from previous page}} \\
-		\toprule
-		& \multicolumn{4}{c}{Regular model} & \multicolumn{4}{c}{Modelling undocumented infectives} \\
-		                \cmidrule(lr){2-5}
-                        \cmidrule(lr){6-9}
-		& Estimate & Std. Error & $t$-value & $p$-value & Estimate & Std. Error & $t$-value & $p$-value \\* \midrule
-		\endhead
-		
-		\bottomrule
-		\multicolumn{9}{c}{{\bfseries Table \thetable\ continues on next page}}
-		\endfoot
-		
-		\multicolumn{9}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
-		\endlastfoot
-		
-		Weekend             & 11.6035 & 31.4783 & 0.369 & 0.713    & 36.761 & 141.003 & 0.261 & 0.795 \\*
-		$\beta_{within}$    & 0.886 & 0.041 & 21.493 & 0.000*** & 0.863 & 0.036 & 23.925 & 0.000*** \\* \bottomrule
-	\end{longtable}
+	\begin{table}[H]
+	    \centering
+	    \caption{Estimates from Within-Region Spread Model on a national level. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are not modelled.}
+		\label{tab:results_within_national}
+	    \begin{tabular}{lrrrlrrrl}
+	        \toprule
+    		& \multicolumn{4}{c}{OLS} & \multicolumn{4}{c}{Pooled OLS} \\
+    		                \cmidrule(lr){2-5}
+                            \cmidrule(lr){6-9}
+    		& Estimate & Std. Error & $t$-value & $p$-value & Estimate & Std. Error & $t$-value & $p$-value \\* \midrule
+    		Weekend             & 92.860 & 30.241 & 3.071 & 0.00276*** & 15.086 & 2.974 & 5.074 & 0.000*** \\*
+    		$\beta_{within}$    & 0.493 & 0.022 & 21.992 & 0.000*** & 0.533 & 0.019 & 27.980 & 0.000*** \\* \bottomrule
+    		\multicolumn{9}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
+	    \end{tabular}
+	\end{table}
 	
-	Table \ref{tab:results_within_national} shows estimates for $\beta_{within}$ of 0.886 and 0.863 for the models excluding and including undocumented infections, respectively. Both estimated parameters are statistically significant at a 1\% significance level, whether undocumented infectives are modelled or not. As mentioned earlier in this section, this model does not take into account effects specific to regions. It is also clear that the same model might not be suitable for all regions; we should apply model selection to the individual models as was explained in Section \ref{sec:model_selection}. To execute model selection, we use the AIC and we make sure that the term for $\beta_{within}$ remains in the model, meaning that model selection is solely performed on whether the weekend dummy should be included. In Table \ref{tab:results_within_aic}, we present the results. In Table \ref{tab:results_within} in Appendix \ref{app:tables}, we present the results from running the model on each region separately with the same model specification for each region. The results comparing the use of the BIC over the AIC for model selection are presented in Table \ref{tab:model1_aic_vs_bic}, where we see that the BIC selects a smaller model for three regions, being Marche, Apulia, and Veneto, but that the model specification is the same for all of the other regions.
+	Table \ref{tab:results_within_national} shows estimates for $\beta_{within}$, denoted by $\hat{\beta}_{within}$, of 0.493 and 0.533 for the national model estimated by OLS and POLS, respectively. Both estimated parameters are statistically significant at a 1\% significance level. We apply a $t$-test to test whether these estimates are statistically different from one another. The null hypothesis is given by:
+	    \[H_0:~ \beta_{within,OLS} - \beta_{within,POLS} = 0.\]
+	
+	The test statistic is constructed as follows:
+	    \[t = \frac{\hat{\beta}_{within, OLS} - \hat{\beta}_{within, POLS}}{\sqrt{s.e.^2_{within, OLS} - s.e.^2_{within, POLS}}},\]
+	where $s.e.$ represents the standard error. If we fill out the needed values, we find that $t = -1.376$. Since the absolute value of $t$ does not exceed the critical value $t_{T; 0.95} = 1.96$, we do not find statistical evidence in favour of the null hypothesis, at a significance level of 0.05, and we cannot say that the methods lead to different results. \\
+	
+	As mentioned at the end of the previous section, this national model does not take into account effects specific to regions. It is also clear that the same model might not be suitable for all regions; we should apply model selection to the individual models as was explained in Section \ref{sec:model_selection}. To execute model selection, we use the AIC and we make sure that the term for $\beta_{within}$ remains in the model, meaning that model selection is solely performed on whether the weekend dummy should be included. In Table \ref{tab:results_within_aic}, we present the results. In Table \ref{tab:results_within_no_ms} in Appendix \ref{app:tables}, we present the results from running the model on each region separately with the same model specification for each region. The results comparing the use of the BIC over the AIC for model selection are presented in Table \ref{tab:model_within_aic_vs_bic}, where we see that the BIC selects a smaller model for three regions, being Marche, Apulia, and Veneto, but that the model specification is the same for all of the other regions.
 	
 	\begin{longtable}{@{}lcccc@{}}
 		\caption{Estimates from Within-Region Spread Model per region with model selection by AIC. Estimates are given with $t$-statistics in parentheses. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -416,67 +406,71 @@
 		\multicolumn{5}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
 		\endlastfoot
 		
-        National & 0.893*** & & 0.867*** &  \\ 
-         & (24.665) & & (26.564) &  \\ 
-        ABR & 0.463*** & 2.715** & 0.494*** & 12.934** \\ 
-         & (5.081) & (2.084) & (5.854) & (2.160) \\ 
-        BAS & 0.089 &  & 0.095 &  \\ 
-         & (0.868) &  & (0.933) &  \\ 
-        BZ & 0.460*** & 2.111*** & 0.386*** & 6.531*** \\ 
-         & (5.172) & (3.566) & (4.541) & (3.819) \\ 
-        CAL & 0.297*** & 2.176** & 0.269** & 12.544*** \\ 
-         & (2.689) & (2.600) & (2.499) & (2.755) \\ 
-        EMR & 0.737*** & 14.644*** & 0.703*** & 54.997*** \\ 
-         & (13.514) & (3.441) & (14.736) & (3.329) \\ 
-        FVG & 0.719*** & 1.106 & 0.772*** &  \\ 
-         & (9.005) & (1.465) & (12.629) &  \\ 
-        LAZ & 0.840*** & 6.783*** & 0.795*** & 38.587*** \\ 
-         & (13.863) & (2.705) & (13.695) & (2.712) \\ 
-        LIG & 0.811*** &  & 0.828*** &  \\ 
-         & (14.233) &  & (16.459) &  \\ 
-        LOM & 0.805*** &  & 0.783*** &  \\ 
-         & (14.701) &  & (14.183) &  \\ 
-        MAR & 0.576*** & 2.297* & 0.572*** & 11.050** \\ 
-         & (7.693) & (1.836) & (9.102) & (2.055) \\ 
-        MOL & 0.351*** & & 0.348*** &  \\ 
-         & (6.979) &  & (8.064) &  \\ 
-        PIE & 0.807*** &  & 0.788*** &  \\ 
-         & (18.492) &  & (18.917) &  \\ 
-        PUG & 0.639*** & 2.023* & 0.586*** & 13.379* \\ 
-         & (9.129) & (1.678) & (9.265) & (1.920) \\ 
-        SAR & 0.372*** &  & 0.361*** &  \\ 
-         & (3.905) & & (3.924) &  \\ 
-        TOS & 0.735*** & 6.130*** & 0.702*** & 26.588*** \\ 
-         & (10.869) & (3.411) & (11.061) & (3.355) \\ 
-        UMB & 0.607*** & 1.094** & 0.506*** & 4.070** \\ 
-         & (5.918) & (2.498) & (5.059) & (2.501) \\ 
-        VDA & 0.216** & & 0.298*** &  \\ 
-         & (2.259) & & (3.346) &  \\ 
-        VEN & 0.652*** & 9.808 & 0.652*** & 22.618 \\ 
-         & (6.866) & (1.529) & (7.784) & (1.531) \\* \bottomrule
+        National (OLS) & 0.493*** & 92.860*** & 0.423*** & 379.483*** \\ 
+         & (21.992) & (3.071) & (27.417) & (2.976) \\ 
+        National (POLS) & 0.533*** & 15.086*** & 0.458*** & 90.994*** \\ 
+         & (27.980) & (5.074) & (22.981) & (4.893) \\ 
+        ABR & 0.372*** & 2.751** & 0.322*** & 13.454** \\ 
+         & (4.952) & (2.091) & (6.253) & (2.249) \\ 
+        BAS & 0.073 &  & 0.077 &  \\ 
+         & (0.665) &  & (0.764) &  \\ 
+        BZ & 0.269*** & 2.346*** & 0.219*** & 7.117*** \\ 
+         & (3.468) & (3.683) & (4.175) & (3.961) \\ 
+        CAL & 0.242** & 2.189** & 0.201* & 12.897*** \\ 
+         & (2.043) & (2.614) & (1.917) & (2.828) \\ 
+        EMR & 0.358*** & 22.416*** & 0.287*** & 91.467*** \\ 
+         & (11.673) & (4.844) & (14.768) & (5.266) \\ 
+        FVG & 0.342*** & 2.582*** & 0.252*** & 8.578*** \\ 
+         & (7.559) & (3.476) & (8.891) & (3.508) \\ 
+        LAZ & 0.494*** & 10.172*** & 0.424*** & 57.018*** \\ 
+         & (10.069) & (3.441) & (11.273) & (3.610) \\ 
+        LIG & 0.382*** & 4.179 & 0.332*** &  \\ 
+         & (11.931) & (1.430) & (14.770) &  \\ 
+        LOM & 0.583*** &  & 0.513*** &  \\ 
+         & (18.205) &  & (18.615) &  \\ 
+        MAR & 0.436*** & 2.697** & 0.387*** & 12.796** \\ 
+         & (9.376) & (2.144) & (11.347) & (2.286) \\ 
+        MOL & 0.140 & 1.855** & 0.155* & 11.448** \\ 
+         & (1.595) & (2.456) & (1.810) & (2.299) \\ 
+        PIE & 0.352*** & 7.449* & 0.300*** & 28.533 \\ 
+         & (23.006) & (1.896) & (25.913) & (1.492) \\ 
+        PUG & 0.376*** & 3.804** & 0.335*** & 23.618*** \\ 
+         & (6.165) & (2.581) & (7.302) & (2.719) \\ 
+        SAR & 0.437*** &  & 0.276*** & 5.301 \\ 
+         & (4.417) &  & (3.874) & (1.655) \\ 
+        TOS & 0.281*** & 8.444*** & 0.237*** & 35.079*** \\ 
+         & (6.666) & (3.854) & (8.744) & (3.929) \\ 
+        UMB & 0.436*** & 1.428*** & 0.291*** & 5.402*** \\ 
+         & (3.936) & (3.168) & (4.134) & (3.351) \\ 
+        VDA & 0.290*** &  & 0.302*** &  \\ 
+         & (4.341) &  & (6.394) &  \\ 
+        VEN & 0.489*** & 11.951* & 0.284*** & 39.380*** \\ 
+         & (6.748) & (1.920) & (7.344) & (2.672) \\* \bottomrule
 	\end{longtable}
 
-    We first discuss the statistical evidence for the estimated values of $\beta_{within}$, where we start by considering the model excluding undocumented infectives. After this, we will consider the interpretation of the coefficients and the model selection. Considering the estimates of $\beta_{within}$, we see that these differ vastly over the regions with varying degrees of statistical significance. For only one region, we find no statistically significant result, namely Basilicata. For the region of Aosta Valley, the estimate of $\beta_{within}$ is statistically significant at a level of 0.05. For all other regions, the estimates are statistically significant at a level of 0.01. Looking only at the statistically significant estimates, these range from 0.216 for Aosta Valley till 0.893 for the national model. Excluding the national model, the highest estimate $\beta_{within}$ is 0.840 for Lazio. This already shows that a national model is not to be applied to individual regions, despite the statistical significance of the estimate of $\beta_{within}$ for the national model. \\
+    We first discuss the statistical evidence for the estimated values of $\beta_{within}$, where we start by considering the model excluding undocumented infectives. After this, we will consider the interpretation of the coefficients and the model selection. Considering the estimates of $\beta_{within}$, we see that these differ vastly over the regions with varying degrees of statistical significance. For only two regions, we find no statistically significant result, namely Basilicata and Molise. For the region of Calabria, the estimate of $\beta_{within}$ is statistically significant at a level of 0.05. For all other regions, the estimates are statistically significant at a level of 0.01. Looking only at the statistically significant estimates, these range from 0.242 for Calabria until 0.583 for Lombardy. This already shows that a national model is not to be applied to individual regions, despite the statistical significance of the estimates of $\beta_{within}$ for the national models. \\
 
-    If we model undocumented infectives, we again see that no statistical evidence is found for the estimated transmission rate for Basilicata. For all other regions, including Aosta Valley, the estimate is statistically significant at a level of 0.01, ranging from 0.269 for Calabria till 0.867 for the national model. Excluding the national model, the highest estimate is 0.828 for the region of Liguria. Therefore, modelling undocumented infectives does mean that the order of magnitude between the regions can differ. Whereas Lazio has the second-highest estimate for the case when undocumented infectives are not modelled, this is now the case for Liguria. We also see that the estimates generally differ a bit from the ones discussed previously, though not immensely in the sense that a high value is suddenly very low. Including the national model as well as the statistically insignificant estimates, the estimate is higher in 26.3\% of the cases (five out of nineteen) and lower in the other 73.7\%. As such, there is no consistent effect of the modelling method used that biases the results in one typical direction. \\
+    If we model undocumented infectives, we again see that no statistical evidence is found for the estimated transmission rate for Basilicata and Molise, although the latter is now significant at a level of 0.1. Moreover, the estimate for Calabria is now significant only at a level of 0.1. For all other regions, the estimate is statistically significant at a level of 0.01, ranging from 0.219 for Bolzano till 0.513 for Lombardy. Notice that modelling undocumented infectives does not seem to impact the order of magnitude between the regions. For instance, where Lazio has the second-highest estimate for the case when undocumented infectives are not modelled, excluding the national models, it retains that position when undocumented infectives are included. Moreover, notice that the estimates for all regions, excluding the statistically insignificant ones, are all lower. Therefore, it seems like modelling undocumented infectives tends to decrease the estimates. \\
 
-    When we want to interpret the estimates of $\beta_{within}$, we should recall that \textcite{adda2016economic} notices that these can be interpreted as the marginal effects of a change in the infection rate on the future infection rate when the entire population is susceptible to the disease. However, notice that this is made with the model formulation as explained in Section \ref{sec:model_within}, where the removal term is omitted from the model. Because this does not take into account the specific removal rate of COVID-19, we cannot interpret the coefficients in the same way. However, we can compare the magnitude of the coefficients with one another. For instance, let us compare the regions of Lombardy and the island of Sardinia. We consider the model where undocumented infectives are modelled. For this model, we find estimates of $\beta_{within}$ of 0.783 and 0.361, respectively. Although this cannot tell us much about the spread within the region as explicitly, this does show us that the transmission in Lombardy was much higher than on Sardinia. A similar interpretation can be applied to any comparison of regions and for the model without modelling undocumented infectives. \\
+    We are again interested in investigating whether the differences in the estimates differ significantly. For this, recall that the standard error of the estimate can be computed by dividing the estimate by the $t$-statistic. The $t$-statistic for the national models are equal to 2.572 (OLS) and 2.720 (POLS), thereby exceeding the critical value $t_{T;0.95} = 1.96$ and indicating that modelling undocumented infectives yields statistically different results at a level of 0.05. Besides the national models, there is only one other region for which the estimates differ significantly, namely Veneto, which has a $t$-statistic of 2.496. It is noteworthy to mention that the region of Emilia Romagna has a $t$-statistic of 1.955, thereby barely not exceeding the critical value. With this $t$-statistic, the estimates are statistically significant different at a significance level of 5.06\%. This can be computed by using the density function of the Student's $t$-distribution. \\
 
-    Regarding the model selection, we indeed see that the AIC gives a varying model selection per region. However, the set of regressors that is used is generally the same whether undocumented infectives are modelled are not. The only exception that we see if for the region of Friuli Venezia Giulia; when excluding undocumented infectives, the weekend dummy is included in the model, whereas it is excluded when undocumented infectives are modelled. We do see that four of the estimates for the weekend dummy's parameter are not statistically significant at a level of 0.05 when we do not model undocumented infectives. When undocumented infectives are modelled, the result for the region of Marche becomes statistically significant but all other regional results retain the same significance level. As mentioned in Section \ref{sec:model_selection}, this is because the AIC tends to select a larger model. When not modelling undocumented infectives, the entire model is selected for eleven out of nineteen regions, and, in the other eight cases, the weekend dummy is excluded. As explained before, the model including undocumented infectives therefore selects the entire model for one region less, so ten out of nineteen cases. \\
+    When we want to interpret the estimates of $\beta_{within}$, we should recall that \textcite{adda2016economic} notices that these can be interpreted as the marginal effects of a change in the infection rate on the future infection rate when the entire population is susceptible to the disease. However, notice that this is made with the model formulation as explained in Section \ref{subsec:model_within_methodology}, where the removal term is omitted from the model. Because this does not take into account the specific removal rate of COVID-19, we cannot interpret the coefficients in the same way. However, we can compare the magnitude of the coefficients with one another. For instance, let us compare the regions of Lombardy and the island of Sardinia. We consider the model where undocumented infectives are modelled. For this model, we find estimates of $\beta_{within}$ of 0.513 and 0.276, respectively. Although this cannot tell us much about the spread within the region as explicitly, this does show us that the transmission in Lombardy was much more severe than on Sardinia. A similar interpretation can be applied to any comparison of regions and for the model without modelling undocumented infectives. \\
+
+    Regarding the model selection, we indeed see that the AIC gives a varying model selection per region. However, the set of regressors that is used is generally the same whether undocumented infectives are modelled are not. The only two exceptions that we see are for the region of Liguria and the island of Sardinia. When excluding undocumented infectives, the weekend dummy is included in the model for Liguria, whereas it is excluded when undocumented infectives are modelled. For Sardinia, it is the other way around. We do see that some of the estimates for the weekend dummy's parameter are not statistically significant at a level of 0.05. As mentioned in Section \ref{sec:model_selection}, this is because the AIC tends to select a larger model. Regardless of whether undocumented infectives are included or not, the entire model is selected for sixteen out of twenty models, and, in the other four cases, the weekend dummy is excluded. \\
 	
-	We are also interested in looking at the estimate of $\beta_{within}$ over time. That is, if we keep adding data, do we see an interesting effect in its progression? Hopefully, it decreases over time, implying that SARS-CoV-2 is transmitted less. This would support the findings in Figures \ref{fig:incidence_per_NUTS1} and \ref{fig:incidence_Centro}. In Figure \ref{fig:beta_within_over_time_nordest}, we present plots for the regions in the \textit{Nord-Est} (North-East) NUTS 1 region. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:model1_plots}, which generaslly show similar results. Each point in the graphs in Figure \ref{fig:beta_within_over_time_nordest} is the estimate of $\beta_{within}$ when only the latest 100 data points before that date are used as described at the beginning of this section. In addition, a LOESS (locally estimated scatter plot smoothing) curve with span parameter 0.3 is fit to the data points to give a better insight in the progression over time. \\
+	We are also interested in looking at the estimate of $\beta_{within}$ over time. We expect that it decreases over time, implying that SARS-CoV-2 is transmitted less. In Figure \ref{fig:beta_within_over_time_nordest}, we present plots for the regions in the \textit{Nord-Est} (North-East) NUTS 1 region. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:model_within_figures}, which generally show similar results. Each point in the graphs in Figure \ref{fig:beta_within_over_time_nordest} is the estimate of $\beta_{within}$ when only the latest 100 data points before that date are used. In addition, a LOESS (locally estimated scatter plot smoothing) curve with span parameter 0.3 is fit to the data points. \\
 	
 	\begin{figure}[H]
 	    \centering
 	    \begin{subfigure}{\textwidth}
 	      \centering
-	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Est_rolling.pdf}
+	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Est_rolling.pdf}
 	      \caption{Without model selection}
 	      \label{fig:beta_within_over_time_nordest_regular}
 	    \end{subfigure}\newline
 	    \begin{subfigure}{\textwidth}
 	      \centering
-	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Est_aic_rolling.pdf}
+	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Est_aic_rolling.pdf}
 	      \caption{With model selection by AIC}
 	      \label{fig:beta_within_over_time_nordest_aic}
 	    \end{subfigure}
@@ -484,13 +478,13 @@
     \begin{figure}[H]\ContinuedFloat
 	    \begin{subfigure}{\textwidth}
 	      \centering
-	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Est_UndocQuadratic_rolling.pdf}
+	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Est_UndocQuadratic_rolling.pdf}
 	      \caption{Without model selection; \\ including undocumented infectives}
 	      \label{fig:beta_within_over_time_nordest_regular_undoc}
 	    \end{subfigure}\newline
 	    \begin{subfigure}{\textwidth}
 	      \centering
-	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Est_aic_UndocQuadratic_rolling.pdf}
+	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Est_aic_UndocQuadratic_rolling.pdf}
 	      \caption{With model selection by AIC; \\ including undocumented infectives}
 	      \label{fig:beta_within_over_time_nordest_aic_undoc}
 	    \end{subfigure}
@@ -498,37 +492,40 @@
 	    \label{fig:beta_within_over_time_nordest}
     \end{figure}
 	
-	At first sight, it may seem like applying model selection does not have an effect on the estimates of $\beta_{within}$. However, a difference can be perceived more clearly when considering the the start of the graphs. When comparing the models with their equivalent version when including undocumented infectives, the effect is more pronounced, especially at the end of the graphs. Considering the progression of $\beta_{within}$ over time, we indeed see that it decreases over time, as we expected. We do see a slight increase in the estimates of $\beta_{within}$ towards the end of the timespan. This is likely because the amount of infectives increased a bit over time again for multiple regions from mid July onward. Please consider the Figures in Appendix \ref{sapp:figures_problem_description}, which indeed illustrate this increase. \\
+	Considering the progression of $\beta_{within}$ over time, we indeed see that it decreases over time, as we expected. We do see a slight increase in the estimates of $\beta_{within}$ towards the end of the timespan. This is likely because the amount of infectives increased a bit over time again for multiple regions from mid July onward. Please consider the Figures in Appendix \ref{sapp:figures_problem_description}, which indeed illustrate this increase. We also notice that the pattern of $\beta_{within}$ over time is similar when comparing the models excluding and including undocumented infectives; the difference can be found in the value of $\beta_{within}$ which, as explained earlier in this section, tends to be lower when modelling undocumented infectives. \\
 	
 	At the start of this section, we mentioned the application of a rolling window, meaning that the last 100 days of data are used instead of the entire dataset. We noted that this was the case to avoid old data skewing the results. Consider Figure \ref{fig:beta_within_over_time_nordest_not_rolling}, where we present the plot of $\beta_{within}$ over time for the \textit{Nord-Est} NUTS 1 region when a rolling window is not applied. Undocumented infectives are modelled, as before, using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.
 	
 	\begin{figure}[H]
 	    \centering
-        \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Est_UndocQuadratic.pdf}
+        \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Est_UndocQuadratic.pdf}
 	    \caption{Progression of $\beta_{within}$ over time for the \textit{Nord-Est} (North-East) NUTS 1 region including undocumented infectives without applying a rolling window}
 	    \label{fig:beta_within_over_time_nordest_not_rolling}
     \end{figure}
 	
-	Compare Figure \ref{fig:beta_within_over_time_nordest_not_rolling} with Figure \ref{fig:beta_within_over_time_nordest_regular_undoc}, which applies the same specifications but without applying the rolling window. It is immediately clear that the variation in $\beta_{within}$ is minimal and even slightly increasing. This not intuitive for the reason that a decrease in infectives over time would lead to a lower estimated transmission parameter. As such, it is not logical that the estimate for $\beta_{within}$ would level out over time, especially at a level not close to zero, assuming the pandemic does eventually end. The reason behind choosing 100 days is arbitrary; it is simply a number that retains enough data points while providing variation in the estimates for $\beta_{within}$.
+	Compare Figure \ref{fig:beta_within_over_time_nordest_not_rolling} with Figure \ref{fig:beta_within_over_time_nordest_regular_undoc}, which applies the same specifications but without applying the rolling window. It is immediately clear that the variation in $\beta_{within}$ is minimal and even slightly increasing. This not intuitive for the reason that a decrease in infectives over time would lead to a lower estimated transmission parameter. As such, it is not logical that the estimate for $\beta_{within}$ would level out, especially at a level not close to zero, or increase. The reason behind choosing 100 days is arbitrary; it is simply a number that retains enough data points while providing variation in the estimates for $\beta_{within}$.
 	
 	\section{Within and Between-Region Spread Model} \label{sec:model_within_between}
+	\subsection{Methodology} \label{subsec:model_within_between_methodology}
 	In this section, we present the model by \textcite{adda2016economic} that takes effects across regions into account. A key addition made by \textcite{adda2016economic} is recognizing that there is spatial spillover between regions. That is, there may be infectives in one region that travel to another region and then infect individuals there. The following model is defined:
 	\begin{equation} \label{eq:model_within_between}
-	    \Delta i_{r,t} = \beta_{within}S_{r,t-\tau}\Delta i_{r,t-\tau} + \beta_{between}S_{r,t-\tau} \sum_{c \in R \setminus r} \Delta i_{c, t-\tau} + \delta X_{r,t} + \eta_{r,t}
+	    \Delta i_{p,t} = \beta_{within}S_{p,t-\tau}\Delta i_{p,t-\tau} + \beta_{between}S_{p,t-\tau} \sum_{c \in R \setminus r} \Delta i_{c, t-\tau} + \delta X_{p,t} + \eta_{p,t}
 	\end{equation}
 	
-	Do note that the specification in \eqref{eq:model_within_between} assumes that individuals from all regions are able to meet one another at the same rate. Of course, this assumption is likely not satisfied. Consider, for example, the region of Lombardy, which lies in north-west Italy. Inhabitants of Lombardy are much more likely to travel to bordering regions, such as Piedmont or Veneto, than to regions in the far south, such as Campania or Apulia, or to the islands. As such, it would be better to consider introducing a method by which we only take a certain number of regions that are the closest to another region into account. Another criterion could be to look at economic ties, since SARS-CoV-2 can not only be be transmitted by regular civilians meeting each other but also by the exchange of goods, for example. Nonetheless, in this section, we follow the specification that \textcite{adda2016economic} provides as in \eqref{eq:model_within_between}. \\
+	Do note that the specification in \eqref{eq:model_within_between} assumes that individuals from all regions are able to meet one another at the same rate. Of course, this assumption is likely not satisfied. Consider, for example, the region of Lombardy, which lies in north-west Italy. Inhabitants of Lombardy are much more likely to travel to bordering regions, such as Piedmont or Veneto, than to regions in the far south, such as Campania or Apulia, or to the islands. As such, it would be better to consider introducing a method by which we only take a certain number of regions that are the closest to another region into account. Another criterion could be to look at economic ties, since SARS-CoV-2 can not only be be transmitted by regular civilians meeting each other but also by the exchange of goods, for example. Nonetheless, in this section, we follow the specification that \textcite{adda2016economic} provides as in \eqref{eq:model_within_between} and explain the other criteria as possible future research in Section \ref{sec:future_research}. \\
+	
+	Notice, moreover, that it does not make sense to consider a national model. Because we do not consider countries outside of Italy, the set $R \setminus r$ is empty if we consider $r$ to be the entire country of Italy. This would mean that the national model for the within and between-region spread model is equivalent to the national model for the within-region spread model. As such, in this section, we only consider the model applied to the regions. \\
 	
 	The moment condition that needs to be satisfied due to the strict exogeneity assumption is
-	    \[E\left[ \eta_{r,t} \left( \beta_{within} S_{r,t-\tau} \Delta i_{r,t-\tau}  + \beta_{between}S_{r,t-\tau} \sum_{c \in R \setminus r} \Delta i_{c, t-\tau} + \delta X_{r,t} \right) \right] = 0.\]
+	    \[E\left[ \eta_{p,t} \left( \beta_{within} S_{p,t-\tau} \Delta i_{p,t-\tau}  + \beta_{between}S_{p,t-\tau} \sum_{c \in R \setminus r} \Delta i_{c, t-\tau} + \delta X_{p,t} \right) \right] = 0.\]
 	    
-	In the same way as in Section \ref{sec:model_within}, we can assume that $E\left[\eta_{r,t} \,\middle|\, X_{r,t}\right] = 0$ and \\
-	$E\left[\eta_{r,t} \,\middle|\, S_{r,t-\tau} \Delta i_{r,t-\tau}\right] = 0$. Following the same reasoning as before, we assume that the number of infectives who come into contact with susceptible people in other regions at a certain time is not correlated with the error if the lag is large enough, therefore assuming that $E\left[\eta_{r,t} \,\middle|\, \beta_{between}S_{r,t-\tau} \sum_{c \in R \setminus r} \Delta i_{c, t-\tau}\right] = 0$. As such, we assume that the moment condition holds. \\
+	In the same way as in Section \ref{subsec:model_within_methodology}, we can assume that $E\left[\eta_{p,t} \,\middle|\, X_{p,t}\right] = 0$ and \\
+	$E\left[\eta_{p,t} \,\middle|\, S_{p,t-\tau} \Delta i_{p,t-\tau}\right] = 0$. Following the same reasoning as before, we assume that the number of infectives who come into contact with susceptible people in other regions at a certain time is not correlated with the error if the lag is large enough, therefore assuming that $E\left[\eta_{p,t} \,\middle|\, \beta_{between}S_{p,t-\tau} \sum_{c \in R \setminus r} \Delta i_{c, t-\tau}\right] = 0$. As such, we assume that the moment condition holds. \\
 	
 	In \eqref{eq:model_within_between}, the transmission parameter $\beta$ is now allowed to be different within and between regions. \textcite{adda2016economic} estimates \eqref{eq:model_within_between} by OLS and by instrumental variable estimation (IV). Weather episodes, such as the amount of rain and temperature-related instruments, are used as instruments. There is a biological reasoning behind choosing these instruments, for instance that warmer temperatures tend to have a negative effect on the proliferation of some viruses. A social reason is also given, namely that bad weather conditions impact the amount of social interaction between people, meaning that there are less opportunities for viruses to spread. We challenge the choice of these instruments, particularly in the case of SARS-CoV-2. Unfortunately, we do not have sufficient information on the effect of the weather on the virus. That is, SARS-CoV-2 has only been quite apparent since January 2020 and there has not been enough fluctuation over time in temperatures to show a necessary effect that can be disentangled from, for example, policies being effective in driving the virus back. For this reason, we only consider OLS for this model.
 	
-	\subsection{Results} \label{subsec:results_within_between}
-	In this section, we present the results for the within and between-region spread model. Notice that it does not make sense to consider a national model. Because we do not consider countries outside of Italy, the set $R \setminus r$ is empty if we consider $r$ to be the entire country of Italy. This would mean that the national model for the within and between-region spread model is equivalent to the national model for the within-region spread model. As such, in this section, we only consider the model applied to the regions. In Table \ref{tab:results_within_between} in Appendix \ref{app:tables}, we present the results from running the model on each region separately without applying model selection. The results comparing the use of the BIC over the AIC for model selection are presented in Table \ref{tab:results_within_between_aic_vs_bic}, where we see that the BIC selects a smaller model for four regions, being Calabria, Liguria, Piedmont, and Umbria, but that the model specification is the same for all of the other regions. In Table \ref{tab:results_within_between_aic}, we present the results where we execute model selection using the AIC and we make sure that the terms for $\beta_{within}$ and $\beta_{between}$ remain in the model. \\
+	\subsection{Results} \label{subsec:model_within_between_results}
+	In this section, we present the results for the within and between-region spread model. In Table \ref{tab:results_within_between_no_ms} in Appendix \ref{app:tables}, we present the results from running the model on each region separately without applying model selection. The results comparing the use of the BIC over the AIC for model selection are presented in Table \ref{tab:results_within_between_aic_vs_bic}, where we see that the BIC selects a smaller model for four regions, being Calabria, Liguria, Piedmont, and Umbria, but that the model specification is the same for all of the other regions. In Table \ref{tab:results_within_between_aic}, we present the results where we execute model selection using the AIC and we make sure that the terms for $\beta_{within}$ and $\beta_{between}$ remain in the model. \\
 	
 % 	\begin{landscape}
 	\begin{longtable}{@{}lcccccc@{}}
@@ -607,7 +604,7 @@
 	
     Regarding the model selection, we again see that the AIC gives a varying model selection per region. The set of regressors that is used is the same whether undocumented infectives are modelled are not. As mentioned at the start if this section, all models retain the terms related to $\beta_{within}$ and $\beta_{between}$ in the model. In eight out of eighteen cases, the entire model is selected. In the other ten cases, the weekend dummy is excluded. \\
     
-    To conclude, we are again interested in looking at the estimates of $\beta_{within}$ and $\beta_{between}$ over time. In Figure \ref{fig:beta_within_between_over_time_nordest}, we present plots for the regions in the \textit{Nord-Est} (North-East) NUTS 1 region. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:model1_plots}. Each point in the graphs in Figure \ref{fig:beta_within_between_over_time_nordest} is the estimate of $\beta_{within}$ or $\beta_{between}$ when only the latest 100 data points before that date are used. In addition, a LOESS curve with span parameter 0.3 is fit to the data points to give a better insight in the progression over time. \\
+    To conclude, we are again interested in looking at the estimates of $\beta_{within}$ and $\beta_{between}$ over time. In Figure \ref{fig:beta_within_between_over_time_nordest}, we present plots for the regions in the \textit{Nord-Est} (North-East) NUTS 1 region. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:model_within_between_figures}. Each point in the graphs in Figure \ref{fig:beta_within_between_over_time_nordest} is the estimate of $\beta_{within}$ or $\beta_{between}$ when only the latest 100 data points before that date are used. In addition, a LOESS curve with span parameter 0.3 is fit to the data points to give a better insight in the progression over time. \\
     
     \begin{figure}[H]
 	    \centering
@@ -654,8 +651,9 @@
 	\end{equation}
 	where $n$ denotes the sample size. Both the AIC and BIC are used as the minimizer in the model selection. That is, the model that is picked by the model selection procedure is the one with the lowest AIC or BIC. When choosing between the two methods, one should realize that they have different properties, particularly related to consistency. The AIC tends to select a larger model than the BIC. Moreover, if the true model is included in the set of candidate models, and under some additional assumptions, the BIC will select the true model with probability one as $n$ goes to infinity whereas the AIC is not consistent. On the other hand, if the true model is not in the set of candidate models, clearly no method can possibly select the true model. However, the AIC is efficient in the sense that it will asymptotically select the model that minimizes the mean prediction error while the BIC is not efficient \parencite{vrieze2012model}. Proponents of using the AIC over the BIC argue that this shows that the AIC is to be preferred because it is virtually impossible for the true model to be constructed because \textit{``all models are wrong"} \parencite{box1976science}. That does not mean that reality cannot be modelled; some models can be useful despite not being perfectly true. \textcite{burnham2002practical} state that \textit{``A model is a simplification or approximation of reality and hence will not reflect all of reality. [...] While a model can never be ``truth," a model might be ranked from very useful, to useful, to somewhat useful to, finally, essentially useless".} Lastly, \textcite{vrieze2012model} shows by simulation that the BIC can fail in finite sample sizes even if the true model is in the candidate set. This is because the BIC has a higher maximum risk, defined as the mean squared error of estimating the true covariance matrix. Because we believe that, indeed, the true model generating the data will quite likely not be included in our candidate set, we use the AIC to perform model selection.
 	
+	\begin{comment}
 	\section{Discrete SIR Model}\label{sec:discrete_sir_model}
-	As explained in Section \ref{sec:model_within}, there are several steps made by \textcite{adda2016economic} that are not explained clearly in the paper and that do not seem to mathematically grounded. In this section, we provide our own derivation for a discrete SIR model. We start by explaining the two versions of the SIR model, as eluded to in Section \ref{sec:sir_model}, after which we will describe our own discrete SIR model. Lastly, we will discuss the two methods that are being used to estimate the parameters, in addition to the regional split, in Sections \ref{subsec:discrete_sir_panel} and \ref{subsec:discrete_sir_bayesian}. \\
+	As explained in Section \ref{subsec:model_within_methodology}, there are several steps made by \textcite{adda2016economic} that are not explained clearly in the paper and that do not seem to mathematically grounded. In this section, we provide our own derivation for a discrete SIR model. We start by explaining the two versions of the SIR model, as eluded to in Section \ref{sec:sir_model}, after which we will describe our own discrete SIR model. Lastly, we will discuss the two methods that are being used to estimate the parameters, in addition to the regional split, in Sections \ref{subsec:discrete_sir_panel} and \ref{subsec:discrete_sir_bayesian}. \\
 	
 	As mentioned in Section \ref{sec:sir_model}, there are two versions of the SIR model, namely with frequency-dependent and with density-dependent transmission. For the former, the proportion of people in each of the groups is used ($S$, $I$, and $R$) while in the latter, the absolute number of people is used ($s$, $i$, and $r$). \textcite{keeling2011modeling} explain that the distinction in applicability is based on the assumption that we make on the relationship between the contact rate and the population size. For frequency-dependent transmission, also called random mixing, these are assumed to be independent whereas for density-dependent transmission it is assumed that the contact rate increases with the population density. Therefore, \textcite{keeling2011modeling} state that frequency-dependent transmission is generally applied when considering a heterogeneous contact structure, which means that everyone interacts with one another with equal probability. Density-dependent transmission is, on the other hand, generally applied to plant and animal diseases. \\
 	
@@ -663,7 +661,7 @@
 	
 	Now, let us consider the coronavirus SARS-CoV-2. Firstly, notice that we consider a human population so, therefore, frequency-dependent transmission may be more applicable. However, it is also intuitive that the transmission of SARS-CoV-2 is higher at the moment that more people live in a certain area because, at that point, people can be expected to come into contact with one another more. However, policies that are employed by governments may guarantee a less density-dependent situation, for instance, when governments instate a lockdown, oblige the use of face masks, or promote social distancing. Around 70\% of the papers assume no relationship between density and transmission. In the other 30\% of the cases, a linear relationship is assumed \parencite{nightingale2020importance}. The issue with this, according to \textcite{nightingale2020importance}, is that, respectively, there is an underestimation or overestimation of the delay in infection resurgence after mass quarantining ends. Because we are not interested in estimating the infection resurgence, we expect these issues to not be apparent, although we recognize that a transmission structure that lies somewhere in between would be ideal. \\
 	
-	In this thesis, we look at both versions of the SIR model and compare the results in Section \ref{subsec:results_discrete_sir}. The derivations that are done in this section are for the frequency-dependent version of the SIR model. Of course, we can simply replace the variables $S$, $I$, and $R$ by $s$, $i$, and $r$, respectively, to obtain the formulations for the models using density-dependent transmission. \\
+	In this thesis, we look at both versions of the SIR model and compare the results in Section \ref{subsec:discrete_sir_results}. The derivations that are done in this section are for the frequency-dependent version of the SIR model. Of course, we can simply replace the variables $S$, $I$, and $R$ by $s$, $i$, and $r$, respectively, to obtain the formulations for the models using density-dependent transmission. \\
 	
 	Recall from \eqref{eq:SIR_model_S}-\eqref{eq:SIR_model_R} that the SIR model with frequency-dependent transmission is given by:
 	    \begin{align*}
@@ -679,45 +677,47 @@
     	    \frac{dR}{dt} &= \gamma I. \label{eq:SIR_model_R_simplified}
 	    \end{align}
     	
-	When taking the possible estimation error $\eta_{r,t}$, whether from discretizing or estimating the parameters, into account, these equations are equivalent to:
+	When taking the possible estimation error $\eta_{p,t}$, whether from discretizing or estimating the parameters, into account, these equations are equivalent to:
 	    \begin{align}
-        	S_{r,t} - S_{r,t-1} &= -\beta S_{r,t-1}I_{r,t-1} + \eta_{r,t}, \label{eq:SIR_model_S_discrete}\\
-        	I_{r,t} - I_{r,t-1} &= \beta S_{r,t-1}I_{r,t-1} - \gamma I_{r,t-1} + \eta_{r,t}, \label{eq:SIR_model_I_discrete}\\
-        	R_{r,t} - R_{r,t-1} &= \gamma I_{r,t-1} + \eta_{r,t}. \label{eq:SIR_model_R_discrete}
+        	S_{p,t} - S_{p,t-1} &= -\beta S_{p,t-1}I_{p,t-1} + \eta_{p,t}, \label{eq:SIR_model_S_discrete}\\
+        	I_{p,t} - I_{p,t-1} &= \beta S_{p,t-1}I_{p,t-1} - \gamma I_{p,t-1} + \eta_{p,t}, \label{eq:SIR_model_I_discrete}\\
+        	R_{p,t} - R_{p,t-1} &= \gamma I_{p,t-1} + \eta_{p,t}. \label{eq:SIR_model_R_discrete}
     	\end{align}
 	
-	As such, if the data available on $S$, $I$, and $R$ are indeed deemed to be accurate, then $\beta$ and $\gamma$ are readily estimated from \ref{eq:SIR_model_S_discrete} and \ref{eq:SIR_model_R_discrete}. The results from estimating the parameters in this way are presented in Section \ref{subsec:results_discrete_sir}. \\
+	As such, if the data available on $S$, $I$, and $R$ are indeed deemed to be accurate, then $\beta$ and $\gamma$ are readily estimated from \ref{eq:SIR_model_S_discrete} and \ref{eq:SIR_model_R_discrete}. The results from estimating the parameters in this way are presented in Section \ref{subsec:discrete_sir_results}. \\
 	
-	Because we are interested in the number of infectives, we will consider equation \eqref{eq:SIR_model_I_discrete}. The right-hand side of this equation consists of three terms. Firstly, the term $\beta S_{r,t-1}I_{r,t-1}$ relates to the observation that new infectives are formed due to interaction of infectives with the susceptible population, i.e. the people that move from the group $s$ to the group $i$. In Section \ref{sec:sir_model}, we explained that it is assumed that this rate $\beta$ is constant over time. However, we concede that the addition of introducing a longer lag that \textcite{adda2016economic} makes is valid. Indeed, when a susceptible person meets an infective and consequently gets infected, this person is not immediately infectious themselves. For the same reasons as laid out in Section \ref{sec:model_within}, we can replace the lag in the first term by a longer lag $\tau$, which we would set to be equal to the estimated latent period of three days. The following model would then be the result:
+	Because we are interested in the number of infectives, we will consider equation \eqref{eq:SIR_model_I_discrete}. The right-hand side of this equation consists of three terms. Firstly, the term $\beta S_{p,t-1}I_{p,t-1}$ relates to the observation that new infectives are formed due to interaction of infectives with the susceptible population, i.e. the people that move from the group $s$ to the group $i$. In Section \ref{sec:sir_model}, we explained that it is assumed that this rate $\beta$ is constant over time. However, we concede that the addition of introducing a longer lag that \textcite{adda2016economic} makes is valid. Indeed, when a susceptible person meets an infective and consequently gets infected, this person is not immediately infectious themselves. For the same reasons as laid out in Section \ref{subsec:model_within_methodology}, we can replace the lag in the first term by a longer lag $\tau$, which we would set to be equal to the estimated latent period of three days. The following model would then be the result:
 	    \begin{equation}\label{eq:SIR_model_I_discrete_tau}
-            I_{r,t} - I_{r,t-1} = \beta S_{r,t-\tau}I_{r,t-\tau} - \gamma I_{r,t-1} + \eta_{r,t}
+            I_{p,t} - I_{p,t-1} = \beta S_{p,t-\tau}I_{p,t-\tau} - \gamma I_{p,t-1} + \eta_{p,t}
         \end{equation}
 	
 	Similarly, we transform equation \eqref{eq:SIR_model_S_discrete} in the same way:
 	    \begin{equation}\label{eq:SIR_model_S_discrete_tau}
-            S_{r,t} - S_{r,t-1} = -\beta S_{r,t-\tau}I_{r,t-\tau} + \eta_{r,t}
+            S_{p,t} - S_{p,t-1} = -\beta S_{p,t-\tau}I_{p,t-\tau} + \eta_{p,t}
         \end{equation}
 	
-	We will report results with $\tau=1$ and $\tau=3$ in Section \ref{subsec:results_discrete_sir}. The second term in \eqref{eq:SIR_model_I_discrete} is $-\gamma I_{r,t-1}$, which describes the infectives that recover or die from the disease, i.e. the people that move from group $i$ to group $r$. Note that we have not included the lag $\tau$ in this term. This is because when a person recovers from the disease they immediately move to that group. This also applies to the same term in equation \eqref{eq:SIR_model_R_discrete}. Lastly, as mentioned in the previous paragraph, $\eta_{r,t}$ denotes the idiosyncratic error term. \\
+	We will report results with $\tau=1$ and $\tau=3$ in Section \ref{subsec:discrete_sir_results}. The second term in \eqref{eq:SIR_model_I_discrete} is $-\gamma I_{p,t-1}$, which describes the infectives that recover or die from the disease, i.e. the people that move from group $i$ to group $r$. Note that we have not included the lag $\tau$ in this term. This is because when a person recovers from the disease they immediately move to that group. This also applies to the same term in equation \eqref{eq:SIR_model_R_discrete}. Lastly, as mentioned in the previous paragraph, $\eta_{p,t}$ denotes the idiosyncratic error term. \\
 	
-	As mentioned earlier in this section, if one believes the data on all components to be correct, these parameters can be easily identified. However, note that $S_{r,t-\tau}$ is generally quite close to 1: most of the population is susceptible to contracting the virus. That means that it is difficult to identify the parameters jointly. Suppose that $S_{r,t-\tau}$ is indeed equal to 1, for simplification purposes. Then, the right-hand side of \eqref{eq:SIR_model_I_discrete_tau} becomes $\beta I_{r,t-\tau} - \gamma I_{r,t-1}$. It is probable that $I_{r,t-\tau}$ and $I_{r,t-1}$ are quite close to one another, meaning that they cannot be jointly identified by means of equation \eqref{eq:SIR_model_I_discrete_tau}. As such, we need to employ a two-step approach. \\
+	As mentioned earlier in this section, if one believes the data on all components to be correct, these parameters can be easily identified. However, note that $S_{p,t-\tau}$ is generally quite close to 1: most of the population is susceptible to contracting the virus. That means that it is difficult to identify the parameters jointly. Suppose that $S_{p,t-\tau}$ is indeed equal to 1, for simplification purposes. Then, the right-hand side of \eqref{eq:SIR_model_I_discrete_tau} becomes $\beta I_{p,t-\tau} - \gamma I_{p,t-1}$. It is probable that $I_{p,t-\tau}$ and $I_{p,t-1}$ are quite close to one another, meaning that they cannot be jointly identified by means of equation \eqref{eq:SIR_model_I_discrete_tau}. As such, we need to employ a two-step approach. \\
 	
 	We propose two methods. Firstly, we can apply estimation methods to \eqref{eq:SIR_model_S_discrete_tau} and \eqref{eq:SIR_model_R_discrete} individually to obtain the estimates for $\beta$ and $\gamma$ individually. The second method would be to first estimate one of the parameters by means of \eqref{eq:SIR_model_R_discrete} \eqref{eq:SIR_model_S_discrete_tau}. Secondly, we would fill in this estimate in \eqref{eq:SIR_model_I_discrete_tau} and estimate the remaining parameter. We use equation \ref{eq:SIR_model_R_discrete} to estimate $\gamma$ and use the resulting estimate $\hat{\gamma}$ in \eqref{eq:SIR_model_I_discrete_tau} to obtain:
 	    \begin{align*}
-	        & I_{r,t} - I_{r,t-1} = \beta S_{r,t-\tau}I_{r,t-\tau} - \hat{\gamma} I_{r,t-1} + \eta_{r,t} \\
-	        \iff & I_{r,t} - \left(1 - \hat{\gamma}\right) I_{r,t-1} = \beta S_{r,t-\tau}I_{r,t-\tau} + \eta_{r,t} \numberthis{\label{eq:SIR_model_I_discrete_twostep}}
+	        & I_{p,t} - I_{p,t-1} = \beta S_{p,t-\tau}I_{p,t-\tau} - \hat{\gamma} I_{p,t-1} + \eta_{p,t} \\
+	        \iff & I_{p,t} - \left(1 - \hat{\gamma}\right) I_{p,t-1} = \beta S_{p,t-\tau}I_{p,t-\tau} + \eta_{p,t} \numberthis{\label{eq:SIR_model_I_discrete_twostep}}
 	    \end{align*}
 	
 	Another solution, if one does not believe in the accuracy of the data, is to write the difference in the number of removed individuals as a function of the constant rate $\gamma$ and the infectives. This is then included in the calculation of the susceptible population by means of a function, after which nonlinear least-squares (NLS) can be applied. \todo[inline, backgroundcolor=green!40]{TODO: Continue here: NLS}
 	
 	\subsection{Panel data methods}\label{subsec:discrete_sir_panel}
-	The discrete SIR equations in \eqref{eq:SIR_model_R_discrete}, \eqref{eq:SIR_model_S_discrete_tau}, and \eqref{eq:SIR_model_I_discrete_twostep} are estimated by panel data methods and Bayesian estimation. We first discuss the panel data methods. Panel data refers to a dataset that contains measurements over time for a group of individuals. In our case, the individuals are represented by the $R$ regions and we have observations for $T$ time periods. The main motivation behind using panel data methods is that they comprise more information, making them more efficient. Moreover, because the same individual is observed multiple times over time, they are able to identify unobserved individual effects (heterogeneity) that are persistent over time, such as an aversion to spending money or another effect that causes an individual that experienced some event in the past to experience that effect in the future again with a higher probability. A regular cross-sectional model is usually described as:
+	The discrete SIR equations in \eqref{eq:SIR_model_R_discrete}, \eqref{eq:SIR_model_S_discrete_tau}, and \eqref{eq:SIR_model_I_discrete_twostep} are estimated by panel data methods and Bayesian estimation. We first discuss the panel data methods. Panel data refers to a dataset that contains measurements over time for a group of individuals. In our case, the individuals are represented by $P$ regions and we have observations for $T$ time periods. The main motivation behind using panel data methods is that they comprise more information, making them more efficient. Moreover, because the same individual is observed multiple times over time, they are able to identify unobserved individual effects (heterogeneity) that are persistent over time, such as an aversion to spending money or another effect that causes an individual that experienced some event in the past to experience that effect in the future again with a higher probability. A regular cross-sectional model is usually described as:
 	    \begin{equation}\label{eq:cross-section}
-    	    y_i = x_i'\theta + \epsilon_i, \quad\forall i=1,\dotsc,R
+    	    y_i = x_i'\theta + \epsilon_i, \quad\forall i=1,\dotsc,P
 	    \end{equation}
-	where $y$ denotes the dependent variable, $x$ denotes the independent variables, $\theta$ is the vector of parameters to be estimated, and $\epsilon$ is an idiosyncratic error term. A panel data model is usually described in a very similar way:
+	where $y$ denotes the dependent variable, $x$ denotes the independent variables, $\theta$ is the vector of parameters to be estimated, and $\epsilon$ is an idiosyncratic error term. \\
+	
+	A panel data model is usually described in a very similar way:
 	    \begin{equation}\label{eq:paneldata}
-	        y_{i,t} = x_{i,t}'\theta + \epsilon_{i,t}, \quad\forall i=1,\dotsc,R;~t=1,\dotsc,T
+	        y_{i,t} = x_{i,t}'\theta + \epsilon_{i,t}, \quad\forall i=1,\dotsc,P;~ t=1,\dotsc,T
 	    \end{equation}
 	where the error component $\epsilon_{i,t} \coloneqq \alpha_i + u_{i,t}$ is a composite error term, comprising a time-invariant individual effect, denoted by $\alpha_i$, and an idiosyncratic error term, denoted by $u_{i,t} \sim N\left(0, \sigma^2_u\right)$. We assume that the individual effect is not correlated with the regressors:
 	    \begin{equation}\label{eq:orthogonality_assumption}
@@ -726,10 +726,10 @@
 	    
 	As an example, for equation \eqref{eq:SIR_model_I_discrete_twostep}, note that:
 	    \begin{equation*}
-	        y_{i,t} = I_{r,t} - \left(1 - \hat{\gamma}\right) I_{r,t-1}, \quad
+	        y_{i,t} = I_{p,t} - \left(1 - \hat{\gamma}\right) I_{p,t-1}, \quad
 	        \theta = \beta, \quad
-            x_{i,t} = S_{r,t-\tau}I_{r,t-\tau}, \quad
-            u_{i,t} = \eta_{r,t}
+            x_{i,t} = S_{p,t-\tau}I_{p,t-\tau}, \quad
+            u_{i,t} = \eta_{p,t}
 	    \end{equation*}
 	    
 	Looking at this notation, we can see that it is safe to impose the assumption that the individual effect and the independent variables are orthogonal: it seems odd to assume that the individual regional effect, which is time-invariant, is correlated with the time-varying incidence rate or susceptible rate of this one specific disease. In the rest of this section, we will follow the notation as in \eqref{eq:paneldata} but one can follow the example to formulate these in terms of the SIR equations. \\
@@ -754,7 +754,7 @@
 	In the last few months, a lot of research has been done on the spread of SARS-CoV-2 for various locales. Therefore, we may have some idea of what the values of the parameters are likely to be.
 	\todo[inline, backgroundcolor=green!40]{TODO: Continue here}
 	
-	\subsection{Results}\label{subsec:results_discrete_sir}
+	\subsection{Results}\label{subsec:discrete_sir_results}
 	\todo[inline, backgroundcolor=green!40]{TODO: Results still need to be inserted}
 	
 	In this section, we present the results for the discrete SIR model presented in Section \ref{sec:discrete_sir_model}. Recall that we mentioned three estimation approaches, namely the regular regional splits as applied for the models by \textcite{adda2016economic}, panel data methods, and Bayesian analysis. We will present the results in said order. For all result tables, we again apply a rolling window as before and report the results for two values of the lag parameter $\tau$, namely 1 and 3, as explained in Section \ref{sec:discrete_sir_model}. \\
@@ -786,7 +786,7 @@
 		
 		\multicolumn{7}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
 		\endlastfoot
-        National & $4.976 \times 10^{-5}$*** & 0.011*** & $3.626 \times 10^{-5}$*** & $1.052 \times 10^{-12}$*** & $2.289 \times 10^{-10}$*** & $3.62516 \times 10^{-5}$*** \\ 
+        National (OLS) & $4.976 \times 10^{-5}$*** & 0.011*** & $3.626 \times 10^{-5}$*** & $1.052 \times 10^{-12}$*** & $2.289 \times 10^{-10}$*** & $3.62516 \times 10^{-5}$*** \\ 
         National\_zvals & (6.544) & (31.512) & (5.571) & (6.485) & (31.517) & (5.571) \\ 
         ABR & $6.890 \times 10^{-3}$*** & $7.247 \times 10^{-3}$*** & $5.749 \times 10^{-3}$*** & $5.536 \times 10^{-9}$*** & $5.534 \times 10^{-9}$*** & $5.749 \times 10^{-3}$*** \\ 
         ABR\_zvals & (8.637) & (38.656) & (7.216) & (8.747) & (38.649) & (7.216) \\ 
@@ -829,7 +829,7 @@
 	
 	Table \ref{tab:results_discrete_regional_transmission} shows us that X.
 	
-	Next, we present X. We continue with a lag of $\tau = 3$. The results comparing $\tau = 1$ to $\tau = 3$ can be found in Table \ref{tab:results_discrete_regional_tau}.
+	Next, we present X\todo[backgroundcolor=green!40]{TODO}. We continue with a lag of $\tau = 14$. The results comparing $\tau = 1$ to $\tau = 14$ can be found in Table \ref{tab:results_discrete_regional_tau}.
 	
 	\todo[inline, backgroundcolor=green!40]{TODO: Add model per region}
 	
@@ -923,20 +923,22 @@
 	\todo[inline, backgroundcolor=green!40]{TODO: Add Bayesian results}
 	\todo[inline, backgroundcolor=green!40]{TODO: Compare estimates with those by Adda?}
 	
+	\end{comment}
+	
 	\section{Modelling undocumented infectives} \label{sec:undocumented_modelling}
 	A common concern with the spread of viruses, especially one so rapidly spreading as SARS-CoV-2, is that there is no possibility to test the entire population on whether they are infected because the testing capacity is simply not there. If this were possible, then all individuals who were tested to be positive could be isolated and the spread of the virus would be dampened tremendously. However, since this is not possible, there are likely many infectives in society who spread the virus but who are undocumented. In China, around 86\% of the infectives went undocumented \parencite{li2020undocumented}. \textcite{li2020undocumented} also estimate that these were also contagious, with around 55\% of the contagiousness of documented infectives. This was investigated during the period from January 10 till January 23, 2020, so considering a lack of major restrictions such as travel bans. \textcite{li2020undocumented} make the important note that these results are indeed highly dependent on the specific situation in the country of interest, for instance due to differences in testing, case definition, and reporting. Nonetheless, even if these numbers are lower for other cases, such as Italy under lockdown, this research shows that undocumented infectives should be taken into account. \\
 	
 	In this section, we aim to model the undocumented infectives. Note that, by definition, there is no data on the amount of undocumented infectives because, otherwise, these cases would indeed be documented. As such, some assumptions need to be made since we cannot apply \textit{supervised learning} methods (being models where there is a data on a dependent variable to predict) to determine the number of undocumented infectives. Firstly, we assume that the amount of undocumented individuals is decreasing as the testing capacity increases. Similarly, the amount of documented individuals increases in the testing capacity. The logic behind this is clear: as more people are tested, more infectives move from being undocumented to being documented. Secondly, as mentioned, \textcite{li2020undocumented} consider that there are no major restrictions. As we know, Italy has been under a strict national lockdown. This was imposed on March 10, 2020. The restrictions were relaxed around May 18, when businesses were allowed to reopen and citizens were allowed free movement within the region they live in, although they were still barred from travelling to other regions unless they had an essential motive \parencite{severgnini2020relaxLockdown}. However, we do not take this into account in this thesis besides including the indicator variable for the lockdown, as described in Section \ref{subsec:regressor_data}. Future research could be done to include these restrictions more robustly.\\
 	
-	At a point in time $t$, we denote the testing capacity by $TC_t$. In Section \ref{subsec:coronavirus_data}, we explain how a measure of the testing capacity is obtained. The total number of infected people at time $t$ is denoted by $Y_t$. This group can be subdivided into the documented infectives $DI_t$ and the undocumented infectives $UI_t$ such that $DI_t + UI_t = Y_t$. Therefore, we can denote the documented and undocumented infectives as proportions of the total number of infected people, at any point in time. As mentioned before, this proportion may change over time as the testing capacity increases, among others. This proportion is therefore defined as a function of the testing capacity over time:
+	At a point in time $t$, we denote the testing capacity by $TC_t$. In Section \ref{subsec:coronavirus_data}, we explain how a measure of the testing capacity is obtained. The total number of infected people at time $t$ is denoted by $s_t$. This group can be subdivided into the documented infectives $DI_t$ and the undocumented infectives $UI_t$ such that $DI_t + UI_t = s_t$. Therefore, we can denote the documented and undocumented infectives as proportions of the total number of infected people, at any point in time. As mentioned before, this proportion may change over time as the testing capacity increases, among others. This proportion is therefore defined as a function of the testing capacity over time:
 	\begin{equation} \label{eq:f_t}
 	f_t \coloneqq f(TC_t),
 	\end{equation}
 	such that
 	\begin{equation*}
     	\begin{cases}
-        	DI_t &= f_tY_t \\
-        	UI_t &= (1-f_t)Y_t.
+        	DI_t &= f_ts_t \\
+        	UI_t &= (1-f_t)s_t.
     	\end{cases}
 	\end{equation*}
 	
@@ -954,7 +956,7 @@
     	    \iff & \frac{1}{f_t}DI_t < N_t \\
     	    \iff & f_t > \frac{DI_t}{N_t},
 	    \end{align*}
-		so $f^{min}$ should be chosen to be larger than $\frac{DI_t}{N_t}$. The fact that this is true should be clear. If $f_t$ would be lower than the fraction of the population that is documented to be infective, then the total number of infectives in a population would exceed the total number of people living in that population, which is not possible.
+		so $f^{min}$ should be chosen to be larger than $\min\limits_{t}\left\{\frac{DI_t}{N_t}\right\}$. The fact that this is true should be clear. If $f_t$ would be lower than the fraction of the population that is documented to be infective, then the total number of infectives in a population would exceed the total number of people living in that population, which is not possible.
 		
 		\item\label{ass:undoc_fN} Denote the total population at time $t$ as $N_t$. Then, if there is enough testing capacity such that the entire population can be tested, we assume that all infectives will be documented. That is,
 		    \[f(N_t) = 1.\]
@@ -1007,15 +1009,15 @@
 	    No bounds on $\gamma_1$ and $\gamma_2$ have been set. Particularly, there are combinations of $\gamma_1$ and $\gamma_2$ for which the codomain of $f_t$ on $TC_t \in [0,N_t]$ may not be the interval $[0,1]$, violating assumption \ref{ass:undoc_proportion}, and for which the function is not monotonically increasing, violating assumption \ref{ass:undoc_monotonicity}. One could derive explicit conditions on possible combinations for $\gamma_1$ and $\gamma_2$ such that this is not the case but this is not done in this thesis.
 	\end{itemize}
 	
-	These definitions can easily be generalised to be applicable to regions by considering the total population in a region $N_{r,t}$ instead of the total population $N_t$. Then, the function would be dependent on $r$ as well: 
+	These definitions can easily be generalised to be applicable to regions by considering the total population in a region $N_{p,t}$ instead of the total population $N_t$. Then, the function would be dependent on $r$ as well: 
 	\begin{equation} \label{eq:f_rt}
-	f_{r,t} \coloneqq f(TC_{r,t}).
+	f_{p,t} \coloneqq f(TC_{p,t}).
 	\end{equation}
 	such that
 	\begin{equation*}
 	    \begin{cases}
-	        DI_{r,t} &= f_{r,t}Y_{r,t} \\
-	        UI_{r,t} &= (1-f_{r,t})Y_{r,t}.
+	        DI_{p,t} &= f_{p,t}i_{p,t} \\
+	        UI_{p,t} &= (1-f_{p,t})i_{p,t}.
 	    \end{cases}
 	\end{equation*}
 	
@@ -1034,8 +1036,8 @@
         \begin{axis}[
         xmin = 0, xmax = \N,
         ymin = 0, ymax = 1,
-        xlabel=Testing capacity $\left(\frac{TC_{r,t}}{N_{r,t}}\times 100\%\right)$,
-        ylabel=Proportion of documented infectives ($f_{r,t}$),
+        xlabel=Testing capacity $\left(\frac{TC_{p,t}}{N_{p,t}}\times 100\%\right)$,
+        ylabel=Proportion of documented infectives ($f_{p,t}$),
         grid = both,
         minor tick num = 1,
         major grid style = {lightgray},
@@ -1057,7 +1059,7 @@
             (\fmin-1)/(\N^2)*x^2 -
             2*(\fmin-1)/(\N)*x +
             \fmin};
-        \addlegendentry{Downwards opening - vertex: $(N_{r,t},1)$}
+        \addlegendentry{Downwards opening - vertex: $(N_{p,t},1)$}
         
     	\def\gammaquadratichigh{0.7}
         \addplot[domain = 0:\N, samples = 2*\N, smooth, thick, WildStrawberry]{
@@ -1089,8 +1091,8 @@
         \begin{axis}[
         xmin = 0, xmax = \N,
         ymin = 0, ymax = 1,
-        xlabel = Testing capacity $\left(\frac{TC_{r,t}}{N_{r,t}}\times 100\%\right)$,
-        ylabel = \textcolor{white}{Proportion of documented infectives ($f_{r,t}$)},
+        xlabel = Testing capacity $\left(\frac{TC_{p,t}}{N_{p,t}}\times 100\%\right)$,
+        ylabel = \textcolor{white}{Proportion of documented infectives ($f_{p,t}$)},
         grid = both,
         minor tick num = 1,
         major grid style = {lightgray},
@@ -1152,7 +1154,7 @@
     \label{fig:functional_forms}
     \end{figure}
     
-    Note that not all of the plots in Figure \ref{fig:functional_forms} are meant to be realistic portrayals. They simply show how the functions behave as the parameters change. Moreover, recall that there are combinations of $\gamma_1$ and $\gamma_2$ for the cubic representation for which assumptions \ref{ass:undoc_proportion} and \ref{ass:undoc_monotonicity} are violated. Figure \ref{fig:functional_forms_cubic} shows that $\gamma_1=0.35$ and $\gamma_2=0.7$ cause the function to exceed the maximum value allowed for $f_{r,t}$ of 1, despite decreasing so that $f(N_{r,t}) = 1$. A combination of $\gamma_1=0.65$ and $\gamma_2=0.7$ creates a non-monotonic functional form. As explained earlier in this section, this is not desirable. Henceforth, if we would use a cubic form, the values of $\gamma_1$ and $\gamma_2$ should first be tested by means of a plot, for instance. \\
+    Note that not all of the plots in Figure \ref{fig:functional_forms} are meant to be realistic portrayals. They simply show how the functions behave as the parameters change. Moreover, recall that there are combinations of $\gamma_1$ and $\gamma_2$ for the cubic representation for which assumptions \ref{ass:undoc_proportion} and \ref{ass:undoc_monotonicity} are violated. Figure \ref{fig:functional_forms_cubic} shows that $\gamma_1=0.35$ and $\gamma_2=0.7$ cause the function to exceed the maximum value allowed for $f_{p,t}$ of 1, despite decreasing so that $f(N_{p,t}) = 1$. A combination of $\gamma_1=0.65$ and $\gamma_2=0.7$ creates a non-monotonic functional form. As explained earlier in this section, this is not desirable. Henceforth, if we would use a cubic form, the values of $\gamma_1$ and $\gamma_2$ should first be tested by means of a plot, for instance. \\
     
     Next, we argue which of these forms is most appropriate. As mentioned at the beginning of this section, we cannot estimate which form would fit the data best because there is, by definition, no data on the undocumented infectives. As such, we argue which functional form to use by theoretical logic rather than a mathematical approach. Before that, there are two things to notice. Firstly, note that it is difficult to test 100\% of the population without some rigorous metric, such as making it obligatory to get the test. Secondly, the shape of the functional form may differ depending on the basic reproduction number $R_{eff}$, as defined in Section \ref{sec:problem_description}. $R_{eff}$ estimates how many people an infective will on average infect. If $R_{eff} > 1$, a person is estimated to infect more than one person and an epidemic is expected to develop. In this case, we expect that an increased testing capacity will have a larger immediate effect. We assume that a person who has been tested positive adheres to the common guidelines that they should self-quarantine. Consequently, this infective does not infect other people who would otherwise become undocumented infectives. For the remainder of this argument, we assume that $R_{eff} > 1$. The reason for this is that there are a variety of methods to estimate $R_{eff}$ and that we cannot reasonably make our own model easily dependent on these varying results. Future research could be conducted regarding a two-step approach. \\
     
@@ -1164,20 +1166,20 @@
     
     Weighing these two specifications off, we believe that the former argument is more general and stable, where the second argument is quite specific and whose validity may differ across countries. In general, of all possible fitting solutions, the one with the least number of assumptions needed is to be preferred. Therefore, we opt to use a downwards opening quadratic functional form over a cubic form. \\
     
-    Lastly, the question is what to choose for the parameter $\gamma$, if anything. Recall that \eqref{eq:quadratic_functional_form} and \eqref{eq:quadratic_downwards_functional_form} are equivalent when $\gamma = \frac{3}{4} + \frac{1}{4}f^{min}$, meaning that \eqref{eq:quadratic_downwards_functional_form} is the most extreme case possible and that the slope cannot be constructed to be more steep. To be general, we choose \eqref{eq:quadratic_functional_form} to be our functional form with an unknown parameter $\gamma$, denoted by $f_{r,t}(\gamma)$. \\
+    Lastly, the question is what to choose for the parameter $\gamma$, if anything. Recall that \eqref{eq:quadratic_functional_form} and \eqref{eq:quadratic_downwards_functional_form} are equivalent when $\gamma = \frac{3}{4} + \frac{1}{4}f^{min}$, meaning that \eqref{eq:quadratic_downwards_functional_form} is the most extreme case possible and that the slope cannot be constructed to be more steep. To be general, we choose \eqref{eq:quadratic_functional_form} to be our functional form with an unknown parameter $\gamma$, denoted by $f_{p,t}(\gamma)$. The models can then use a specific value for $\gamma$ or perhaps can choose an approach that incoporates a possibility to leave $\gamma$ as an unknown parameter, possibly to be estimated. \\
 	
-	Now that we have chosen our functional form, we are interested in investigating the relationship between $TC_{r,t}$ and $f_{r,t}(\gamma)$ over time for all regions and to compare these. Because the population size differs over the regions, this is likely to impact the absolute number of tests executed. As such, instead of comparing $f_{r,t}(\gamma)$ to $TC_{r,t}$, we compare it to $TC_{r,t} / N_{r,t}$. The results are shown in Figure \ref{fig:tamponiprop_versus_ft}. \\
+	Now that we have chosen our functional form, we are interested in investigating the relationship between $TC_{p,t}$ and $f_{p,t}(\gamma)$ over time for all regions and to compare these. Because the population size differs over the regions, this is likely to impact the absolute number of tests executed. As such, instead of comparing $f_{p,t}(\gamma)$ to $TC_{p,t}$, we compare it to $TC_{p,t} / N_{p,t}$. The results are shown in Figure \ref{fig:tamponiprop_versus_ft}. \\
 	
 	\begin{figure}[ht]
 	    \centering
 	    \includegraphics[width=\textwidth]{output/tamponiprop_vs_ft.pdf}
-	    \caption{Total number of people tested over the total population ($TC_{r,t} / N_{r,t}$) versus proportion of infectives that are documented $f_{r,t}(\gamma)$}
+	    \caption{Total number of people tested over the total population ($TC_{p,t} / N_{p,t}$) versus proportion of infectives that are documented $f_{p,t}(\gamma)$}
 	    \label{fig:tamponiprop_versus_ft}
 	\end{figure}
 	
 	In Figure \ref{fig:tamponiprop_versus_ft}, we can see that the pattern of the relationship between the two variables is similar over time for different groups of regions. Importantly, we note that the proportion of infectives that go undocumented decreases over time. This is logical because the testing capacity increases over time and we have assumed a monotonic relationship. \\
 	
-	For illustration purposes, we now give an example of the impact of this modelling method. We present the number of infectives at three time points for three regions in Table \ref{tab:f_t_over_time}.
+	For illustration purposes, we now give an example of the impact of this modelling method. We present the number of infectives at three time points for three regions in Table \ref{tab:f_t_over_time}. In this Table, $i_t$ is computed as $DI_t / f_t$.
 	
 	\begin{table}[H]
 		\centering
@@ -1187,7 +1189,7 @@
 		    \toprule 
                      & \multicolumn{3}{c}{Calabria} && \multicolumn{3}{c}{Lombardy} && \multicolumn{3}{c}{Veneto} \\
                      \cmidrule{2-4}\cmidrule{6-8}\cmidrule{10-12}
-                     & $DI_t$  & $f_t$   & $I_t$   && $DI_t$  & $f_t$   & $I_t$    && $DI_t$  & $f_t$  & $I_t$   \\ \midrule
+                     & $DI_t$  & $f_t$   & $i_t$   && $DI_t$  & $f_t$   & $i_t$    && $DI_t$  & $f_t$  & $I_t$   \\ \midrule
             April 1  & 669     & 10.8\%  & 6,448   && 44,601  & 11.8\%  & 409,003  && 9,592   & 13.4\% & 82,106  \\
             June 1   & 1,158   & 15.4\%  & 10,670  && 88,846  & 21.0\%  & 717,289  && 19,121  & 29.5\% & 139,610 \\
             August 1 & 1,269   & 19.2\%  & 11,291  && 96,102  & 28.5\%  & 747,691  && 20,133  & 44.2\% & 142,111 \\ \bottomrule
@@ -1198,35 +1200,31 @@
 	
 	Using the specification of undocumented infectives, we can now adapt the models \eqref{eq:model_within} and \eqref{eq:model_within_between} \todo[backgroundcolor=green!40]{TODO: Discrete SIR model} to include these undocumented infectives. Let us take the within-region spread model \eqref{eq:model_within} as an example. Recall that this model was given as
 	    \begin{equation*}
-		    \Delta Y_{r,t} = \beta_{within}\Delta Y_{r,t-\tau}S_{r,t-\tau} + \delta X_{r,t} + \eta_{r,t}.
+		    \Delta i_{p,t} = \beta_{within}S_{p,t-\tau}\Delta i_{p,t-\tau} + \delta X_{p,t} + \eta_{p,t}.
 	    \end{equation*}
-	Using that $\Delta Y_{r,t} = \frac{DI_{r,t}}{f_{r,t}(\gamma)} - \frac{DI_{r,t-1}}{f_{r,t-1}(\gamma)}$, this becomes
+	Using that $\Delta i_{p,t} = \frac{DI_{p,t}}{f_{p,t}(\gamma)} - \frac{DI_{p,t-1}}{f_{p,t-1}(\gamma)}$, this becomes
 	    \begin{equation} \label{eq:model_within_undocumented}
-		    \frac{DI_{r,t}}{f_{r,t}(\gamma)} - \frac{DI_{r,t-1}}{f_{r,t-1}(\gamma)} = \beta_{within}\left(\frac{DI_{r,t-\tau}}{f_{r,t-\tau}(\gamma)} - \frac{DI_{r,t-\tau-1}}{f_{r,t-\tau-1}(\gamma)}\right)S_{r,t-\tau} + \delta X_{r,t} + \eta_{r,t}.
+		    \frac{DI_{p,t}}{f_{p,t}(\gamma)} - \frac{DI_{p,t-1}}{f_{p,t-1}(\gamma)} = \beta_{within}S_{p,t-\tau}\left(\frac{DI_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{DI_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right) + \delta X_{p,t} + \eta_{p,t}.
 	    \end{equation}
 	We can rewrite \eqref{eq:model_within_undocumented} as follows
 	    \begin{equation*}
-	       DI_{r,t} = f_{r,t}(\gamma)\left(\beta_{within}\left(\frac{DI_{r,t-\tau}}{f_{r,t-\tau}(\gamma)} - \frac{DI_{r,t-\tau-1}}{f_{r,t-\tau-1}(\gamma)}\right)S_{r,t-\tau} + \frac{DI_{r,t-1}}{f_{r,t-1}(\gamma)} + \delta X_{r,t} + \eta_{r,t}\right).
+	       DI_{p,t} = f_{p,t}(\gamma)\left(\beta_{within}S_{p,t-\tau}\left(\frac{DI_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{DI_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right) + \frac{DI_{p,t-1}}{f_{p,t-1}(\gamma)} + \delta X_{p,t} + \eta_{p,t}\right).
 	    \end{equation*}
 	    
 	The moment conditions that then need to hold are:
 	    \begin{align*}
-	        & E\left[ \eta_{r,t}f_{r,t}(\gamma) \left( \beta_{within}\left(\frac{DI_{r,t-\tau}}{f_{r,t-\tau}(\gamma)} - \frac{DI_{r,t-\tau-1}}{f_{r,t-\tau-1}(\gamma)}\right)S_{r,t-\tau} + \frac{DI_{r,t-1}}{f_{r,t-1}(\gamma)} + \delta X_{r,t} \right) \right] = 0 \\
-	        \iff & f_{r,t}(\gamma) E\left[ \eta_{r,t}\left( \beta_{within}\left(\frac{DI_{r,t-\tau}}{f_{r,t-\tau}(\gamma)} - \frac{DI_{r,t-\tau-1}}{f_{r,t-\tau-1}(\gamma)}\right)S_{r,t-\tau} + \frac{DI_{r,t-1}}{f_{r,t-1}(\gamma)} + \delta X_{r,t} \right) \right] = 0.
+	        & E\left[ \eta_{p,t}f_{p,t}(\gamma) \left( \beta_{within}S_{p,t-\tau}\left(\frac{DI_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{DI_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right) + \frac{DI_{p,t-1}}{f_{p,t-1}(\gamma)} + \delta X_{p,t} \right) \right] = 0 \\
+	        \iff & f_{p,t}(\gamma) E\left[ \eta_{p,t}\left( \beta_{within}S_{p,t-\tau}\left(\frac{DI_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{DI_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right) + \frac{DI_{p,t-1}}{f_{p,t-1}(\gamma)} + \delta X_{p,t} \right) \right] = 0.
 	    \end{align*}
 	
-	Since $f_{r,t}(\gamma)$ is simply a scaling function, regardless of the chosen parameter, it has no influence on the dependence between the error and the regressors. As such, it can be taken out of the expectation term. Subsequently, we can divide both sides of the equation by $f_{r,t}(\gamma)$ to obtain the following moment condition:
+	Since $f_{p,t}(\gamma)$ is simply a scaling function, regardless of the chosen parameter, it has no influence on the dependence between the error and the regressors. As such, it can be taken out of the expectation term. Subsequently, we can divide both sides of the equation by $f_{p,t}(\gamma)$ to obtain the following moment condition:
 	    \begin{equation} \label{eq:model_within_undocumented_moments}
-	        E\left[ \eta_{r,t}\left( \beta_{within}\left(\frac{DI_{r,t-\tau}}{f_{r,t-\tau}(\gamma)} - \frac{DI_{r,t-\tau-1}}{f_{r,t-\tau-1}(\gamma)}\right)S_{r,t-\tau} + \frac{DI_{r,t-1}}{f_{r,t-1}(\gamma)} + \delta X_{r,t} \right) \right] = 0.
+	        E\left[ \eta_{p,t}\left( \beta_{within}S_{p,t-\tau}\left(\frac{DI_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{DI_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right) + \frac{DI_{p,t-1}}{f_{p,t-1}(\gamma)} + \delta X_{p,t} \right) \right] = 0.
 	    \end{equation}
 	
-	Just like in Section \ref{sec:model_within}, we make the assumption that the idiosyncratic error $\eta_{r,t}$ is uncorrelated with the regressors in the tensor $X_{r,t}$. That is, we assume that $E\left[\eta_{r,t} \,\middle|\, X_{r,t}\right] = 0$. Now note that there are two additional terms to consider, namely the relation between $\eta_{r,t}$ and $\left(\frac{DI_{r,t-\tau}}{f_{r,t-\tau}(\gamma)} - \frac{DI_{r,t-\tau-1}}{f_{r,t-\tau-1}(\gamma)}\right)S_{r,t-\tau}$ as well as between $\eta_{r,t}$ and $\frac{DI_{r,t-1}}{f_{r,t-1}(\gamma)}$. The reason why we assume that $E\left[\eta_{r,t} ~\middle|\, \left(\frac{DI_{r,t-\tau}}{f_{r,t-\tau}(\gamma)} - \frac{DI_{r,t-\tau-1}}{f_{r,t-\tau-1}(\gamma)}\right)S_{r,t-\tau}\right] = 0$ is for the same reason as in Section \ref{sec:model_within}, namely that for a large enough lag $\tau$, the error is not correlated with past data at that lag. That is, the people that are classified as infectives at time $t-\tau$ do not have an effect on the error that we make when considering the infectives at time $t$ under a correct model specification. This is independent of the scaling functions $f_{r,t-\tau}(\gamma)$ and $f_{r,t-\tau-1}(\gamma)$ as these are constructed without the past infectives in mind. \\
+	Just like in Section \ref{subsec:model_within_methodology}, we make the assumption that the idiosyncratic error $\eta_{p,t}$ is uncorrelated with the regressors in the tensor $X_{p,t}$. That is, we assume that $E\left[\eta_{p,t} \,\middle|\, X_{p,t}\right] = 0$. Now note that there are two additional terms to consider, namely the relation between $\eta_{p,t}$ and $S_{p,t-\tau}\left(\frac{DI_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{DI_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right)$ as well as between $\eta_{p,t}$ and $\frac{DI_{p,t-1}}{f_{p,t-1}(\gamma)}$. The reason why we assume that $E\left[\eta_{p,t} ~\middle|\, S_{p,t-\tau}\left(\frac{DI_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{DI_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right)\right] = 0$ is for the same reason as in Section \ref{subsec:model_within_methodology}, namely that for a large enough lag $\tau$, the error is not correlated with past data at that lag. That is, the people that are classified as infectives at time $t-\tau$ do not have an effect on the error that we make when considering the infectives at time $t$ under a correct model specification. This is independent of the scaling functions $f_{p,t-\tau}(\gamma)$ and $f_{p,t-\tau-1}(\gamma)$ as these are constructed without the past infectives in mind. \\
 	
-	The issue may come when we consider the condition $E\left[\eta_{r,t} \,\middle|\,  \frac{DI_{r,t-1}}{f_{r,t-1}(\gamma)}\right] = 0$. Again, this is not due to the scaling function $f_{r,t-1}(\gamma)$ but when considering the term $DI_{r,t-1}$. However, recall that the error $\eta_{r,t}$ is made when predicting the amount of infectives at time $t$. In Section \ref{sec:model_within}, we have explained that there is a latent period during which an infected person is not able to infect others yet. As such, when considering only a one-period difference, there should be no correlation between $\eta_{r,t}$ and $DI_{r,t-1}$. Consequently, the scaling of the infectives by using our functional form, has no additional impact on the moment conditions. A similar logic applies to the moment conditions for \eqref{eq:model_within_between}. Therefore, we assume that the moment conditions hold, even when modelling undocumented infectives according to the method explained in this section. \todo[backgroundcolor=green!40]{TODO: Discrete SIR}
-	
-	\newpage
-	\section{Results} \label{sec:results}
-	In this section, we present the results from the models as presented in Section \ref{sec:methodology}. When we speak of statistical significance without specifying a significance level, a level of 0.05 is implied. In Section \ref{subsec:results_within}, we discuss the results for the within-region spread model. Subsequently, Section \ref{subsec:results_within_between} discusses the results for the within and between-region spread model. For the models in Sections \ref{subsec:results_within} and \ref{subsec:results_within_between}, \textcite{adda2016economic} explains that the estimated coefficients can be interpreted as the marginal effects of a change in the infection rate on the future infection rate when the entire population is susceptible to the disease. We will explain more on this interpretation in the respective section. After discussing the models by \textcite{adda2016economic}, we present the results from estimating the discrete SIR model in Section \ref{subsec:results_discrete_sir}.
+	The issue may come when we consider the condition $E\left[\eta_{p,t} \,\middle|\,  \frac{DI_{p,t-1}}{f_{p,t-1}(\gamma)}\right] = 0$. Again, this is not due to the scaling function $f_{p,t-1}(\gamma)$ but when considering the term $DI_{p,t-1}$. However, recall that the error $\eta_{p,t}$ is made when predicting the amount of infectives at time $t$. In Section \ref{subsec:model_within_methodology}, we have explained that there is a latent period during which an infected person is not able to infect others yet. As such, when considering only a one-period difference, there should be no correlation between $\eta_{p,t}$ and $DI_{p,t-1}$. Consequently, the scaling of the infectives by using our functional form, has no additional impact on the moment conditions. A similar logic applies to the moment conditions for \eqref{eq:model_within_between}. Therefore, we assume that the moment conditions hold, even when modelling undocumented infectives according to the method explained in this section. \todo[backgroundcolor=green!40]{TODO: Discrete SIR}
 	
 	\newpage
 	\section{Conclusion} \label{sec:conclusion}
@@ -1242,6 +1240,8 @@
     % On between region: only take into account close regions or with close economic ties, if data is available
 	
 	% Spatial Panel Data can be applied if weights are constructed
+	
+	% Discrete SIR
 	
 	%Bibliography
 	\newpage
@@ -1299,12 +1299,12 @@
     		\caption{Commonly used abbreviations in this thesis.}
     		\label{tab:abbreviations_misc}\\
     		\toprule
-    		Abbreviation & Full name & Defined in... \\* \midrule
+    		Abbreviation & Full name & First defined in... \\* \midrule
     		\endfirsthead
     		
     		\multicolumn{3}{c}{{\bfseries Table \thetable\ continued from previous page}} \\
     		\toprule
-    		Abbreviation & Full name & Defined in... \\* \midrule
+    		Abbreviation & Full name & First defined in... \\* \midrule
     		\endhead
     		
     		\bottomrule
@@ -1317,26 +1317,25 @@
             COVID-19 & Coronavirus Disease 2019 & Section \ref{sec:introduction} \\
             NUTS & Nomenclature des Unités Territoriales Statistiques & Section \ref{sec:problem_description} \\
             SIR model & Standard Inflammatory Response model & Section \ref{sec:sir_model} \\
-            OLS & Ordinary Least Squares & Section \ref{sec:model_within} \\
+            OLS & Ordinary Least Squares & Section \ref{subsec:model_within_methodology} \\
+            POLS & Pooled Ordinary Least Squares & Section \ref{subsec:model_within_between_methodology} \\
             AIC & Akaike Information Criterion & Section \ref{sec:model_selection} \\
-            BIC & Bayesian Information Criterion & Section \ref{sec:model_selection}  \\
-            POLS & Pooled Ordinary Least Squares & Section \ref{subsec:discrete_sir_panel} \\
-            RE & Random Effects & Section \ref{subsec:discrete_sir_panel} \\* \bottomrule
+            BIC & Bayesian Information Criterion & Section \ref{sec:model_selection}  \\* \bottomrule
     	\end{xltabular}
     	
 		\section{Tables} \label{app:tables}
 		
-		\subsection{Results from Within-Region Spread Model}
-		In Section \ref{subsec:results_within}, we presented the results from the within-region spread model \eqref{eq:model_within}:
+		\subsection{Results for Section \ref{sec:model_within}: \nameref{sec:model_within}} \label{sapp:model_within_results}
+		In Section \ref{subsec:model_within_results}, we presented the results from the within-region spread model \eqref{eq:model_within}:
 		    \begin{equation*}
-        		\Delta Y_{r,t} = \beta_{within}\Delta Y_{r,t-\tau}S_{r,t-\tau} + \delta X_{r,t} + \eta_{r,t}.
+        		\Delta i_{p,t} = \beta_{within}S_{p,t-\tau}\Delta i_{p,t-\tau} + \delta X_{p,t} + \eta_{p,t}.
         	\end{equation*}
         	
-    	This appendix contains additional tables with results for this model. As is the case for Section \ref{subsec:results_within}, we use the last 100 observations.
+    	This appendix contains additional tables with results for this model. As is the case for Section \ref{subsec:model_within_results}, we use the last 100 observations.
     	
     	\begin{longtable}{@{}lcccc@{}}
     		\caption{Estimates from Within-Region Spread Model per region without model selection. Estimates are given with $t$-statistics in parentheses. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
-    		\label{tab:results_within}\\
+    		\label{tab:results_within_no_ms}\\
     		\toprule
     		                & \multicolumn{2}{c}{Regular model} & \multicolumn{2}{c}{Modelling undocumented infectives} \\
     		                \cmidrule(lr){2-3}
@@ -1359,49 +1358,51 @@
     		\multicolumn{5}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
     		\endlastfoot
     		
-            National & 0.886*** & 11.604 & 0.863*** & 36.761 \\ 
-             & (21.493) & (0.369) & (23.925) & (0.261) \\ 
-            ABR & 0.463*** & 2.715** & 0.494*** & 12.934** \\ 
-             & (5.081) & (2.084) & (5.854) & (2.160) \\ 
-            BAS & 0.076 & 0.482 & 0.081 & 2.551 \\ 
-             & (0.730) & (0.571) & (0.773) & (0.656) \\ 
-            BZ & 0.460*** & 2.111*** & 0.386*** & 6.532*** \\ 
-             & (5.172) & (3.566) & (4.541) & (3.819) \\ 
-            CAL & 0.297*** & 2.176** & 0.268** & 12.544*** \\ 
-             & (2.689) & (2.600) & (2.499) & (2.755) \\ 
-            EMR & 0.737*** & 14.644*** & 0.703*** & 54.997*** \\ 
-             & (13.515) & (3.441) & (14.736) & (3.329) \\ 
-            FVG & 0.719*** & 1.106 & 0.739*** & 2.858 \\ 
-             & (9.005) & (1.465) & (11.080) & (1.241) \\ 
-            LAZ & 0.840*** & 6.783*** & 0.795*** & 38.587*** \\ 
-             & (13.863) & (2.705) & (13.695) & (2.712) \\ 
-            LIG & 0.816*** & $-0.501$ & 0.835*** & $-4.795$ \\ 
-             & (12.860) & ($-0.172$) & (15.253) & ($-0.358$) \\ 
-            LOM & 0.797*** & 7.588 & 0.776*** & 38.615 \\ 
-             & (13.165) & (0.303) & (12.987) & (0.300) \\ 
-            MAR & 0.576*** & 2.297* & 0.572*** & 11.050** \\ 
-             & (7.694) & (1.836) & (9.102) & (2.055) \\ 
-            MOL & 0.343*** & 0.283 & 0.344*** & 1.358 \\ 
-             & (6.679) & (0.704) & (7.829) & (0.598) \\ 
-            PIE & 0.814*** & $-1.842$ & 0.798*** & $-14.985$ \\ 
-             & (16.951) & ($-0.376$) & (17.718) & ($-0.607$) \\ 
-            PUG & 0.639*** & 2.023* & 0.586*** & 13.379* \\ 
-             & (9.129) & (1.678) & (9.265) & (1.920) \\ 
-            SAR & 0.342*** & 0.785 & 0.329*** & 4.468 \\ 
-             & (3.496) & (1.245) & (3.493) & (1.400) \\ 
-            TOS & 0.735*** & 6.130*** & 0.702*** & 26.588*** \\ 
-             & (10.869) & (3.411) & (11.061) & (3.355) \\  
-            UMB & 0.607*** & 1.094** & 0.506*** & 4.070** \\ 
-             & (5.918) & (2.498) & (5.059) & (2.501) \\ 
-            VDA & 0.197** & 0.381 & 0.281*** & 1.189 \\ 
-             & (2.051) & (1.350) & (3.127) & (1.248) \\ 
-            VEN & 0.652*** & 9.808 & 0.652*** & 22.618 \\ 
-             & (6.866) & (1.529) & (7.784) & (1.531) \\* \bottomrule
+            National (OLS) & 0.493*** & 92.860*** & 0.423*** & 379.483*** \\ 
+             & (21.992) & (3.071) & (27.417) & (2.976) \\ 
+            National (POLS) & 0.533*** & 15.086*** & 0.458*** & 90.994*** \\ 
+             & (27.980) & (5.074) & (22.981) & (4.893) \\ 
+            ABR & 0.372*** & 2.751** & 0.322*** & 13.454** \\ 
+             & (4.952) & (2.091) & (6.253) & (2.249) \\ 
+            BAS & 0.063 & 0.612 & 0.063 & 3.279 \\ 
+             & (0.565) & (0.772) & (0.615) & (0.890) \\ 
+            BZ & 0.269*** & 2.346*** & 0.219*** & 7.117*** \\ 
+             & (3.467) & (3.683) & (4.175) & (3.961) \\ 
+            CAL & 0.242** & 2.189** & 0.201* & 12.897*** \\ 
+             & (2.043) & (2.614) & (1.917) & (2.828) \\ 
+            EMR & 0.358*** & 22.416*** & 0.287*** & 91.467*** \\ 
+             & (11.673) & (4.844) & (14.768) & (5.266) \\ 
+            FVG & 0.342*** & 2.582*** & 0.252*** & 8.578*** \\ 
+             & (7.559) & (3.476) & (8.891) & (3.508) \\ 
+            LAZ & 0.494*** & 10.172*** & 0.424*** & 57.018*** \\ 
+             & (10.069) & (3.441) & (11.273) & (3.610) \\ 
+            LIG & 0.382*** & 4.179 & 0.322*** & 17.706 \\ 
+             & (11.931) & (1.430) & (13.539) & (1.242) \\ 
+            LOM & 0.566*** & 26.949 & 0.502*** & 114.802 \\ 
+             & (16.318) & (1.271) & (16.989) & (1.072) \\ 
+            MAR & 0.436*** & 2.697** & 0.387*** & 12.796** \\ 
+             & (9.376) & (2.144) & (11.347) & (2.286) \\ 
+            MOL & 0.140 & 1.855** & 0.155* & 11.448** \\ 
+             & (1.595) & (2.456) & (1.810) & (2.299) \\ 
+            PIE & 0.352*** & 7.449* & 0.300*** & 28.533 \\ 
+             & (23.006) & (1.896) & (25.913) & (1.492) \\ 
+            PUG & 0.376*** & 3.804** & 0.335*** & 23.618*** \\ 
+             & (6.165) & (2.581) & (7.302) & (2.719) \\ 
+            SAR & 0.393*** & 0.795 & 0.276*** & 5.301 \\ 
+             & (3.761) & (1.278) & (3.874) & (1.655) \\ 
+            TOS & 0.281*** & 8.444*** & 0.237*** & 35.079*** \\ 
+             & (6.666) & (3.854) & (8.744) & (3.929) \\ 
+            UMB & 0.436*** & 1.428*** & 0.291*** & 5.402*** \\ 
+             & (3.936) & (3.168) & (4.134) & (3.351) \\ 
+            VDA & 0.267*** & 0.354 & 0.287*** & 1.054 \\ 
+             & (3.862) & (1.287) & (5.873) & (1.157) \\ 
+            VEN & 0.489*** & 11.951* & 0.284*** & 39.380*** \\ 
+             & (6.748) & (1.920) & (7.344) & (2.672) \\* \bottomrule
     	\end{longtable}
 		
 		\begin{longtable}{@{}lcccc@{}}
-    		\caption{Estimates from Within-Region Spread Model per region with model selection by AIC versus BIC. Estimates are given with $t$-statistics in parentheses. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
-    		\label{tab:model1_aic_vs_bic}\\
+    		\caption{Estimates from Within-Region Spread Model per region with model selection by AIC versus BIC. Estimates are given with $t$-statistics in parentheses. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are not modelled.}
+    		\label{tab:model_within_aic_vs_bic}\\
     		\toprule
     		                & \multicolumn{2}{c}{Model selection with AIC} & \multicolumn{2}{c}{Model selection with BIC} \\
     		                \cmidrule(lr){2-3}
@@ -1424,58 +1425,60 @@
     		\multicolumn{5}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
     		\endlastfoot
     		
-            National & 0.867*** &  & 0.867*** &  \\ 
-             & (26.564) &  & (26.564) &  \\ 
-            ABR & 0.494*** & 12.934** & 0.494*** & 12.934** \\ 
-             & (5.854) & (2.160) & (5.854) & (2.160) \\ 
-            BAS & 0.095 & & 0.095 &  \\ 
-             & (0.933) &  & (0.933) &  \\ 
-            BZ & 0.386*** & 6.532*** & 0.386*** & 6.532*** \\ 
-             & (4.541) & (3.819) & (4.541) & (3.819) \\ 
-            CAL & 0.269** & 12.544*** & 0.269** & 12.544*** \\ 
-             & (2.499) & (2.755) & (2.499) & (2.755) \\ 
-            EMR & 0.703*** & 54.997*** & 0.703*** & 54.997*** \\ 
-             & (14.736) & (3.329) & (14.736) & (3.329) \\ 
-            FVG & 0.772*** &  & 0.772*** &  \\ 
-             & (12.629) &  & (12.629) &  \\ 
-            LAZ & 0.795*** & 38.587*** & 0.795*** & 38.587*** \\ 
-             & (13.695) & (2.712) & (13.695) & (2.712) \\ 
-            LIG & 0.828*** &  & 0.828*** &  \\ 
-             & (16.459) &  & (16.459) &  \\ 
-            LOM & 0.783*** &  & 0.783*** &  \\ 
-             & (14.183) &  & (14.183) &  \\ 
-            MAR & 0.572*** & 11.050** & 0.608*** &  \\ 
-             & (9.102) & (2.055) & (9.920) &  \\ 
-            MOL & 0.348*** &  & 0.348*** &  \\ 
-             & (8.064) &  & (8.064) &  \\ 
-            PIE & 0.788*** &  & 0.788*** &  \\ 
-             & (18.917) &  & (18.917) &  \\ 
-            PUG & 0.586*** & 13.379* & 0.624*** &  \\ 
-             & (9.265) & (1.920) & (10.248) &  \\ 
-            SAR & 0.361*** &  & 0.361*** &  \\ 
-             & (3.924) &  & (3.924) &  \\ 
-            TOS & 0.702*** & 26.588*** & 0.702*** & 26.588*** \\ 
-             & (11.061) & (3.355) & (11.061) & (3.355) \\ 
-            UMB & 0.506*** & 4.070** & 0.506*** & 4.070** \\ 
-             & (5.059) & (2.501) & (5.059) & (2.501) \\ 
-            VDA & 0.298*** &  & 0.298*** &  \\ 
-             & (3.346) &  & (3.346) &  \\ 
-            VEN & 0.652*** & 22.618 & 0.699*** &  \\ 
-             & (7.784) & (1.531) & (8.933) &  \\* \bottomrule
+            National (OLS) & 0.493*** & 92.860*** & 0.493*** & 92.860*** \\ 
+             & (21.992) & (3.071) & (21.992) & (3.071) \\ 
+            National (POLS) & 0.533*** & 15.086*** & 0.533*** & 15.086*** \\ 
+             & (27.980) & (5.074) & (27.980) & (5.074) \\ 
+            ABR & 0.372*** & 2.751** & 0.440*** &  \\ 
+             & (4.952) & (2.091) & (6.387) &  \\ 
+            BAS & 0.073 &  & 0.073 &  \\ 
+             & (0.665) &  & (0.665) &  \\ 
+            BZ & 0.269*** & 2.346*** & 0.269*** & 2.346*** \\ 
+             & (3.468) & (3.683) & (3.468) & (3.683) \\ 
+            CAL & 0.242** & 2.189** & 0.242** & 2.189** \\ 
+             & (2.043) & (2.614) & (2.043) & (2.614) \\ 
+            EMR & 0.358*** & 22.416*** & 0.358*** & 22.416*** \\ 
+             & (11.673) & (4.844) & (11.673) & (4.844) \\ 
+            FVG & 0.342*** & 2.582*** & 0.342*** & 2.582*** \\ 
+             & (7.559) & (3.476) & (7.559) & (3.476) \\ 
+            LAZ & 0.494*** & 10.172*** & 0.494*** & 10.172*** \\ 
+             & (10.069) & (3.441) & (10.069) & (3.441) \\ 
+            LIG & 0.382*** & 4.179 & 0.399*** &  \\ 
+             & (11.931) & (1.430) & (13.271) &  \\ 
+            LOM & 0.583*** &  & 0.583*** &  \\ 
+             & (18.205) &  & (18.205) &  \\ 
+            MAR & 0.436*** & 2.697** & 0.473*** &  \\ 
+             & (9.376) & (2.144) & (10.775) &  \\ 
+            MOL & 0.140 & 1.855** & 0.140 & 1.855** \\ 
+             & (1.595) & (2.456) & (1.595) & (2.456) \\ 
+            PIE & 0.352*** & 7.449* & 0.363*** &  \\ 
+             & (23.006) & (1.896) & (25.048) &  \\ 
+            PUG & 0.376*** & 3.804** & 0.376*** & 3.804** \\ 
+             & (6.165) & (2.581) & (6.165) & (2.581) \\ 
+            SAR & 0.437*** &  & 0.437*** &  \\ 
+             & (4.417) &  & (4.417) &  \\ 
+            TOS & 0.281*** & 8.444*** & 0.281*** & 8.444*** \\ 
+             & (6.666) & (3.854) & (6.666) & (3.854) \\ 
+            UMB & 0.436*** & 1.428*** & 0.436*** & 1.428*** \\ 
+             & (3.936) & (3.168) & (3.936) & (3.168) \\ 
+            VDA & 0.290*** &  & 0.290*** & \\ 
+             & (4.341) &  & (4.341) &  \\ 
+            VEN & 0.489*** & 11.951* & 0.542*** &  \\ 
+             & (6.748) & (1.920) & (7.958) &  \\* \bottomrule
         \end{longtable}
 		
-		\subsection{Results from Within and Between-Region Spread Model}\label{sapp:results_within_between}
-		In Section \ref{subsec:results_within_between}, we presented the results from the within and between-region spread model \eqref{eq:model_within_between}:
+		\subsection{Results for Section \ref{sec:model_within_between}: \nameref{sec:model_within_between}} \label{sapp:model_within_between_results}
+		In Section \ref{subsec:model_within_between_results}, we presented the results from the within and between-region spread model \eqref{eq:model_within_between}:
 		    \begin{equation*}
-        		\Delta Y_{r,t} = \beta_{within}\Delta Y_{r,t-\tau} S_{r,t-\tau} + \beta_{between}S_{r,t-\tau}\sum_{c \in R \setminus r} \Delta Y_{c, t-\tau} + \delta X_{r,t} + \eta_{r,t}
+        		\Delta i_{p,t} = \beta_{within}S_{p,t-\tau}\Delta i_{p,t-\tau} + \beta_{between}S_{p,t-\tau}\sum_{c \in R \setminus r} \Delta i_{c, t-\tau} + \delta X_{p,t} + \eta_{p,t}
         	\end{equation*}
         
-        This appendix contains additional tables with results for this model. As is the case for Section \ref{subsec:results_within_between}, we use the last 100 observations.
+        This appendix contains additional tables with results for this model. As is the case for Section \ref{subsec:model_within_between_results}, we use the last 100 observations.
 		
 % 		\begin{landscape}
 		\begin{longtable}{@{}lcccccc@{}}
     		\caption{Estimates from Within and Between-Region Spread Model per region without model selection. Estimates are given with $t$-statistics in parentheses. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
-    		\label{tab:results_within_between}\\
+    		\label{tab:results_within_between_no_ms}\\
     		\toprule
     		                & \multicolumn{3}{c}{Regular model} & \multicolumn{3}{c}{Modelling undocumented infectives} \\
     		                \cmidrule(lr){2-4}
@@ -1600,18 +1603,19 @@
     	\end{longtable}
 % 		\end{landscape}
 		
-		\subsection{Results for Discrete Panel Data}\label{sapp:results_discrete_sir}
-		In Section \ref{subsec:results_discrete_sir}, we presented the results from the discrete SIR models
+		\begin{comment}
+		\subsection{Results for Section \ref{sec:discrete_sir_model}: \nameref{sec:discrete_sir_model}} \label{sapp:discrete_sir_results}
+		In Section \ref{subsec:discrete_sir_results}, we presented the results from the discrete SIR models
 		    \todo[inline, backgroundcolor=green!40]{TODO: Insert equations}
         
-        This appendix contains additional tables with results for this model. As is the case for Section \ref{subsec:results_discrete_sir}, we use the last 100 observations.
+        This appendix contains additional tables with results for this model. As is the case for Section \ref{subsec:discrete_sir_results}, we use the last 100 observations.
         
         \begin{landscape}
     	\begin{longtable}{@{}lccccccc@{}}
     		\caption{Estimates for the discrete SIR model per region comparing different values for the lag $\tau$. Estimates are given with $t$-statistics in parentheses. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are not modelled. Frequency-dependent transmission is used.}
     		\label{tab:results_discrete_regional_tau}\\
     		\toprule
-    		                & \multicolumn{3}{c}{$\tau = 1$} & \multicolumn{3}{c}{$\tau = 3$} \\
+    		                & \multicolumn{3}{c}{$\tau = 1$} & \multicolumn{3}{c}{$\tau = 14$} \\
     		                \cmidrule(lr){2-4}
                             \cmidrule(lr){5-7}
     		Region          & $\beta$ & $\beta_{two-step}$ & $\gamma$ & $\beta$ & $\beta_{two-step}$ & $\gamma$ \\* \midrule
@@ -1619,7 +1623,7 @@
     		
     		\multicolumn{7}{c}{{\bfseries Table \thetable\ continued from previous page}} \\
     		\toprule
-    		                & \multicolumn{3}{c}{$\tau = 1$} & \multicolumn{3}{c}{$\tau = 3$} \\
+    		                & \multicolumn{3}{c}{$\tau = 1$} & \multicolumn{3}{c}{$\tau = 14$} \\
     		                \cmidrule(lr){2-4}
                             \cmidrule(lr){5-7}
     		Region          & $\beta$ & $\beta_{two-step}$ & $\gamma$ & $\beta$ & $\beta_{two-step}$ & $\gamma$ \\* \midrule
@@ -1631,7 +1635,7 @@
     		
     		\multicolumn{7}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
     		\endlastfoot
-            National & $4.976 \times 10^{-5}$*** & 0.011*** & $3.626 \times 10^{-5}$*** & $5.039 \times 10^{-5}$*** & $1.142 \times 10^{-3}$*** & $3.626 \times 10^{-5}$*** \\  
+            National (OLS) & $4.976 \times 10^{-5}$*** & 0.011*** & $3.626 \times 10^{-5}$*** & $5.039 \times 10^{-5}$*** & $1.142 \times 10^{-3}$*** & $3.626 \times 10^{-5}$*** \\  
             National\_zvals & (6.544) & (31.512) & (5.571) & (6.455) & (30.748) & (5.571) \\ 
             ABR & $6.890 \times 10^{-3}$*** & $7.247 \times 10^{-3}$*** & $5.749 \times 10^{-3}$*** & $6.907 \times 10^{-3}$*** & $7.265 \times 10^{-3}$*** & $5.749 \times 10^{-3}$*** \\ 
             ABR\_zvals & (8.637) & (38.656) & (7.216) & (8.629) & (38.376) & (7.216) \\ 
@@ -1673,43 +1677,44 @@
     	\end{landscape}
         
 		\begin{longtable}{@{}lcccccc@{}}
-		\caption{Estimates for the discrete SIR model with density-dependent transmission with panel data methods. Estimates are given with $t$-statistics (for POLS) or $z$-statistics (for RE) in parentheses. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
-		\label{tab:results_discrete_panel_density_undoc}\\
-		\toprule
-		                && \multicolumn{2}{c}{Regular model} & \multicolumn{2}{c}{Modelling undocumented infectives} \\
-		                \cmidrule(lr){3-4}
-                        \cmidrule(lr){5-6}
-		$\tau$          & Parameter & $POLS$ & $RE$ & $POLS$ & $RE$ \\* \midrule
-		\endfirsthead
-		
-		\multicolumn{6}{c}{{\bfseries Table \thetable\ continued from previous page}} \\
-		\toprule
-		                && \multicolumn{2}{c}{Regular model} & \multicolumn{2}{c}{Modelling undocumented infectives} \\
-		                \cmidrule(lr){3-4}
-                        \cmidrule(lr){5-6}
-		$\tau$          & Parameter & $POLS$ & $RE$ & $POLS$ & $RE$ \\* \midrule
-		\endhead
-		
-		\bottomrule
-		\multicolumn{6}{c}{{\bfseries Table \thetable\ continues on next page}}
-		\endfoot
-		
-		\multicolumn{6}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
-		\endlastfoot
-		
-        \multirow{4}{*}{1} & $\beta$ & $6.491 \times 10^{-10}$*** & $4.293 \times 10^{-10}$*** & $1.753 \times 10^{-10}$*** & $1.414 \times 10^{-10}$*** \\ 
-         &                     & (41.552) & (7.871) & (41.850) & (9.852) \\
-         & $\beta_{two-step}$  & $6.454 \times 10^{-10}$*** & $-1.779 \times 10^{-10}$*** & $1.746 \times 10^{-10}$*** & $1.310 \times 10^{-10}$*** \\ 
-         &                     & (115.217) & ($-3.810$) & (56.363) & (9.601) \\ 
-        \midrule
-        \multirow{4}{*}{3} & $\beta$             & $6.502 \times 10^{-10}$*** & $4.150 \times 10^{-10}$*** & $1.753 \times 10^{-10}$*** & $1.387 \times 10^{-10}$*** \\ 
-         &                     & (41.411) & (7.577) & (41.737) & (9.636) \\ 
-         & $\beta_{two-step}$  & $6.472 \times 10^{-10}$*** & $-2.161 \times 10^{-10}$*** & $1.748 \times 10^{-10}$*** & $1.277 \times 10^{-10}$*** \\ 
-         &                     & (114.744) & ($-4.691$) & (56.211) & (9.340) \\
-        \midrule
-         & $\gamma$            & $4.343 \times 10^{-3}$*** & $4.213 \times 10^{-3}$*** & $5.545 \times 10^{-4}$*** & $5.479 \times 10^{-4}$*** \\ 
-         &                     & (38.070) & (25.777) & (38.996) & (28.908) \\* \bottomrule
-	\end{longtable}
+    		\caption{Estimates for the discrete SIR model with density-dependent transmission with panel data methods. Estimates are given with $t$-statistics (for POLS) or $z$-statistics (for RE) in parentheses. Data spans May 9 till August 16, 2020 (100 days). Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
+    		\label{tab:results_discrete_panel_density_undoc}\\
+    		\toprule
+    		                && \multicolumn{2}{c}{Regular model} & \multicolumn{2}{c}{Modelling undocumented infectives} \\
+    		                \cmidrule(lr){3-4}
+                            \cmidrule(lr){5-6}
+    		$\tau$          & Parameter & $POLS$ & $RE$ & $POLS$ & $RE$ \\* \midrule
+    		\endfirsthead
+    		
+    		\multicolumn{6}{c}{{\bfseries Table \thetable\ continued from previous page}} \\
+    		\toprule
+    		                && \multicolumn{2}{c}{Regular model} & \multicolumn{2}{c}{Modelling undocumented infectives} \\
+    		                \cmidrule(lr){3-4}
+                            \cmidrule(lr){5-6}
+    		$\tau$          & Parameter & $POLS$ & $RE$ & $POLS$ & $RE$ \\* \midrule
+    		\endhead
+    		
+    		\bottomrule
+    		\multicolumn{6}{c}{{\bfseries Table \thetable\ continues on next page}}
+    		\endfoot
+    		
+    		\multicolumn{6}{c}{Significance levels: * = 0.1 ** = 0.05, *** = 0.01}
+    		\endlastfoot
+    		
+            \multirow{4}{*}{1} & $\beta$ & $6.491 \times 10^{-10}$*** & $4.293 \times 10^{-10}$*** & $1.753 \times 10^{-10}$*** & $1.414 \times 10^{-10}$*** \\ 
+             &                     & (41.552) & (7.871) & (41.850) & (9.852) \\
+             & $\beta_{two-step}$  & $6.454 \times 10^{-10}$*** & $-1.779 \times 10^{-10}$*** & $1.746 \times 10^{-10}$*** & $1.310 \times 10^{-10}$*** \\ 
+             &                     & (115.217) & ($-3.810$) & (56.363) & (9.601) \\ 
+            \midrule
+            \multirow{4}{*}{3} & $\beta$             & $6.502 \times 10^{-10}$*** & $4.150 \times 10^{-10}$*** & $1.753 \times 10^{-10}$*** & $1.387 \times 10^{-10}$*** \\ 
+             &                     & (41.411) & (7.577) & (41.737) & (9.636) \\ 
+             & $\beta_{two-step}$  & $6.472 \times 10^{-10}$*** & $-2.161 \times 10^{-10}$*** & $1.748 \times 10^{-10}$*** & $1.277 \times 10^{-10}$*** \\ 
+             &                     & (114.744) & ($-4.691$) & (56.211) & (9.340) \\
+            \midrule
+             & $\gamma$            & $4.343 \times 10^{-3}$*** & $4.213 \times 10^{-3}$*** & $5.545 \times 10^{-4}$*** & $5.479 \times 10^{-4}$*** \\ 
+             &                     & (38.070) & (25.777) & (38.996) & (28.908) \\* \bottomrule
+    	\end{longtable}
+		\end{comment}
 		
 		\newpage
 		\section{Figures} \label{app:figures}
@@ -1774,20 +1779,20 @@
     	    \label{fig:incidence_sud_weekday}
     	\end{figure}
 		
-		\subsection{Plots of $\beta_{within}$ over time} \label{sapp:model1_plots}
-		In Section \ref{subsec:results_within} we presented the plots of $\beta_{within}$ over time for the \textit{Nord-Est} (North-East) NUTS 1 region for Within-Region Spread Model. In this section, we present the plots for the other NUTS 1 regions. As is the case for Section \ref{subsec:results_within}, we use the last 100 observations. \\
+		\subsection{Figures for Section \ref{sec:model_within}: \nameref{sec:model_within}} \label{sapp:model_within_figures}
+		In Section \ref{subsec:model_within_results} we presented the plots of $\beta_{within}$ over time for the \textit{Nord-Est} (North-East) NUTS 1 region for Within-Region Spread Model. In this section, we present the plots for the other NUTS 1 regions. As is the case for Section \ref{subsec:model_within_results}, we use the last 100 observations. \\
 		
 		\begin{figure}[H]
     	    \centering
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Ovest_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Ovest_rolling.pdf}
     	      \caption{Without model selection}
     	      \label{fig:beta_within_over_time_northwest_regular}
     	    \end{subfigure}\newline
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Ovest_aic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Ovest_aic_rolling.pdf}
     	      \caption{With model selection by AIC}
     	      \label{fig:beta_within_over_time_northwest_aic}
     	    \end{subfigure}
@@ -1795,13 +1800,13 @@
         \begin{figure}[H]\ContinuedFloat
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Ovest_UndocQuadratic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Ovest_UndocQuadratic_rolling.pdf}
     	      \caption{Without model selection; \\ including undocumented infectives}
     	      \label{fig:beta_within_over_time_northwest_regular_undoc}
     	    \end{subfigure}\newline
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Nord-Ovest_aic_UndocQuadratic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Nord-Ovest_aic_UndocQuadratic_rolling.pdf}
     	      \caption{With model selection by AIC; \\ including undocumented infectives}
     	      \label{fig:beta_within_over_time_northwest_aic_undoc}
     	    \end{subfigure}
@@ -1813,13 +1818,13 @@
     	    \centering
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Centro (IT)_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Centro (IT)_rolling.pdf}
     	      \caption{Without model selection}
     	      \label{fig:beta_within_over_time_centro_regular}
     	    \end{subfigure}\newline
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Centro (IT)_aic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Centro (IT)_aic_rolling.pdf}
     	      \caption{With model selection by AIC}
     	      \label{fig:beta_within_over_time_centro_aic}
     	    \end{subfigure}
@@ -1827,13 +1832,13 @@
         \begin{figure}[H]\ContinuedFloat
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Centro (IT)_UndocQuadratic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Centro (IT)_UndocQuadratic_rolling.pdf}
     	      \caption{Without model selection; \\ including undocumented infectives}
     	      \label{fig:beta_within_over_time_centro_regular_undoc}
     	    \end{subfigure}\newline
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Centro (IT)_aic_UndocQuadratic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Centro (IT)_aic_UndocQuadratic_rolling.pdf}
     	      \caption{With model selection by AIC; \\ including undocumented infectives}
     	      \label{fig:beta_within_over_time_centro_aic_undoc}
     	    \end{subfigure}
@@ -1845,13 +1850,13 @@
     	    \centering
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Sud_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Sud_rolling.pdf}
     	      \caption{Without model selection}
     	      \label{fig:beta_within_over_time_sud_regular}
     	    \end{subfigure}\newline
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Sud_aic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Sud_aic_rolling.pdf}
     	      \caption{With model selection by AIC}
     	      \label{fig:beta_within_over_time_sud_aic}
     	    \end{subfigure}
@@ -1859,13 +1864,13 @@
         \begin{figure}[H]\ContinuedFloat
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Sud_UndocQuadratic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Sud_UndocQuadratic_rolling.pdf}
     	      \caption{Without model selection; \\ including undocumented infectives}
     	      \label{fig:beta_within_over_time_sud_regular_undoc}
     	    \end{subfigure}\newline
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Sud_aic_UndocQuadratic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Sud_aic_UndocQuadratic_rolling.pdf}
     	      \caption{With model selection by AIC; \\ including undocumented infectives}
     	      \label{fig:beta_within_over_time_sud_aic_undoc}
     	    \end{subfigure}
@@ -1877,13 +1882,13 @@
     	    \centering
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Isole_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Isole_rolling.pdf}
     	      \caption{Without model selection}
     	      \label{fig:beta_within_over_time_isole_regular}
     	    \end{subfigure}\newline
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Isole_aic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Isole_aic_rolling.pdf}
     	      \caption{With model selection by AIC}
     	      \label{fig:beta_within_over_time_isole_aic}
     	    \end{subfigure}
@@ -1891,13 +1896,13 @@
         \begin{figure}[H]\ContinuedFloat
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Isole_UndocQuadratic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Isole_UndocQuadratic_rolling.pdf}
     	      \caption{Without model selection; \\ including undocumented infectives}
     	      \label{fig:beta_within_over_time_isole_regular_undoc}
     	    \end{subfigure}\newline
     	    \begin{subfigure}{\textwidth}
     	      \centering
-    	      \includegraphics[width=0.95\linewidth]{output/model1_lag3_betawithin_Isole_aic_UndocQuadratic_rolling.pdf}
+    	      \includegraphics[width=0.95\linewidth]{output/model_within_lag14_betawithin_Isole_aic_UndocQuadratic_rolling.pdf}
     	      \caption{With model selection by AIC; \\ including undocumented infectives}
     	      \label{fig:beta_within_over_time_isole_aic_undoc}
     	    \end{subfigure}
@@ -1905,8 +1910,8 @@
     	    \label{fig:beta_within_over_time_isole}
 	    \end{figure}
 		
-		\subsection{Plots for Within and Between-Region Spread Model} \label{sapp:model3_plots}
-		In Section \ref{subsec:results_within_between} we presented the plots of $\beta_{within}$ and $\beta_{between}$ over time for the \textit{Nord-Est} (North-East) NUTS 1 region for Within and Between-Region Spread Model. In this section, we present the plots for the other NUTS 1 regions. As is the case for Section \ref{subsec:results_within_between}, we use the last 100 observations.
+		\subsection{Figures for Section \ref{sec:model_within_between}: \nameref{sec:model_within_between}} \label{sapp:model_within_between_figures}
+		In Section \ref{subsec:model_within_between_results} we presented the plots of $\beta_{within}$ and $\beta_{between}$ over time for the \textit{Nord-Est} (North-East) NUTS 1 region for Within and Between-Region Spread Model. In this section, we present the plots for the other NUTS 1 regions. As is the case for Section \ref{subsec:model_within_between_results}, we use the last 100 observations.
 		
 		\begin{figure}[H]
     	    \centering
@@ -2010,17 +2015,17 @@
 		\subsection{Calculation of population variables}\label{sapp:derivation_population_variables}
 		In this appendix, we will explain how the susceptible population and total population are calculated. Unfortunately, we do not have data on the total population per day. For this reason, we retrieve the latest population numbers per region from \textcite{eurostatDatabase}, which are from January 1, 2019, and the yearly population growth rates for 2019 and 2020 from \textcite{worldometer2020italypopulation}. For 2019, growth rate was equal to -0.13\% and for 2020, excluding the deaths due to the pandemic, it was estimated to be equal to -0.15\%. We only have the population growth rates available for the whole of Italy, not per region, unfortunately. As such, we assume that the growth rates are uniformly applicable to all regions. Of course, this is likely to introduce a small error since these growth rates differ over the regions. We assume that this error is negligible. \\
 		
-		We denote the population of region $r$ at time $t$ by $N_{r,t}$. We denote the yearly population growth rates for 2019 and 2020 by $g_{2019}$ and $g_{2020}$, respectively. Lastly, recall that the data for the pandemic starts at February 25, 2020. This is the 54\textsuperscript{th} day of 2020, a leap year. As such, the population of region $r$ on February 25, 2020 is calculated as:
+		We denote the population of region $p$ at time $t$ by $N_{p,t}$. We denote the yearly population growth rates for 2019 and 2020 by $g_{2019}$ and $g_{2020}$, respectively. Lastly, recall that the data for the pandemic starts at February 25, 2020. This is the 54\textsuperscript{th} day of 2020, a leap year. As such, the population of region $p$ on February 25, 2020 is calculated as:
 		\begin{equation}\label{eq:calc_total_population}
-		    N_{r, 2020\shortminus02\shortminus25} = (1+g_{2019})(1+g_{2020})^{\frac{54}{366}}N_{r, 2019\shortminus01\shortminus01} - D_{r, 2020\shortminus02\shortminus25}
+		    N_{p, 2020\shortminus02\shortminus25} = (1+g_{2019})(1+g_{2020})^{\frac{54}{366}}N_{p, 2019\shortminus01\shortminus01} - D_{p, 2020\shortminus02\shortminus25}
 		\end{equation}
-		where $D_{r,t}$ denotes the number of deaths in region $r$ at time $t$. \\
+		where $D_{p,t}$ denotes the number of deaths in region $p$ at time $t$. \\
 		
-		Recall that the data reported at time $t$ is reported with respect to the last 24 hours. As such, the susceptible population at time $t$ can be calculated with the data at that same time. The susceptible population of region $r$ at time $t$, denoted by $X_{r,t}$, is therefore calculated as follows:
+		Recall that the data reported at time $t$ is reported with respect to the last 24 hours. As such, the susceptible population at time $t$ can be calculated with the data at that same time. The susceptible population of region $p$ at time $t$, denoted by $s_{p,t}$, is therefore calculated as follows:
 		\begin{equation}\label{eq:calc_susceptible_population}
-		    X_{r,t} = N_{r,t} - Y_{r,t} - Z_{r,t}
+		    s_{p,t} = N_{p,t} - i_{p,t} - r_{p,t}
 		\end{equation}
-		where $Y_{r,t}$ denotes the number of infectives and $Z_{r,t}$ denotes the number of removed individuals. Recall that $r$ is made up by adding the recovered individuals and the deceased individuals. Because we use the calculation of $N_{r,t}$ as in the previous paragraph, the error discussed propagates into the calculation of $X_{r,t}$. However, as before, we assume that this error is negligible.
+		where $i_{p,t}$ denotes the number of infectives and $r_{p,t}$ denotes the number of removed individuals. Recall that $r$ is made up by adding the recovered individuals and the deceased individuals. Because we use the calculation of $N_{p,t}$ as in the previous paragraph, the error discussed propagates into the calculation of $i_{p,t}$. However, as before, we assume that this error is negligible.
 		
 		\subsection{Functional forms for modelling undocumented infectives}\label{sapp:derivation_undocumented_infectives}
 		In this appendix, we give the derivations for the functional forms for modelling undocumented infectives as discussed in Section \ref{sec:undocumented_modelling}.
