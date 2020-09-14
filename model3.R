@@ -34,19 +34,18 @@ M_regressors = c("weekend")
 
 #### Decide the parameters ####
 # You need to adapt, if desired, the following parameters:
-# tau: int, the latent period
+# tau: int, maximum incubation period
 # rolling: boolean, whether to apply a rolling window
 # window_size: int, if using a rolling window, how large?
 # form: str, the form of undocumented infections to model with (if any)
 
-# Latent period; Incubation period has median value 5; latent period is
-# estimated to be 2 days shorter: 5-2=3
-tau = 3
+# Maximum incubation period
+tau = 14
 
 # Do we want to use a rolling window_size, i.e. only use the most recent
 # `window_size` observations?
 rolling = TRUE
-window_size = 100
+window_size = 100 + tau
 
 if (rolling) {
   rolling_flag = "_rolling"
