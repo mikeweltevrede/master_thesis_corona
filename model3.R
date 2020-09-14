@@ -1,10 +1,10 @@
 rm(list=ls())
 
 #### Model 3 - Within and between-region spread ####
-# Delta Y_rt = beta_within*Delta Y_rt-tau*S_rt-tau +
-#              beta_between*S_rt-tau*\sum_{c!=r}Delta Y_ct-tau +
-#              delta*M_rt + nu_rt
-# Y_rt is the absolute number of new cases!
+# \Delta i_rt = beta_within*S_rt-tau*\Delta i_rt-tau +
+#               beta_between*S_rt-tau*\sum_{c!=r}\Delta i_ct-tau +
+#               delta*X_rt + nu_rt
+# i_rt is the absolute number of new cases!
 
 #### Set-up ####
 # Import standard variables and activate Python environment
@@ -54,7 +54,7 @@ if (rolling) {
 }
 
 # Determine if we want to model undocumented infectives and, if so, by which
-# method. Note that infective_variable is the number of new cases, i.e. Delta X.
+# method. Note that infective_variable is the number of new cases, i.e. Delta i.
 form = "Quadratic" %>%
   to_upper_camel_case
 
@@ -84,30 +84,6 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
   undoc_flag = ""
 }
 
-#### Data preparation ####
-df_sumInc = tibble(date = as.Date(NA),
-                   code = character(),
-                   sumInfectives = numeric())
-
-for (region in regions){
-  df_sumInc = df_sumInc %>%
-    bind_rows(
-      df_wide %>%
-        select(
-          map(regions[regions != region], starts_with, vars = colnames(.)) %>%
-            unlist()) %>%
-        select(ends_with(infective_variable)) %>%
-        mutate_all(dplyr::lag, n=tau) %>%
-        transmute(
-          date = df_wide$date,
-          code = region,
-          sumInfectives = rowSums(.)))
-}
-
-df_long = df_long %>%
-  left_join(df_sumInc, by = c("code", "date"))
-
-#### Models without model selection ####
 # Retrieve parameter estimates
 output_for_table = function(model, method="ols", significance=6){
   
@@ -153,15 +129,39 @@ output_for_table = function(model, method="ols", significance=6){
   return(list("estimates"=estimates, "tvals"=tvals))
 }
 
-# Create results table
-results_table = tibble(variables = c(M_regressors, "beta_w", "beta_b"))
+#### Data preparation ####
+df_sumInc = tibble(date = as.Date(NA),
+                   code = character(),
+                   sumInfectives = numeric())
 
-# Construct formula
+for (region in regions){
+  df_sumInc = df_sumInc %>%
+    bind_rows(
+      df_wide %>%
+        select(
+          map(regions[regions != region], starts_with, vars = colnames(.)) %>%
+            unlist()) %>%
+        select(ends_with(infective_variable)) %>%
+        mutate_all(dplyr::lag, n=tau) %>%
+        transmute(
+          date = df_wide$date,
+          code = region,
+          sumInfectives = rowSums(.)))
+}
+
+df_long = df_long %>%
+  left_join(df_sumInc, by = c("code", "date"))
+
+#### Models without model selection ####
 fm = glue("{infective_variable} ~ -1 +",
-          "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
-          "lag(susceptibleRate, {tau}):sumInfectives +",
+          "dplyr::lag({infective_variable}, {tau}):",
+          "dplyr::lag(susceptibleRate, {tau})+",
+          "dplyr::lag(susceptibleRate, {tau}):sumInfectives +",
           paste(M_regressors, collapse="+")) %>%
   as.formula
+
+# Create results table
+results_table = tibble(variables = c(M_regressors, "beta_w", "beta_b"))
 
 for (region in regions){
   # Select only the data for the relevant region
@@ -306,8 +306,8 @@ for (region in regions){
   
   # Use BIC for model selection
   if (rolling) {
-    model = step(lm(fm, data=tail(data, window_size)), k=log(window_size), trace=0,
-                 scope=list(
+    model = step(lm(fm, data=tail(data, window_size)), k=log(window_size),
+                 trace=0, scope=list(
                    "lower" = glue(
                      "{infective_variable} ~ -1 +",
                      "dplyr::lag({infective_variable}, {tau}):",
@@ -566,8 +566,8 @@ for (region in regions){
     # Use BIC for model selection - scope says we want to always keep
     # beta_within in
     if (rolling) {
-      model = step(lm(fm, data=data[(t-window_size+1):t, ]), k=log(window_size), trace=0,
-                   scope=list(
+      model = step(lm(fm, data=data[(t-window_size+1):t, ]), k=log(window_size),
+                   trace=0, scope=list(
                      "lower" = glue(
                        "{infective_variable} ~ -1 +",
                        "dplyr::lag({infective_variable}, {tau}):",
