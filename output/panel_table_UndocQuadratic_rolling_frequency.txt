@@ -1,23 +1,23 @@
 % latex table generated in R 4.0.2 by xtable 1.8-4 package
-% Tue Sep 08 12:23:33 2020
+% Fri Sep 11 09:59:41 2020
 \begin{table}[ht]
 \centering
 \begin{tabular}{rll}
   \hline
  & POLS & RE \\ 
   \hline
-OneBeta & 0.00112971*** & 0.00075209*** \\ 
-  OneBeta\_Z & (32.2971) & (4.36057) \\ 
-  OneBetaTwostep & 0.00114901*** & 0.0008708*** \\ 
-  OneBetaTwostep\_Z & (47.5793) & (8.09109) \\ 
-  OneGamma & 0.000443589*** & 0.000354918*** \\ 
-  OneGamma\_Z & (28.5127) & (6.12542) \\ 
-  TauBeta & 0.00112929*** & 0.000685577*** \\ 
-  TauBeta\_Z & (32.2164) & (3.8541) \\ 
-  TauBetaTwostep & 0.0011492*** & 0.000838528*** \\ 
-  TauBetaTwostep\_Z & (47.4666) & (7.58611) \\ 
-  TauGamma & 0.000443589*** & 0.000354918*** \\ 
-  TauGamma\_Z & (28.5127) & (6.12542) \\ 
+OneBeta & 0.00120859*** & 0.000713616*** \\ 
+  OneBeta\_Z & (31.694) & (3.74976) \\ 
+  OneBetaTwostep & 0.00122944*** & 0.000877607*** \\ 
+  OneBetaTwostep\_Z & (44.5394) & (7.17887) \\ 
+  OneGamma & 0.0004676*** & 0.000368316*** \\ 
+  OneGamma\_Z & (29.5031) & (6.3277) \\ 
+  TauBeta & 0.0012076*** & 0.000608288*** \\ 
+  TauBeta\_Z & (31.5882) & (3.07787) \\ 
+  TauBetaTwostep & 0.0012292*** & 0.000822828*** \\ 
+  TauBetaTwostep\_Z & (44.3973) & (6.49608) \\ 
+  TauGamma & 0.0004676*** & 0.000368316*** \\ 
+  TauGamma\_Z & (29.5031) & (6.3277) \\ 
    \hline
 \end{tabular}
 \end{table}
