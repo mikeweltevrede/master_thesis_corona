@@ -209,7 +209,8 @@ results_table = results_table %>%
 # Return a LaTeX table
 table_no_ms = xtable(results_table, math.style.exponents = TRUE)
 print(table_no_ms,
-      file=glue("{output_path}/model3_table_no_ms{undoc_flag}{rolling_flag}.txt"))
+      file=glue("{output_path}/model_between_table_no_ms{undoc_flag}",
+                "{rolling_flag}.txt"))
 
 #### Models with model selection (AIC) ####
 results_table_aic = tibble(variables = c(M_regressors, "beta_w", "beta_b"))
@@ -284,7 +285,8 @@ results_table_aic = results_table_aic %>%
 # Return a LaTeX table
 table_aic = xtable(results_table_aic, math.style.exponents = TRUE)
 print(table_aic,
-      file=glue("{output_path}/model3_table_aic{undoc_flag}{rolling_flag}.txt"))
+      file=glue("{output_path}/model_between_table_aic{undoc_flag}",
+                "{rolling_flag}.txt"))
 
 #### Models with model selection (BIC) ####
 results_table_bic = tibble(variables = c(M_regressors, "beta_w", "beta_b"))
@@ -359,7 +361,8 @@ results_table_bic = results_table_bic %>%
 # Return a LaTeX table
 table_bic = xtable(results_table_bic, math.style.exponents = TRUE)
 print(table_bic,
-      file=glue("{output_path}/model3_table_bic{undoc_flag}{rolling_flag}.txt"))
+      file=glue("{output_path}/model_between_table_bic{undoc_flag}",
+                "{rolling_flag}.txt"))
 
 #### Plot beta over time ####
 fm = glue("{infective_variable} ~ -1 +",
@@ -446,7 +449,7 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   print(g)
   
   ggsave(
-    glue("model3_lag{tau}_betas_{direc}{undoc_flag}{rolling_flag}.pdf"),
+    glue("model_between_lag{tau}_betas_{direc}{undoc_flag}{rolling_flag}.pdf"),
     path=output_path, width = 10.8, height = 6.62, units = "in")
 }
 
@@ -540,9 +543,9 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
       panel.spacing = unit(0.8, "lines"))
   print(g)
   
-  ggsave(
-    glue("model3_lag{tau}_betas_{direc}_aic{undoc_flag}{rolling_flag}.pdf"),
-    path=output_path, width = 10.8, height = 6.62, units = "in")
+  ggsave(glue("model_between_lag{tau}_betas_{direc}_aic{undoc_flag}",
+              "{rolling_flag}.pdf"),
+         path=output_path, width = 10.8, height = 6.62, units = "in")
 }
 
 #### With model selection (BIC) ####
@@ -635,7 +638,7 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
       panel.spacing = unit(0.8, "lines"))
   print(g)
   
-  ggsave(
-    glue("model3_lag{tau}_betas_{direc}_bic{undoc_flag}{rolling_flag}.pdf"),
-    path=output_path, width = 10.8, height = 6.62, units = "in")
+  ggsave(glue("model_between_lag{tau}_betas_{direc}_bic{undoc_flag}",
+              "{rolling_flag}.pdf"),
+         path=output_path, width = 10.8, height = 6.62, units = "in")
 }
