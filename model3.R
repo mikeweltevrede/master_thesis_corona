@@ -185,15 +185,16 @@ for (region in regions){
     left_join(tibble("variables" = c(M_regressors, "beta_w", "beta_b"),
                      !!glue("{region}") := unname(
                        c(estimates[M_regressors],
-                         estimates[glue("lag({infective_variable}, {tau}):",
-                                        "lag(susceptibleRate, {tau})")],
-                         estimates[glue("lag(susceptibleRate, {tau}):",
+                         estimates[
+                           glue("dplyr::lag({infective_variable}, {tau}):",
+                                "dplyr::lag(susceptibleRate, {tau})")],
+                         estimates[glue("dplyr::lag(susceptibleRate, {tau}):",
                                         "sumInfectives")])),
                      !!glue("{region}_tvals") := unname(
                        c(tvals[M_regressors],
-                         tvals[glue("lag({infective_variable}, {tau}):",
-                                    "lag(susceptibleRate, {tau})")],
-                         tvals[glue("lag(susceptibleRate, {tau}):",
+                         tvals[glue("dplyr::lag({infective_variable}, {tau}):",
+                                    "dplyr::lag(susceptibleRate, {tau})")],
+                         tvals[glue("dplyr::lag(susceptibleRate, {tau}):",
                                     "sumInfectives")]))),
               by="variables")
 }
@@ -215,8 +216,9 @@ results_table_aic = tibble(variables = c(M_regressors, "beta_w", "beta_b"))
 
 # Construct formula
 fm = glue("{infective_variable} ~ -1 +",
-          "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
-          "lag(susceptibleRate, {tau}):sumInfectives +",
+          "dplyr::lag({infective_variable}, {tau}):",
+          "dplyr::lag(susceptibleRate, {tau})+",
+          "dplyr::lag(susceptibleRate, {tau}):sumInfectives +",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -231,9 +233,9 @@ for (region in regions){
                  scope=list(
                    "lower" = glue(
                      "{infective_variable} ~ -1 +",
-                     "lag({infective_variable}, {tau}):",
-                     "lag(susceptibleRate, {tau})+",
-                     "lag(susceptibleRate, {tau}):sumInfectives") %>%
+                     "dplyr::lag({infective_variable}, {tau}):",
+                     "dplyr::lag(susceptibleRate, {tau})+",
+                     "dplyr::lag(susceptibleRate, {tau}):sumInfectives") %>%
                      as.formula,
                    "upper" = fm))
   } else {
@@ -241,9 +243,9 @@ for (region in regions){
                  scope=list(
                    "lower" = glue(
                      "{infective_variable} ~ -1 +",
-                     "lag({infective_variable}, {tau}):",
-                     "lag(susceptibleRate, {tau})+",
-                     "lag(susceptibleRate, {tau}):sumInfectives") %>%
+                     "dplyr::lag({infective_variable}, {tau}):",
+                     "dplyr::lag(susceptibleRate, {tau})+",
+                     "dplyr::lag(susceptibleRate, {tau}):sumInfectives") %>%
                      as.formula,
                    "upper" = fm))
   }
@@ -258,15 +260,16 @@ for (region in regions){
     left_join(tibble("variables" = c(M_regressors, "beta_w", "beta_b"),
                      !!glue("{region}") := unname(
                        c(estimates[M_regressors],
-                         estimates[glue("lag({infective_variable}, {tau}):",
-                                        "lag(susceptibleRate, {tau})")],
-                         estimates[glue("lag(susceptibleRate, {tau}):",
+                         estimates[
+                           glue("dplyr::lag({infective_variable}, {tau}):",
+                                "dplyr::lag(susceptibleRate, {tau})")],
+                         estimates[glue("dplyr::lag(susceptibleRate, {tau}):",
                                         "sumInfectives")])),
                      !!glue("{region}_tvals") := unname(
                        c(tvals[M_regressors],
-                         tvals[glue("lag({infective_variable}, {tau}):",
-                                    "lag(susceptibleRate, {tau})")],
-                         tvals[glue("lag(susceptibleRate, {tau}):",
+                         tvals[glue("dplyr::lag({infective_variable}, {tau}):",
+                                    "dplyr::lag(susceptibleRate, {tau})")],
+                         tvals[glue("dplyr::lag(susceptibleRate, {tau}):",
                                     "sumInfectives")]))),
               by="variables")
 }
@@ -288,8 +291,9 @@ results_table_bic = tibble(variables = c(M_regressors, "beta_w", "beta_b"))
 
 # Construct formula
 fm = glue("{infective_variable} ~ -1 +",
-          "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
-          "lag(susceptibleRate, {tau}):sumInfectives +",
+          "dplyr::lag({infective_variable}, {tau}):",
+          "dplyr::lag(susceptibleRate, {tau})+",
+          "dplyr::lag(susceptibleRate, {tau}):sumInfectives +",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -304,9 +308,9 @@ for (region in regions){
                  scope=list(
                    "lower" = glue(
                      "{infective_variable} ~ -1 +",
-                     "lag({infective_variable}, {tau}):",
-                     "lag(susceptibleRate, {tau})+",
-                     "lag(susceptibleRate, {tau}):sumInfectives") %>%
+                     "dplyr::lag({infective_variable}, {tau}):",
+                     "dplyr::lag(susceptibleRate, {tau})+",
+                     "dplyr::lag(susceptibleRate, {tau}):sumInfectives") %>%
                      as.formula,
                    "upper" = fm))
   } else {
@@ -314,9 +318,9 @@ for (region in regions){
                  scope=list(
                    "lower" = glue(
                      "{infective_variable} ~ -1 +",
-                     "lag({infective_variable}, {tau}):",
-                     "lag(susceptibleRate, {tau})+",
-                     "lag(susceptibleRate, {tau}):sumInfectives") %>%
+                     "dplyr::lag({infective_variable}, {tau}):",
+                     "dplyr::lag(susceptibleRate, {tau})+",
+                     "dplyr::lag(susceptibleRate, {tau}):sumInfectives") %>%
                      as.formula,
                    "upper" = fm))
   }
@@ -331,15 +335,16 @@ for (region in regions){
     left_join(tibble("variables" = c(M_regressors, "beta_w", "beta_b"),
                      !!glue("{region}") := unname(
                        c(estimates[M_regressors],
-                         estimates[glue("lag({infective_variable}, {tau}):",
-                                        "lag(susceptibleRate, {tau})")],
-                         estimates[glue("lag(susceptibleRate, {tau}):",
+                         estimates[
+                           glue("dplyr::lag({infective_variable}, {tau}):",
+                                "dplyr::lag(susceptibleRate, {tau})")],
+                         estimates[glue("dplyr::lag(susceptibleRate, {tau}):",
                                         "sumInfectives")])),
                      !!glue("{region}_tvals") := unname(
                        c(tvals[M_regressors],
-                         tvals[glue("lag({infective_variable}, {tau}):",
-                                    "lag(susceptibleRate, {tau})")],
-                         tvals[glue("lag(susceptibleRate, {tau}):",
+                         tvals[glue("dplyr::lag({infective_variable}, {tau}):",
+                                    "dplyr::lag(susceptibleRate, {tau})")],
+                         tvals[glue("dplyr::lag(susceptibleRate, {tau}):",
                                     "sumInfectives")]))),
               by="variables")
 }
@@ -358,8 +363,9 @@ print(table_bic,
 
 #### Plot beta over time ####
 fm = glue("{infective_variable} ~ -1 +",
-          "lag({infective_variable}, {tau}):lag(susceptibleRate, {tau})+",
-          "lag(susceptibleRate, {tau}):sumInfectives +",
+          "dplyr::lag({infective_variable}, {tau}):",
+          "dplyr::lag(susceptibleRate, {tau})+",
+          "dplyr::lag(susceptibleRate, {tau}):sumInfectives +",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -389,9 +395,10 @@ for (region in regions){
     }
     
     # Retrieve the beta estimate and append this to the list of betas
-    beta_w = coef(model)[[glue("lag({infective_variable}, {tau}):",
-                               "lag(susceptibleRate, {tau})")]]
-    beta_b = coef(model)[[glue("lag(susceptibleRate, {tau}):sumInfectives")]]
+    beta_w = coef(model)[[glue("dplyr::lag({infective_variable}, {tau}):",
+                               "dplyr::lag(susceptibleRate, {tau})")]]
+    beta_b = coef(model)[[
+      glue("dplyr::lag(susceptibleRate, {tau}):sumInfectives")]]
     betas_w = c(betas_w, beta_w)
     betas_b = c(betas_b, beta_b)
   }
@@ -465,9 +472,9 @@ for (region in regions){
                    scope=list(
                      "lower" = glue(
                        "{infective_variable} ~ -1 +",
-                       "lag({infective_variable}, {tau}):",
-                       "lag(susceptibleRate, {tau})+",
-                       "lag(susceptibleRate, {tau}):sumInfectives") %>%
+                       "dplyr::lag({infective_variable}, {tau}):",
+                       "dplyr::lag(susceptibleRate, {tau})+",
+                       "dplyr::lag(susceptibleRate, {tau}):sumInfectives") %>%
                        as.formula,
                      "upper" = fm))
     } else {
@@ -475,17 +482,18 @@ for (region in regions){
                    scope=list(
                      "lower" = glue(
                        "{infective_variable} ~ -1 +",
-                       "lag({infective_variable}, {tau}):",
-                       "lag(susceptibleRate, {tau})+",
-                       "lag(susceptibleRate, {tau}):sumInfectives") %>%
+                       "dplyr::lag({infective_variable}, {tau}):",
+                       "dplyr::lag(susceptibleRate, {tau})+",
+                       "dplyr::lag(susceptibleRate, {tau}):sumInfectives") %>%
                        as.formula,
                      "upper" = fm))
     }
     
     # Retrieve the beta estimate and append this to the list of betas
-    beta_w = coef(model)[[glue("lag({infective_variable}, {tau}):",
-                               "lag(susceptibleRate, {tau})")]]
-    beta_b = coef(model)[[glue("lag(susceptibleRate, {tau}):sumInfectives")]]
+    beta_w = coef(model)[[glue("dplyr::lag({infective_variable}, {tau}):",
+                               "dplyr::lag(susceptibleRate, {tau})")]]
+    beta_b = coef(model)[[
+      glue("dplyr::lag(susceptibleRate, {tau}):sumInfectives")]]
     betas_w = c(betas_w, beta_w)
     betas_b = c(betas_b, beta_b)
   }
@@ -559,9 +567,9 @@ for (region in regions){
                    scope=list(
                      "lower" = glue(
                        "{infective_variable} ~ -1 +",
-                       "lag({infective_variable}, {tau}):",
-                       "lag(susceptibleRate, {tau})+",
-                       "lag(susceptibleRate, {tau}):sumInfectives") %>%
+                       "dplyr::lag({infective_variable}, {tau}):",
+                       "dplyr::lag(susceptibleRate, {tau})+",
+                       "dplyr::lag(susceptibleRate, {tau}):sumInfectives") %>%
                        as.formula,
                      "upper" = fm))
     } else {
@@ -569,17 +577,18 @@ for (region in regions){
                    scope=list(
                      "lower" = glue(
                        "{infective_variable} ~ -1 +",
-                       "lag({infective_variable}, {tau}):",
-                       "lag(susceptibleRate, {tau})+",
-                       "lag(susceptibleRate, {tau}):sumInfectives") %>%
+                       "dplyr::lag({infective_variable}, {tau}):",
+                       "dplyr::lag(susceptibleRate, {tau})+",
+                       "dplyr::lag(susceptibleRate, {tau}):sumInfectives") %>%
                        as.formula,
                      "upper" = fm))
     }
     
     # Retrieve the beta estimate and append this to the list of betas
-    beta_w = coef(model)[[glue("lag({infective_variable}, {tau}):",
-                               "lag(susceptibleRate, {tau})")]]
-    beta_b = coef(model)[[glue("lag(susceptibleRate, {tau}):sumInfectives")]]
+    beta_w = coef(model)[[glue("dplyr::lag({infective_variable}, {tau}):",
+                               "dplyr::lag(susceptibleRate, {tau})")]]
+    beta_b = coef(model)[[
+      glue("dplyr::lag(susceptibleRate, {tau}):sumInfectives")]]
     betas_w = c(betas_w, beta_w)
     betas_b = c(betas_b, beta_b)
   }
