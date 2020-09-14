@@ -109,7 +109,7 @@ df_long = df_long %>%
 
 #### Models without model selection ####
 # Retrieve parameter estimates
-output_for_table = function(model, significance=6){
+output_for_table = function(model, method="ols", significance=6){
   
   get_stars = function(pval) {
     if (pval < 0.01) {
@@ -123,14 +123,29 @@ output_for_table = function(model, significance=6){
     }
   }
   
-  stars = coef(summary(model))[, "Pr(>|t|)"] %>%
+  if (method == "ols") {
+    tvar = "t"
+    tvardash = paste0(tvar, " ")
+    
+  } else {
+    
+    if (method == "random") {
+      tvar = "z"
+    } else {
+      tvar = "t"
+    }
+    
+    tvardash = paste0(tvar, "-")
+  }
+  
+  stars = coef(summary(model))[, glue("Pr(>|{tvar}|)")] %>%
     sapply(get_stars)
   estimates = coefficients(model) %>%
     signif(significance) %>%
     paste0(stars)
   names(estimates) = names(coefficients(model))
   
-  tvals = coef(summary(model))[, "t value"] %>%
+  tvals = coef(summary(model))[, glue("{tvardash}value")] %>%
     signif(significance) %>%
     sapply(function(x){paste0("(", x, ")")})
   names(tvals) = names(coefficients(model))
