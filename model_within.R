@@ -689,25 +689,30 @@ for (region in regions){
 
 # Add region and direction to the table
 tbl_beta = tbl_beta %>%
-  left_join(df_meta %>% select(c(region, code, direction)), by="code")
+  left_join(df_meta %>% select(c(region, regionGH, code, direction)), by="code")
 
 # Make a plot per direction
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  g = ggplot(sub_tbl, aes(date, betas, colour = region)) + 
+  g = ggplot(sub_tbl, aes(date, betas, colour = regionGH)) + 
     geom_point() +
     geom_smooth(method="loess", span=0.3, se=FALSE) +
     xlab("") +
     ylab(TeX("$\\beta_{within}$")) +
-    scale_colour_manual(values=c("#0072B2", # Dark blue
+    scale_colour_manual(name = "Region",
+                        values=c("#0072B2", # Dark blue
                                  "#D55E00", # Orange-brown
                                  "#CC79A7", # Pink
                                  "#009E73", # Green
                                  "#56B4E9", # Light blue
-                                 "#E69F00")) # Yellow
-  print(g)
+                                 "#E69F00")) + # Yellow
+    theme(
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12)
+    )
+  
   ggsave(glue("model_within_lag{tau}_betawithin_{direc}{undoc_flag}",
-              "{rolling_flag}.pdf"),
+              "{rolling_flag}.pdf"), plot = g,
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
 
@@ -760,25 +765,30 @@ for (region in regions){
 
 # Add region and direction to the table
 tbl_beta = tbl_beta %>%
-  left_join(df_meta %>% select(c(region, code, direction)), by="code")
+  left_join(df_meta %>% select(c(region, regionGH, code, direction)), by="code")
 
 # Make a plot per direction
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  g = ggplot(sub_tbl, aes(date, betas, colour = region)) + 
+  g = ggplot(sub_tbl, aes(date, betas, colour = regionGH)) + 
     geom_point() +
     geom_smooth(method="loess", span=0.3, se=FALSE) +
     xlab("") +
     ylab(TeX("$\\beta_{within}$")) +
-    scale_colour_manual(values=c("#0072B2", # Dark blue
+    scale_colour_manual(name = "Region",
+                        values=c("#0072B2", # Dark blue
                                  "#D55E00", # Orange-brown
                                  "#CC79A7", # Pink
                                  "#009E73", # Green
                                  "#56B4E9", # Light blue
-                                 "#E69F00")) # Yellow
-  print(g)
+                                 "#E69F00")) + # Yellow
+    theme(
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12)
+    )
+  
   ggsave(glue("model_within_lag{tau}_betawithin_{direc}_aic{undoc_flag}",
-              "{rolling_flag}.pdf"),
+              "{rolling_flag}.pdf"), plot = g,
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
 
@@ -830,12 +840,12 @@ for (region in regions){
 
 # Add region and direction to the table
 tbl_beta = tbl_beta %>%
-  left_join(df_meta %>% select(c(region, code, direction)), by="code")
+  left_join(df_meta %>% select(c(region, regionGH, code, direction)), by="code")
 
 # Make a plot per direction
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  g = ggplot(sub_tbl, aes(date, betas, colour = region)) + 
+  g = ggplot(sub_tbl, aes(date, betas, colour = regionGH)) + 
     geom_point() +
     geom_smooth(method="loess", span=0.3, se=FALSE) +
     xlab("") +
@@ -845,9 +855,13 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
                                  "#CC79A7", # Pink
                                  "#009E73", # Green
                                  "#56B4E9", # Light blue
-                                 "#E69F00")) # Yellow
-  print(g)
+                                 "#E69F00")) + # Yellow
+    theme(
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12)
+    )
+  
   ggsave(glue("model_within_lag{tau}_betawithin_{direc}_bic{undoc_flag}",
-              "{rolling_flag}.pdf"),
+              "{rolling_flag}.pdf"), plot = g,
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
