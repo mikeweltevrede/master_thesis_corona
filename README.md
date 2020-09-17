@@ -9,7 +9,7 @@ A thesis submitted in partial fulfillment of the requirements for the degree of 
 Tilburg School of Economics and Management (Tilburg University)
 
 Supervised by:\
-dr. Otilia Boldea (Tilburg University)\
+dr. Otilia Boldea (Tilburg University)
 
 Second reader:\
 dr. George Knox (Tilburg University)
