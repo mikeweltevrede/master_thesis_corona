@@ -49,7 +49,8 @@ coeff = mean(df_long$totalTested / df_long$proportionUndocumentedQuadratic) * 6
 
 ggplot(df_long, aes(x=date)) +
   geom_line(aes(y=totalTested), size=0.8, color=testedColor) + 
-  facet_wrap(vars(code)) +
+  facet_wrap(vars(regionGH),
+             nrow=unique(df_long$regionGH) %>% length %>% sqrt %>% floor) +
   geom_line(aes(y=proportionUndocumentedQuadratic * coeff), size=0.8,
             color = propColor) +
   xlab("") +
@@ -63,14 +64,16 @@ ggplot(df_long, aes(x=date)) +
     axis.title.y.right = element_text(color = propColor, size=12),
     panel.spacing = unit(0.8, "lines"))
 
-ggsave("tamponi_vs_ft.pdf", path=output_path)
+ggsave("tamponi_vs_ft.pdf", path=output_path, width = 9.7, height = 7.04,
+       units = "in")
 
 # Then for the quotient of tests to the total population
 coeff = mean(df_long$proportionTested / df_long$proportionUndocumentedQuadratic) * 3.6
 
 ggplot(df_long, aes(x=date)) +
   geom_line(aes(y=proportionTested), size=0.8, color=testedColor) + 
-  facet_wrap(vars(code)) +
+  facet_wrap(vars(regionGH),
+             nrow=unique(df_long$regionGH) %>% length %>% sqrt %>% floor) +
   geom_line(aes(y=proportionUndocumentedQuadratic * coeff), size=0.8,
             color = propColor) + 
   xlab("") +
@@ -84,7 +87,8 @@ ggplot(df_long, aes(x=date)) +
         axis.title.y.right = element_text(color = propColor, size=12),
         panel.spacing = unit(0.8, "lines"))
 
-ggsave("tamponiprop_vs_ft.pdf", path=output_path)
+ggsave("tamponiprop_vs_ft.pdf", path=output_path, width = 9.7, height = 7.04,
+       units = "in")
 
 #### Numbers of documented infections table ####
 data = df_long %>%
