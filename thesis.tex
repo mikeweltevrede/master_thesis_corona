@@ -2326,7 +2326,7 @@
 		For modelling the undocumented infectives, we want to construct a formula for a linear function that obeys the following assumptions:
 		\begin{enumerate}[label=(\Roman*)]
 		    \item\label{ass:linear_formula} $f(TC_t) = aTC_t + b$  for some $a, b \in \R$,
-		    \item\label{ass:linear_0} $f(0) = f^{min}$ for $f^{min} \in [0,1]$,
+		    \item\label{ass:linear_0} $f(0) = f^{min}$ for some $f^{min} \in [0,1]$,
 		    \item\label{ass:linear_N} $f(N_t) = 1$
 		\end{enumerate}
 		
@@ -2340,7 +2340,7 @@
 		For modelling the undocumented infectives, we want to construct a general formula for a quadratic function that obeys the following assumptions:
 		\begin{enumerate}[label=(\Roman*)]
 		    \item\label{ass:parabola_formula} $f(TC_t) = aTC_t^2 + bTC_t + c$ for some $a, b, c \in \R$,
-		    \item\label{ass:parabola_0} $f(0) = f^{min}$ for $f^{min} \in [0,1]$,
+		    \item\label{ass:parabola_0} $f(0) = f^{min}$ for some $f^{min} \in [0,1]$,
 		    \item\label{ass:parabola_N} $f(N_t) = 1$,
 		    \item\label{ass:parabola_betaN} $f(\beta N_t) = \gamma$ for $\beta, \gamma \in (0,1)$,
 		    \item\label{ass:parabola_vertex} The vertex of the parabola should be to the right of $N_t$ in the case of a downwards opening parabola and to the left of the origin in the case of an upwards opening parabola.
@@ -2445,7 +2445,7 @@
 	    \noindent Using \eqref{eq:parabola_a_b_reduced}, we can fill out $a$ and $b$ to obtain:
 		    \[TC_t = \frac{1 - 4\gamma + 3f^{min}}{4 - 8\gamma + 4f^{min}}N_t.\]
 		
-		Let $\gamma > \frac{1}{2} + \frac{1}{2}f^{min}$. Then, we need to derive $\gamma$ such that
+		Let $\gamma > \frac{1}{2} + \frac{1}{2}f^{min}$. Then, we need to derive $\gamma$ such that:
 		    \begin{align*}
 	            & \frac{1-4\gamma + 3f^{min}}{4-8\gamma + 4f^{min}}N_t \geq N_t \\
 	            \iff & \frac{1-4\gamma + 3f^{min}}{4-8\gamma + 4f^{min}} \geq 1.
@@ -2457,7 +2457,7 @@
                 \vert 1-4\gamma + 3f^{min}\vert & $\geq \vert 4-8\gamma + 4f^{min} \vert$ \label{cond_quadratic:value}
             \end{subnumcases}
 		
-		\noindent Now note that our assumption that $\gamma > \frac{1}{2} + \frac{1}{2}f^{min}$ is equivalent to $\gamma > \frac{2 + 2f^{min}}{4}$ which, in turn, is equivalent to $4-8\gamma + 4f^{min} < 0$. As such, \eqref{cond_quadratic:sign} tells us that both the numerator and denominator of the fraction are negative. Therefore, to satisfy \eqref{cond_quadratic:sign}, we need that
+		\noindent Now note that our assumption that $\gamma > \frac{1}{2} + \frac{1}{2}f^{min}$ is equivalent to $\gamma > \frac{2 + 2f^{min}}{4}$ which, in turn, is equivalent to $4-8\gamma + 4f^{min} < 0$. As such, \eqref{cond_quadratic:sign} tells us that both the numerator and denominator of the fraction are negative. Therefore, to satisfy \eqref{cond_quadratic:sign}, we need that:
 		    \begin{align*}
 		        & 1-4\gamma + 3f^{min} < 0 \\
 		        \iff & \gamma > \frac{1+3f^{min}}{4}
@@ -2470,7 +2470,7 @@
 	            \iff & \gamma \leq \frac{3 + f^{min}}{4} = \frac{3}{4} + \frac{1}{4}f^{min}.
 	        \end{align*}
 		
-		 Let $\gamma < \frac{1}{2} + \frac{1}{2}f^{min}$. Then, we need to derive $\gamma$ such that
+		 Let $\gamma < \frac{1}{2} + \frac{1}{2}f^{min}$. Then, we need to derive $\gamma$ such that:
 		    \begin{align*}
 	            & \frac{1-4\gamma + 3f^{min}}{4-8\gamma + 4f^{min}}N_t \leq 0 \\
 	            \iff & \frac{1-4\gamma + 3f^{min}}{4-8\gamma + 4f^{min}} \leq 0.
@@ -2482,7 +2482,7 @@
                 1-4\gamma + 3f^{min} \geq 0 & and $4-8\gamma + 4f^{min} < 0$ \label{cond_quadratic:option2}
             \end{subnumcases}
         
-        \noindent As before, note that our assumption that $\gamma > \frac{1}{2} + \frac{1}{2}f^{min}$ is equivalent to $4-8\gamma + 4f^{min} > 0$. As such, we know that the only condition that can be satisfied is \eqref{cond_quadratic:option1}. Therefore, we need that
+        \noindent As before, note that our assumption that $\gamma > \frac{1}{2} + \frac{1}{2}f^{min}$ is equivalent to $4-8\gamma + 4f^{min} > 0$. As such, we know that the only condition that can be satisfied is \eqref{cond_quadratic:option1}. Therefore, we need that:
             \begin{align*}
                 & 1-4\gamma + 3f^{min} \leq 0 \\
                 & \gamma \geq \frac{1 + 3f^{min}}{4} = \frac{1}{4} + \frac{3}{4}f^{min}.
@@ -2490,7 +2490,7 @@
             
 		As such, we should have that $\gamma \in \left[\frac{1}{4} + \frac{3}{4}f^{min}, \frac{3}{4} + \frac{1}{4}f^{min}\right]$. When $\gamma \in \left[\frac{1}{4} + \frac{3}{4}f^{min}, \frac{1}{2} + \frac{1}{2}f^{min}\right)$, the parabola we receive is upwards opening. On the other hand, when $\gamma \in \left(\frac{1}{2}, \frac{3}{4} + \frac{1}{4}f^{min}\right]$, the parabola we receive is downwards opening. When $\gamma = \frac{1}{2} + \frac{1}{2}f^{min}$, the function we receive is linear, since $a = \frac{2 - 4\gamma + 2f^{min}}{N_t^2} = 0$. \\
 		
-		\noindent Conclusively, we have derived that
+		Conclusively, we have derived that:
 		    \[f(TC_t) = \frac{2 - 4\gamma + 2f^{min}}{N_t^2}TC_t^2 + \frac{4\gamma - 1 - 3f^{min}}{N_t}TC_t + f^{min},\]
 		under the assumption that $\beta = \frac{1}{2}$, with $\gamma \in \left[\frac{1}{4} + \frac{3}{4}f^{min}, \frac{3}{4} + \frac{1}{4}f^{min}\right]$.
 		
@@ -2498,12 +2498,12 @@
 		For modelling the undocumented infectives, we want to construct a formula for a downwards opening quadratic function that obeys the following assumptions:
 		\begin{enumerate}[label=(\Roman*)]
 		    \item\label{ass:downwards_formula} $f(x) = ax^2 + bx + c$  for some $a, b, c \in \R$,
-		    \item\label{ass:downwards_0} $f(0) = f^{min}$ for $f^{min} \in [0,1]$,
+		    \item\label{ass:downwards_0} $f(0) = f^{min}$ for some $f^{min} \in [0,1]$,
 		    \item\label{ass:downwards_N} $f(N_t) = 1$,
 		    \item\label{ass:downwards_vertex} $f'(N_t) = 0$, i.e. the vertex of the parabola is found at $TC_t = N_t$.
 		\end{enumerate}
 		
-		Consider that any quadratic formula can be written as $f(TC_t) = a(TC_t - h)^2 + k$, which is called the vertex form, where the vertex (i.e. the extremum) of the function is $(h, k)$. By assumptions \ref{ass:downwards_N} and \ref{ass:downwards_vertex}, $h=N_t$ and $k=1$. Therefore,
+		Consider that any quadratic formula can be written as $f(TC_t) = a(TC_t - h)^2 + k$, which is called the vertex form, where the vertex (i.e. the extremum) of the function is $(h, k)$. By assumptions \ref{ass:downwards_N} and \ref{ass:downwards_vertex}, $h=N_t$ and $k=1$. Therefore:
 		    \[f(TC_t) = a(TC_t - N_t)^2 + 1.\]
 		    
 		\noindent Using assumption \ref{ass:downwards_0}, we can solve this equation for $a$:
@@ -2525,12 +2525,12 @@
 		For modelling the undocumented infectives, we want to construct a formula for an upwards opening quadratic function that obeys the following assumptions:
 		\begin{enumerate}[label=(\Roman*)]
 		    \item\label{ass:upwards_formula} $f(x) = ax^2 + bx + c$  for some $a, b, c \in \R$,
-		    \item\label{ass:upwards_0} $f(0) = f^{min}$ for $f^{min} \in [0,1]$,
+		    \item\label{ass:upwards_0} $f(0) = f^{min}$ for some $f^{min} \in [0,1]$,
 		    \item\label{ass:upwards_N} $f(N_t) = 1$,
 		    \item\label{ass:upwards_vertex} $f'(0) = 0$, i.e. the vertex of the parabola is found at $TC_t = 0$.
 		\end{enumerate}
 		
-		Just as in appendix \ref{ssapp:upwards_derivation_vertex}, we use the vertex form $f(TC_t) = a(TC_t - h)^2 + k$. By assumptions \ref{ass:upwards_N} and \ref{ass:upwards_vertex}, $h=0$ and $k=f^{min}$. Therefore,
+		Just as in appendix \ref{ssapp:upwards_derivation_vertex}, we use the vertex form $f(TC_t) = a(TC_t - h)^2 + k$. By assumptions \ref{ass:upwards_N} and \ref{ass:upwards_vertex}, $h=0$ and $k=f^{min}$. Therefore:
 		    \[f(TC_t) = a(TC_t - 0)^2 + f^{min} = aTC_t^2 + f^{min}.\]
 		    
 		\noindent Using assumption \ref{ass:upwards_0}, we can solve this equation for $a$:
@@ -2632,7 +2632,7 @@
             \end{sysmatrix}
         \end{alignat*}
 		
-		\noindent Conclusively, we have derived that
+		Conclusively, we have derived that:
 		
         \begin{equation} \label{eq:cubic_a_b_c}
 		    \begin{cases}
@@ -2643,7 +2643,7 @@
 		    \end{cases}
 		\end{equation}
 		
-		\noindent so that
+		\noindent so that:
 		\begin{align*}
 		f(TC_t) &= \frac{8 + 64\gamma_1 - 48\gamma_2 -24f^{min}}{3N_t^3}TC_t^3 + \frac{-2 - 32\gamma_1 + 20\gamma_2 + 14f^{min}}{N_t^2}TC_t^2 \\
 		&+ \frac{1 + 32\gamma_1 - 12\gamma_2 - 21f^{min}}{3N_t}TC_t + f^{min},
