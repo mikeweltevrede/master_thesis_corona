@@ -422,35 +422,38 @@ tbl_beta = tbl_beta %>%
 # Make a plot per direction; facet_wrap by regions
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  coeff = mean(sub_tbl$Within / sub_tbl$Between)
+  coeff = median(sub_tbl$Within / sub_tbl$Between)
   
-  g = sub_tbl %>%
-    ggplot(aes(x = date)) + 
-    geom_point(aes(y = Within, color = withinColor)) +
-    geom_smooth(aes(y = Within, color = withinColor), method="loess", span=0.3,
-                se=FALSE)  +
-    facet_wrap("regionGH") +
-    geom_point(aes(y = Between*coeff, color = betweenColor)) +
-    geom_smooth(aes(y = Between*coeff, color = betweenColor), method="loess",
-                span=0.3, se=FALSE)  +
-    xlab("") +
-    scale_y_continuous(name = TeX("$\\beta_{within}$\n"),
-                       sec.axis = sec_axis(
-                         ~./coeff, TeX("$\\beta_{between}$\n"))) +
-    scale_colour_manual(name = "Beta", 
-                        labels = c("Within", "Between"),
-                        values=c(withinColor, betweenColor)) + 
-    theme(
-      axis.text.y = element_text(color = withinColor),
-      axis.text.y.right = element_text(color = betweenColor),
-      axis.title.y = element_text(color = withinColor, size=12),
-      axis.title.y.right = element_text(color = betweenColor, size=12),
-      panel.spacing = unit(0.8, "lines"))
-  print(g)
+  plots = vector("list")
+  
+  sub_tbl = sub_tbl %>% 
+    pivot_longer(all_of(c("Within", "Between")))
+  
+  for (region in unique(sub_tbl$code)) {
+    region_full = filter(sub_tbl, code == !!region)$regionGH[1]
+    
+    plots[[region]] = 
+      sub_tbl %>%
+      filter(code == !!region) %>% 
+      ggplot(aes(x = date)) + 
+      geom_point(aes(y = value, color = name)) +
+      geom_smooth(aes(y = value, color = name), method="loess", span=0.3,
+                  se=FALSE)  +
+      facet_wrap(vars(name), ncol=1, scales="free_y") +
+      xlab("") +
+      ylab("") +
+      ggtitle(region_full) +
+      scale_colour_manual(name = "Beta", 
+                          labels = c("Within", "Between"),
+                          values = c(withinColor, betweenColor)) +
+      theme(legend.position = "none")
+  }
+  
+  g = do.call("grid.arrange", c(plots, ncol=floor(sqrt(length(plots)))))
   
   ggsave(
     glue("model_between_lag{tau}_betas_{direc}{undoc_flag}{rolling_flag}.pdf"),
-    path=output_path, width = 10.8, height = 6.62, units = "in")
+    plot = g, path = output_path)
 }
 
 #### With model selection (AIC) ####
@@ -517,35 +520,38 @@ tbl_beta = tbl_beta %>%
 # Make a plot per direction; facet_wrap by regions
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  coeff = mean(sub_tbl$Within / sub_tbl$Between)
+  coeff = median(sub_tbl$Within / sub_tbl$Between)
   
-  g = sub_tbl %>%
-    ggplot(aes(x = date)) + 
-    geom_point(aes(y = Within, color = withinColor)) +
-    geom_smooth(aes(y = Within, color = withinColor), method="loess", span=0.3,
-                se=FALSE)  +
-    facet_wrap("regionGH") +
-    geom_point(aes(y = Between*coeff, color = betweenColor)) +
-    geom_smooth(aes(y = Between*coeff, color = betweenColor), method="loess",
-                span=0.3, se=FALSE)  +
-    xlab("") +
-    scale_y_continuous(name = TeX("$\\beta_{within}$\n"),
-                       sec.axis = sec_axis(
-                         ~./coeff, TeX("$\\beta_{between}$\n"))) +
-    scale_colour_manual(name = "Beta", 
-                        labels = c("Within", "Between"),
-                        values=c(withinColor, betweenColor)) + 
-    theme(
-      axis.text.y = element_text(color = withinColor),
-      axis.text.y.right = element_text(color = betweenColor),
-      axis.title.y = element_text(color = withinColor, size=12),
-      axis.title.y.right = element_text(color = betweenColor, size=12),
-      panel.spacing = unit(0.8, "lines"))
-  print(g)
+  plots = vector("list")
   
-  ggsave(glue("model_between_lag{tau}_betas_{direc}_aic{undoc_flag}",
-              "{rolling_flag}.pdf"),
-         path=output_path, width = 10.8, height = 6.62, units = "in")
+  sub_tbl = sub_tbl %>% 
+    pivot_longer(all_of(c("Within", "Between")))
+  
+  for (region in unique(sub_tbl$code)) {
+    region_full = filter(sub_tbl, code == !!region)$regionGH[1]
+    
+    plots[[region]] = 
+      sub_tbl %>%
+      filter(code == !!region) %>% 
+      ggplot(aes(x = date)) + 
+      geom_point(aes(y = value, color = name)) +
+      geom_smooth(aes(y = value, color = name), method="loess", span=0.3,
+                  se=FALSE)  +
+      facet_wrap(vars(name), ncol=1, scales="free_y") +
+      xlab("") +
+      ylab("") +
+      ggtitle(region_full) +
+      scale_colour_manual(name = "Beta", 
+                          labels = c("Within", "Between"),
+                          values = c(withinColor, betweenColor)) +
+      theme(legend.position = "none")
+  }
+  
+  g = do.call("grid.arrange", c(plots, ncol=floor(sqrt(length(plots)))))
+  
+  ggsave(
+    glue("model_between_lag{tau}_betas_{direc}_aic{undoc_flag}{rolling_flag}.pdf"),
+    plot = g, path = output_path)
 }
 
 #### With model selection (BIC) ####
@@ -612,33 +618,36 @@ tbl_beta = tbl_beta %>%
 # Make a plot per direction; facet_wrap by regions
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  coeff = mean(sub_tbl$Within / sub_tbl$Between)
+  coeff = median(sub_tbl$Within / sub_tbl$Between)
   
-  g = sub_tbl %>%
-    ggplot(aes(x = date)) + 
-    geom_point(aes(y = Within, color = withinColor)) +
-    geom_smooth(aes(y = Within, color = withinColor), method="loess", span=0.3,
-                se=FALSE)  +
-    facet_wrap("regionGH") +
-    geom_point(aes(y = Between*coeff, color = betweenColor)) +
-    geom_smooth(aes(y = Between*coeff, color = betweenColor), method="loess",
-                span=0.3, se=FALSE)  +
-    xlab("") +
-    scale_y_continuous(name = TeX("$\\beta_{within}$\n"),
-                       sec.axis = sec_axis(
-                         ~./coeff, TeX("$\\beta_{between}$\n"))) +
-    scale_colour_manual(name = "Beta", 
-                        labels = c("Within", "Between"),
-                        values=c(withinColor, betweenColor)) + 
-    theme(
-      axis.text.y = element_text(color = withinColor),
-      axis.text.y.right = element_text(color = betweenColor),
-      axis.title.y = element_text(color = withinColor, size=12),
-      axis.title.y.right = element_text(color = betweenColor, size=12),
-      panel.spacing = unit(0.8, "lines"))
-  print(g)
+  plots = vector("list")
   
-  ggsave(glue("model_between_lag{tau}_betas_{direc}_bic{undoc_flag}",
-              "{rolling_flag}.pdf"),
-         path=output_path, width = 10.8, height = 6.62, units = "in")
+  sub_tbl = sub_tbl %>% 
+    pivot_longer(all_of(c("Within", "Between")))
+  
+  for (region in unique(sub_tbl$code)) {
+    region_full = filter(sub_tbl, code == !!region)$regionGH[1]
+    
+    plots[[region]] = 
+      sub_tbl %>%
+      filter(code == !!region) %>% 
+      ggplot(aes(x = date)) + 
+      geom_point(aes(y = value, color = name)) +
+      geom_smooth(aes(y = value, color = name), method="loess", span=0.3,
+                  se=FALSE)  +
+      facet_wrap(vars(name), ncol=1, scales="free_y") +
+      xlab("") +
+      ylab("") +
+      ggtitle(region_full) +
+      scale_colour_manual(name = "Beta", 
+                          labels = c("Within", "Between"),
+                          values = c(withinColor, betweenColor)) +
+      theme(legend.position = "none")
+  }
+  
+  g = do.call("grid.arrange", c(plots, ncol=floor(sqrt(length(plots)))))
+  
+  ggsave(
+    glue("model_between_lag{tau}_betas_{direc}_bic{undoc_flag}{rolling_flag}.pdf"),
+    plot = g, path = output_path)
 }
