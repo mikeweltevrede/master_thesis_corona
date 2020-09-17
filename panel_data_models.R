@@ -13,8 +13,9 @@ rm(list=ls())
 source("config.R")
 
 # Import packages
-library(snakecase)
+library(latex2exp)
 library(plm)
+library(snakecase)
 library(tidyverse)
 library(xtable)
 
@@ -25,19 +26,17 @@ df_wide = readr::read_csv(path_full_wide, col_types = do.call(
   cols, list(date = col_date(format = "%Y-%m-%d"))))
 
 #### Decide the parameters ####
-# You need to adapt, if desired, the following parameters:
-# rolling: boolean, whether to apply a rolling window_size
-# window_size: int, if using a rolling window_size, how large?
-# form: str, the form of undocumented infections to model with (if any)
+# Maximum incubation period
+tau = 14
 
-# Do we want to use a rolling window_size, i.e. only use the most recent `window_size`
-# observations?
+# Do we want to use a rolling window_size, i.e. only use the most recent
+# `window_size` observations?
 rolling = TRUE
-window_size = 100
+window_size = 100 + tau
 
 # Determine if we want to model undocumented infectives and, if so, by which
 # method. Note that infective_variable is the number of new cases, i.e. Delta X.
-form = "Quadratic" %>%
+form = "" %>%
   to_upper_camel_case
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
@@ -67,10 +66,6 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
 }
 
 #### Data preparation ####
-# Latent period; Incubation period has median value 5; latent period is
-# estimated to be 2 days shorter: 5-3=2
-tau = 3
-
 deathsNational = df_wide %>% 
   select(ends_with("_deaths")) %>% 
   rowSums
@@ -143,16 +138,15 @@ df_long = df_long %>%
   ungroup() %>%
   drop_na()
 
-
 if (rolling) {
   rolling_flag = "_rolling"
   
-  df_long = df_long %>% 
+  df_long_trimmed = df_long %>% 
     group_by(code) %>% 
     slice(tail(row_number(), window_size)) %>%
     ungroup()
   
-  df_wide = tail(df_wide, window_size)
+  df_wide_trimmed = tail(df_wide, window_size)
   
 } else {
   rolling_flag = ""
@@ -282,8 +276,13 @@ for (region in regions) {
   column = character(0)
   column_z = character(0)
   
-  data = df_long %>%
-    filter(code == !!region)
+  if (rolling) {
+    data = df_long_trimmed %>%
+      filter(code == !!region)
+  } else {
+    data = df_long %>%
+      filter(code == !!region)
+  }
   
   for (transmission in transmissions) {
     tau_var = "One"
@@ -426,8 +425,13 @@ for (region in regions) {
   column = character(0)
   column_z = character(0)
   
-  data = df_long %>%
-    filter(code == !!region)
+  if (rolling) {
+    data = df_long_trimmed %>%
+      filter(code == !!region)
+  } else {
+    data = df_long %>%
+      filter(code == !!region)
+  }
   
   for (tau_var in taus) {
     
@@ -511,10 +515,6 @@ for (transmission in transmissions) {
   for (tau_var in taus) {
     print(glue("\n\n#### Lag: {tau_var} ####"))
   
-    fm = as.formula("dY ~ -1 + YlagOne:SlagOne")
-    
-    df_long = 
-    
     fm_X = glue("d{X_var} ~ -1 + {X_var}lag{tau_var}:{Y_var}lag{tau_var}") %>%
       as.formula
     fm_Y_twostep = glue("d{Y_var}_twostep ~ -1 + ",
@@ -534,28 +534,30 @@ for (transmission in transmissions) {
       print(glue("\n\n## {toupper(method)} ##"))
       
       #### Estimate beta and gamma directly ####
-      model_s = plm(fm_X, data=df_long, model = method,
+      if (rolling) {
+        data = df_long_trimmed
+      } else {
+        data = df_long
+      }
+      
+      model_s = plm(fm_X, data=data, model = method,
                     index = c("code", "date"))
-      model_r = plm(fm_Z, data=df_long, model = method,
+      model_r = plm(fm_Z, data=data, model = method,
                     index = c("code", "date"))
       
       gamma = unname(coef(model_r))
-      # beta = -unname(coef(model_s))
-      # r = beta / gamma
       
       # Estimate beta with gamma as estimated above
-      df_long[[glue("d{Y_var}_twostep")]] = 
-        df_long[[glue("d{Y_var}")]] + gamma*df_long[[glue("{Y_var}lagOne")]]
+      data[[glue("d{Y_var}_twostep")]] = data[[glue("d{Y_var}")]] +
+        gamma*data[[glue("{Y_var}lagOne")]]
       
-      model_i = plm(fm_Y_twostep, data=df_long, model = method,
+      model_i = plm(fm_Y_twostep, data=data, model = method,
                     index = c("code", "date"))
-      
-      # beta_twostep = unname(coef(model_i))
-      # r_twostep = beta_twostep / gamma
       
       output_model_s = output_for_table(model_s, method)
       output_model_i = output_for_table(model_i, method)
       output_model_r = output_for_table(model_r, method)
+      
       
       beta_table = unname(output_model_s$estimates)
       beta_z_table = unname(output_model_s$tvals)
@@ -568,6 +570,10 @@ for (transmission in transmissions) {
         beta_table = paste0("-", beta_table)
         beta_z_table = paste0("(-", substring(beta_z_table, 3))
       }
+      
+      print(glue("Beta: {beta_table}"))
+      print(glue("Beta two-step: {unname(output_model_i$estimates)}"))
+      print(glue("Gamma: {unname(output_model_r$estimates)}"))
       
       betas = c(betas, beta_table)
       betas_z = c(betas_z, beta_z_table)
@@ -603,15 +609,112 @@ for (transmission in transmissions) {
   
 } # end transmission
 
-# TODO: Make plots over time
+#### Make plots over time ####
+tau_var = "Tau"
 
-#### NLS - TODO ####
-# removed = function(infectives, gamma) {
-#   gamma*infectives
-# }
-# 
-# nls(dR ~ -1 + removed(IlagOne, gamma),
-#     data=filter(df_long, code == "LOM"), start = list(gamma = 0.001), trace = TRUE)
-# 
-# # Google: nls r with function
-# # https://rpubs.com/RobinLovelace/nls-function
+for (tau_var in taus) {
+  fm_X = glue("dS ~ -1 + Slag{tau_var}:Ilag{tau_var}") %>%
+    as.formula
+  fm_Y_twostep = glue("dI_twostep ~ -1 + Slag{tau_var}:Ilag{tau_var}") %>%
+    as.formula
+  fm_Z = glue("dR ~ -1 + IlagOne") %>%
+    as.formula
+  
+  betas = numeric(0)
+  betas_twostep = numeric(0)
+  gammas = numeric(0)
+  
+  unique_dates = unique(df_long$date)
+  
+  for (t in window_size:length(unique_dates)){
+    start_date = ifelse(rolling, unique_dates[(t-window_size+1)], unique_dates[1])
+    
+    data = df_long %>%
+      filter(date >= start_date & date <= unique_dates[t])
+    
+    model_s = plm(fm_X, data = data, model = "pooling", index = c("code", "date"))
+    model_r = plm(fm_Z, data = data, model = "pooling", index = c("code", "date"))
+    
+    gamma = unname(coef(model_r))
+    
+    data[[glue("dI_twostep")]] = data[[glue("dI")]] + gamma*data[[glue("IlagOne")]]
+    
+    model_i = plm(fm_Y_twostep, data = data, model = "pooling",
+                  index = c("code", "date"))
+    
+    beta = -unname(coef(model_s))
+    beta_twostep = unname(coef(model_i))
+    
+    gammas = c(gammas, gamma)
+    betas = c(betas, beta)
+    betas_twostep = c(betas_twostep, beta_twostep)
+  }
+  
+  rs = betas/gammas
+  rs_twostep = betas_twostep/gammas
+  
+  tbl_plot = tibble(date = unique_dates[window_size:length(unique_dates)],
+                    betas = betas, betas_twostep = betas_twostep,
+                    gammas = gammas, rs = rs, rs_twostep = rs_twostep)
+  
+  firstColor = "#0072B2" # Dark blue
+  secondColor = "#D55E00" # Orange-brown
+  
+  # Plot of Rs
+  tbl_plot %>%
+    ggplot(aes(x = date)) + 
+    geom_point(aes(y = rs, color = firstColor)) +
+    geom_smooth(aes(y = rs, color = firstColor), method="loess",
+                span=0.3, se=FALSE) +
+    geom_point(aes(y = rs_twostep, color = secondColor)) +
+    geom_smooth(aes(y = rs_twostep, color = secondColor), method="loess",
+                span=0.3, se=FALSE) +
+    xlab("") +
+    ylab(TeX("$R_{eff}$")) +
+    scale_colour_manual(name = "", 
+                        labels = c("Regular", "Two-Step"),
+                        values = c(firstColor, secondColor)) +
+    theme(
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12)
+    )
+  
+  ggsave(glue("panel_data_lag{tau}_Reff{undoc_flag}{rolling_flag}.pdf"),
+         path=output_path, width = 8.08, height = 6.24, units = "in")
+  
+  # Plot of betas
+  tbl_plot %>%
+    ggplot(aes(x = date)) +
+    geom_point(aes(y = betas, color = firstColor)) +
+    geom_smooth(aes(y = betas, color = firstColor), method="loess",
+                span=0.3, se=FALSE) +
+    geom_point(aes(y = betas_twostep, color = secondColor)) +
+    geom_smooth(aes(y = betas_twostep, color = secondColor), method="loess",
+                span=0.3, se=FALSE) +
+    xlab("") +
+    ylab(TeX("$\\beta$")) +
+    scale_colour_manual(name = "", 
+                        labels = c("Regular", "Two-Step"),
+                        values = c(firstColor, secondColor)) +
+    theme(
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12)
+    )
+  
+  ggsave(glue("panel_data_lag{tau}_betas{undoc_flag}{rolling_flag}.pdf"),
+         path=output_path, width = 8.08, height = 6.24, units = "in")
+  
+  # Plot of gamma
+  tbl_plot %>%
+    ggplot(aes(x = date)) +
+    geom_point(aes(y = gammas, color = firstColor)) +
+    geom_smooth(aes(y = gammas, color = firstColor), method="loess",
+                span=0.3, se=FALSE) +
+    xlab("") +
+    ylab(TeX("$\\gamma$")) +
+    scale_colour_manual(values = firstColor) +
+    theme(legend.position = "none")
+  
+  ggsave(glue("panel_data_lag{tau}_gammas{undoc_flag}{rolling_flag}.pdf"),
+         path=output_path, width = 8.08, height = 6.24, units = "in")
+}
