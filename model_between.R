@@ -12,6 +12,7 @@ source("config.R")
 
 # Import packages
 library(glue)
+library(gridExtra)
 library(latex2exp)
 library(snakecase)
 library(tidyverse)
@@ -422,7 +423,6 @@ tbl_beta = tbl_beta %>%
 # Make a plot per direction; facet_wrap by regions
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  coeff = median(sub_tbl$Within / sub_tbl$Between)
   
   plots = vector("list")
   
