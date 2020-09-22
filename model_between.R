@@ -11,6 +11,7 @@ rm(list=ls())
 source("config.R")
 
 # Import packages
+library(cowplot)
 library(glue)
 library(gridExtra)
 library(latex2exp)
@@ -56,20 +57,20 @@ if (rolling) {
 
 # Determine if we want to model undocumented infectives and, if so, by which
 # method. Note that infective_variable is the number of new cases, i.e. Delta i.
-form = "Quadratic" %>%
+form = "" %>%
   to_upper_camel_case
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
                 "Cubic")){
   print(glue("#### Running models while modelling undocumented infections with",
              " the {form} functional form! ####"))
-  infective_variable = glue("infectives{form}")
+  infective_variable = glue("activeInfectives{form}")
   undoc_flag = glue("_Undoc{form}")
   
 } else if (form == ""){
   # Then do not use the undocumented infections modelling
   print("#### Running models WITHOUT modelling undocumented infections! ####")
-  infective_variable = "infectives"
+  infective_variable = "activeInfectives"
   undoc_flag = ""
   
 } else {
@@ -81,7 +82,7 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
                   "UpwardsVertex", "Cubic", ""), collapse=", ")) %>%
     print
   
-  infective_variable = "infectives"
+  infective_variable = "activeInfectives"
   undoc_flag = ""
 }
 
@@ -373,8 +374,17 @@ fm = glue("{infective_variable} ~ -1 +",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
-withinColor = "#0072B2" # Dark blue
-betweenColor = "#D55E00" # Orange-brown
+firstColor = "#0072B2" # Dark blue
+secondColor = "#D55E00" # Orange-brown
+
+# Table to shade the lockdown
+lockdown_start = head(df_wide$date[which(df_wide$lockdown == 1)], 1)
+lockdown_end = tail(df_wide$date[which(df_wide$lockdown == 1)], 1)
+
+tbl_rects = tibble(
+  xstart = lockdown_start,
+  xend = lockdown_end
+)
 
 #### Without model selection ####
 tbl_beta = tibble(date = as.Date(NA), Within=numeric(0), Between=numeric(0),
@@ -432,28 +442,42 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   for (region in unique(sub_tbl$code)) {
     region_full = filter(sub_tbl, code == !!region)$regionGH[1]
     
-    plots[[region]] = 
+    g = 
       sub_tbl %>%
       filter(code == !!region) %>% 
       ggplot(aes(x = date)) + 
       geom_point(aes(y = value, color = name)) +
       geom_smooth(aes(y = value, color = name), method="loess", span=0.3,
-                  se=FALSE)  +
-      facet_wrap(vars(name), ncol=1, scales="free_y") +
+                  se=TRUE) +
+      facet_wrap(vars(name), ncol=1, scales="free_y")
+    
+    if (lockdown_end >= min(sub_tbl$date)) {
+      g = g +
+        geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                          ymax = Inf), alpha = 0.2)
+    }
+    
+    g = g +
       xlab("") +
       ylab("") +
       ggtitle(region_full) +
       scale_colour_manual(name = "Beta", 
                           labels = c("Within", "Between"),
-                          values = c(withinColor, betweenColor)) +
-      theme(legend.position = "none")
+                          values = c(firstColor, secondColor)) +
+      theme(
+        legend.position = "none",
+        axis.title=element_text(size=16),
+        axis.text=element_text(size=14)
+        )
+    
+    plots[[region]] = g
   }
   
-  g = do.call("grid.arrange", c(plots, ncol=floor(sqrt(length(plots)))))
+  g = do.call("grid.arrange", c(plots, ncol=ceiling(sqrt(length(plots)))))
   
   ggsave(
     glue("model_between_lag{tau}_betas_{direc}{undoc_flag}{rolling_flag}.pdf"),
-    plot = g, path = output_path)
+    plot = g, path = output_path, width = 10.8, height = 6.62, units = "in")
 }
 
 #### With model selection (AIC) ####
@@ -530,28 +554,42 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   for (region in unique(sub_tbl$code)) {
     region_full = filter(sub_tbl, code == !!region)$regionGH[1]
     
-    plots[[region]] = 
+    g = 
       sub_tbl %>%
       filter(code == !!region) %>% 
       ggplot(aes(x = date)) + 
       geom_point(aes(y = value, color = name)) +
       geom_smooth(aes(y = value, color = name), method="loess", span=0.3,
-                  se=FALSE)  +
-      facet_wrap(vars(name), ncol=1, scales="free_y") +
+                  se=TRUE)  +
+      facet_wrap(vars(name), ncol=1, scales="free_y")
+    
+    if (lockdown_end >= min(sub_tbl$date)) {
+      g = g + 
+        geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                          ymax = Inf), alpha = 0.2)
+    }
+    
+    g = g +
       xlab("") +
       ylab("") +
       ggtitle(region_full) +
       scale_colour_manual(name = "Beta", 
                           labels = c("Within", "Between"),
-                          values = c(withinColor, betweenColor)) +
-      theme(legend.position = "none")
+                          values = c(firstColor, secondColor)) +
+      theme(
+        legend.position = "none",
+        axis.title=element_text(size=16),
+        axis.text=element_text(size=14)
+        )
+    
+    plots[[region]] = g
   }
   
-  g = do.call("grid.arrange", c(plots, ncol=floor(sqrt(length(plots)))))
+  g = do.call("grid.arrange", c(plots, ncol=ceiling(sqrt(length(plots)))))
   
   ggsave(
     glue("model_between_lag{tau}_betas_{direc}_aic{undoc_flag}{rolling_flag}.pdf"),
-    plot = g, path = output_path)
+    plot = g, path = output_path, width = 10.8, height = 6.62, units = "in")
 }
 
 #### With model selection (BIC) ####
@@ -628,28 +666,44 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   for (region in unique(sub_tbl$code)) {
     region_full = filter(sub_tbl, code == !!region)$regionGH[1]
     
-    plots[[region]] = 
+    g = 
       sub_tbl %>%
       filter(code == !!region) %>% 
       ggplot(aes(x = date)) + 
       geom_point(aes(y = value, color = name)) +
       geom_smooth(aes(y = value, color = name), method="loess", span=0.3,
-                  se=FALSE)  +
-      facet_wrap(vars(name), ncol=1, scales="free_y") +
+                  se=TRUE)  +
+      facet_wrap(vars(name), ncol=1, scales="free_y")
+    
+    if (lockdown_end >= min(sub_tbl$date)) {
+      g = g + 
+        geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                          ymax = Inf), alpha = 0.2)
+    }
+    
+    g = g +
       xlab("") +
       ylab("") +
       ggtitle(region_full) +
       scale_colour_manual(name = "Beta", 
                           labels = c("Within", "Between"),
-                          values = c(withinColor, betweenColor)) +
-      theme(legend.position = "none")
+                          values = c(firstColor, secondColor)) +
+      theme(
+        legend.position = "none",
+        axis.title=element_text(size=16),
+        axis.text=element_text(size=14)
+        )
+    
+    plots[[region]] = g
   }
   
-  g = do.call("grid.arrange", c(plots, ncol=floor(sqrt(length(plots)))))
+  g = do.call("grid.arrange", c(plots, ncol=ceiling(sqrt(length(plots)))))
   
   ggsave(
     glue("model_between_lag{tau}_betas_{direc}_bic{undoc_flag}{rolling_flag}.pdf"),
-    plot = g, path = output_path)
+    plot = g, path = output_path, width = 10.8, height = 6.62, units = "in")
+}
+
 #### Forecasts ####
 start = 20
 window_size = start + tau

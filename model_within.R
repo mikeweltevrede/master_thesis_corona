@@ -9,7 +9,9 @@ rm(list=ls())
 source("config.R")
 
 # Import packages
+library(cowplot)
 library(glue)
+library(gridExtra)
 library(gtools)
 library(latex2exp)
 library(plm)
@@ -18,8 +20,10 @@ library(tidyverse)
 library(xtable)
 
 # Import data
+df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
 df_long = readr::read_csv(path_full_long, col_types = do.call(
-  cols, list(date = col_date(format = "%Y-%m-%d"))))
+  cols, list(date = col_date(format = "%Y-%m-%d")))) %>%
+  left_join(df_meta %>% select(code, regionGH, direction), by="code")
 df_wide = readr::read_csv(path_full_wide, col_types = do.call(
   cols, list(date = col_date(format = "%Y-%m-%d"))))
 
@@ -42,7 +46,15 @@ tau = 14
 # Do we want to use a rolling window_size, i.e. only use the most recent
 # `window_size` observations?
 rolling = TRUE
-window_size = 100 + tau
+window_size = 100
+
+if (window_size == 100){
+  window_flag = ""
+} else {
+  window_flag = glue("window{window_size}")
+}
+
+window_size = window_size + tau
 
 if (rolling) {
   rolling_flag = "_rolling"
@@ -60,19 +72,33 @@ if (rolling) {
 # method. Note that infective_variable is the number of new cases, i.e. \Delta i
 form = "" %>%
   to_upper_camel_case
+name_gamma = ""
+
+if (!(name_gamma %in% c("Six", "SixtyFive", "", "SeventyFive"))) {
+  sprintf(paste("The variable `name_gamma` is %s but it should be one",
+                "of %s. Setting gamma to 0.7, the default."),
+          name_gamma,
+          paste(c("Six", "SixtyFive", "", "SeventyFive"),
+                collapse=", "))
+  
+  name_gamma = ""
+}
 
 if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
                 "Cubic")){
   print(glue("#### Running models while modelling undocumented infections with",
-             " the {form} functional form! ####"))
-  infective_variable = glue("infectives{form}")
-  undoc_flag = glue("_Undoc{form}")
+             " the {form}{name_gamma} functional form! ####"))
+  
+  infective_variable = glue("activeInfectives{form}{name_gamma}")
+  undoc_flag = glue("_Undoc{form}{name_gamma}")
+  undoc_type = glue("{form}{name_gamma}")
   
 } else if (form == ""){
   # Then do not use the undocumented infections modelling
   print("#### Running models WITHOUT modelling undocumented infections! ####")
-  infective_variable = "infectives"
+  infective_variable = "activeInfectives"
   undoc_flag = ""
+  undoc_type = ""
   
 } else {
   sprintf(paste("The variable `form` is %s but it should be one of %s.",
@@ -83,8 +109,9 @@ if (form %in% c("Linear", "Quadratic", "DownwardsVertex", "UpwardsVertex",
                   "UpwardsVertex", "Cubic", ""), collapse=", ")) %>%
     print
 
-  infective_variable = "infectives"
+  infective_variable = "activeInfectives"
   undoc_flag = ""
+  undoc_type = ""
 }
 
 # Function to add stars to the estimates according to the p-values, as well as
@@ -139,9 +166,9 @@ results_table = tibble(variables = c(M_regressors, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational{form} ~ -1 + ",
-          "dplyr::lag(infectivesNational{form}, {tau}):",
-          "dplyr::lag(susceptibleRateNational, {tau}) +",
+fm = glue("activeInfectivesNational{undoc_type} ~ -1 + ",
+          "dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+          "dplyr::lag(susceptibleRateNational{undoc_type}, {tau}) +",
   paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -165,20 +192,20 @@ results_table = results_table %>%
                    "National" = unname(
                      c(estimates[M_regressors],
                        estimates[
-                         glue("dplyr::lag(infectivesNational{form}, {tau}):",
-                              "dplyr::lag(susceptibleRateNational, {tau})")])),
+                         glue("dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                              "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})")])),
                    "National_tvals" = unname(
                      c(tvals[M_regressors],
                        tvals[
-                         glue("dplyr::lag(infectivesNational{form}, {tau}):",
-                              "dplyr::lag(susceptibleRateNational, {tau})")]))),
+                         glue("dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                              "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})")]))),
             by="variables")
 
 #### Pooled OLS ####
 # Construct formula
 fm = glue("{infective_variable} ~ -1 + ",
           "dplyr::lag({infective_variable}, {tau}):",
-          "dplyr::lag(susceptibleRate, {tau})+",
+          "dplyr::lag(susceptibleRate{undoc_type}, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -202,12 +229,12 @@ results_table = results_table %>%
                      c(estimates[M_regressors],
                        estimates[
                          glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")])),
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")])),
                    "National_tvals_POLS" = unname(
                      c(tvals[M_regressors],
                        tvals[
                          glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")]))),
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]))),
             by="variables")
 
 #### Regional models ####
@@ -235,12 +262,12 @@ for (region in regions){
                        c(estimates[M_regressors],
                          estimates[
                            glue("dplyr::lag({infective_variable}, {tau}):",
-                                "dplyr::lag(susceptibleRate, {tau})")])),
+                                "dplyr::lag(susceptibleRate{undoc_type}, {tau})")])),
                      !!glue("{region}_tvals") := unname(
                        c(tvals[M_regressors],
                          tvals[
                            glue("dplyr::lag({infective_variable}, {tau}):",
-                                "dplyr::lag(susceptibleRate, {tau})")]))),
+                                "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]))),
               by="variables")
 }
 
@@ -260,16 +287,16 @@ results_table = rbind(
 table_no_ms = xtable(results_table, math.style.exponents = TRUE)
 print(table_no_ms,
       file=glue("{output_path}/model_within_table_no_ms{undoc_flag}",
-                "{rolling_flag}.txt"))
+                "{rolling_flag}{window_flag}.txt"))
 
 #### Models with model selection (AIC) ####
 results_table_aic = tibble(variables = c(M_regressors, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational{form} ~ -1 + ",
-          "dplyr::lag(infectivesNational{form}, {tau}):",
-          "dplyr::lag(susceptibleRateNational, {tau})+",
+fm = glue("activeInfectivesNational{undoc_type} ~ -1 + ",
+          "dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+          "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -277,17 +304,17 @@ fm = glue("infectivesNational{form} ~ -1 + ",
 if (rolling) {
   model = step(lm(fm, data=tail(df_wide, window_size)), k=2, trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational{form} ~ -1 + ",
-                                "dplyr::lag(infectivesNational{form}, {tau}):",
-                                "dplyr::lag(susceptibleRateNational, {tau})") %>%
+                 "lower" = glue("activeInfectivesNational{undoc_type} ~ -1 + ",
+                                "dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                                "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})") %>%
                    as.formula,
                  "upper" = fm))
 } else {
   model = step(lm(fm, data=df_wide), k=2, trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational{form} ~ -1 + ",
-                                "dplyr::lag(infectivesNational{form}, {tau}):",
-                                "dplyr::lag(susceptibleRateNational, {tau})") %>%
+                 "lower" = glue("activeInfectivesNational{undoc_type} ~ -1 + ",
+                                "dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                                "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})") %>%
                    as.formula,
                  "upper" = fm))
 }
@@ -303,13 +330,13 @@ results_table_aic = results_table_aic %>%
                    "National" = unname(
                      c(estimates[M_regressors],
                        estimates[
-                         glue("dplyr::lag(infectivesNational{form}, {tau}):",
-                              "dplyr::lag(susceptibleRateNational, {tau})")])),
+                         glue("dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                              "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})")])),
                    "National_tvals" = unname(
                      c(tvals[M_regressors],
                        tvals[
-                         glue("dplyr::lag(infectivesNational{form}, {tau}):",
-                              "dplyr::lag(susceptibleRateNational, {tau})")]))),
+                         glue("dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                              "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})")]))),
             by="variables")
 
 #### Pooled OLS ####
@@ -335,7 +362,7 @@ aicbic_plm <- function(object, criterion) {
 # Construct formula
 fm_base = glue("{infective_variable} ~ -1 + ",
                "dplyr::lag({infective_variable}, {tau}):",
-               "dplyr::lag(susceptibleRate, {tau})") %>%
+               "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
   as.formula
 
 if (rolling) {
@@ -354,7 +381,7 @@ for (i in 1:length(M_regressors)) {
   for (r in 1:nrow(combos)) {
     fm_temp = glue("{infective_variable} ~ -1 + ",
                       "dplyr::lag({infective_variable}, {tau}):",
-                      "dplyr::lag(susceptibleRate, {tau})+",
+                      "dplyr::lag(susceptibleRate{undoc_type}, {tau})+",
                       paste(combos[r, ], collapse="+")) %>%
       as.formula
     
@@ -385,19 +412,19 @@ results_table_aic = results_table_aic %>%
                      c(estimates[M_regressors],
                        estimates[
                          glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")])),
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")])),
                    "National_tvals_POLS" = unname(
                      c(tvals[M_regressors],
                        tvals[
                          glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")]))),
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]))),
             by="variables")
 
 #### Regional models ####
 # Construct formula
 fm = glue("{infective_variable} ~ -1 + ",
           "dplyr::lag({infective_variable}, {tau}):",
-          "dplyr::lag(susceptibleRate, {tau})+",
+          "dplyr::lag(susceptibleRate{undoc_type}, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -412,7 +439,7 @@ for (region in regions){
                  scope=list(
                    "lower" = glue("{infective_variable} ~ -1 + ",
                                   "dplyr::lag({infective_variable}, {tau}):",
-                                  "dplyr::lag(susceptibleRate, {tau})") %>%
+                                  "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
                      as.formula,
                    "upper" = fm))
   } else {
@@ -420,7 +447,7 @@ for (region in regions){
                  scope=list(
                    "lower" = glue("{infective_variable} ~ -1 + ",
                                   "dplyr::lag({infective_variable}, {tau}):",
-                                  "dplyr::lag(susceptibleRate, {tau})") %>%
+                                  "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
                      as.formula,
                    "upper" = fm))
   }
@@ -437,11 +464,11 @@ for (region in regions){
                        c(estimates[M_regressors],
                          estimates[
                            glue("dplyr::lag({infective_variable}, {tau}):",
-                                "dplyr::lag(susceptibleRate, {tau})")])),
+                                "dplyr::lag(susceptibleRate{undoc_type}, {tau})")])),
                      !!glue("{region}_tvals") := unname(
                        c(tvals[M_regressors],
                          tvals[glue("dplyr::lag({infective_variable}, {tau}):",
-                                    "dplyr::lag(susceptibleRate, {tau})")]))),
+                                    "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]))),
               by="variables")
 }
 
@@ -461,16 +488,16 @@ results_table_aic = rbind(
 table_ms_aic = xtable(results_table_aic, math.style.exponents = TRUE)
 print(table_ms_aic,
       file=glue("{output_path}/model_within_table_aic{undoc_flag}",
-                "{rolling_flag}.txt"))
+                "{rolling_flag}{window_flag}.txt"))
 
 #### Models with model selection (BIC) ####
 results_table_bic = tibble(variables = c(M_regressors, "beta"))
 
 #### National model ####
 # Construct formula
-fm = glue("infectivesNational{form} ~ -1 + ",
-          "dplyr::lag(infectivesNational{form}, {tau}):",
-          "dplyr::lag(susceptibleRateNational, {tau})+",
+fm = glue("activeInfectivesNational{undoc_type} ~ -1 + ",
+          "dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+          "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -478,17 +505,17 @@ fm = glue("infectivesNational{form} ~ -1 + ",
 if (rolling) {
   model = step(lm(fm, data=tail(df_wide, window_size)),
                k=log(window_size), trace=0, scope=list(
-                 "lower" = glue("infectivesNational{form} ~ -1 + ",
-                                "dplyr::lag(infectivesNational{form}, {tau}):",
-                                "dplyr::lag(susceptibleRateNational, {tau})") %>%
+                 "lower" = glue("activeInfectivesNational{undoc_type} ~ -1 + ",
+                                "dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                                "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})") %>%
                    as.formula,
                  "upper" = fm))
 } else {
   model = step(lm(fm, data=df_wide), k=log(nrow(df_wide)), trace=0,
                scope=list(
-                 "lower" = glue("infectivesNational{form} ~ -1 + ",
-                                "dplyr::lag(infectivesNational{form}, {tau}):",
-                                "dplyr::lag(susceptibleRateNational, {tau})") %>%
+                 "lower" = glue("activeInfectivesNational{undoc_type} ~ -1 + ",
+                                "dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                                "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})") %>%
                    as.formula,
                  "upper" = fm))
 }
@@ -504,20 +531,20 @@ results_table_bic = results_table_bic %>%
                    "National" = unname(
                      c(estimates[M_regressors],
                        estimates[
-                         glue("dplyr::lag(infectivesNational{form}, {tau}):",
-                              "dplyr::lag(susceptibleRateNational, {tau})")])),
+                         glue("dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                              "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})")])),
                    "National_tvals" = unname(
                      c(tvals[M_regressors],
                        tvals[
-                         glue("dplyr::lag(infectivesNational{form}, {tau}):",
-                              "dplyr::lag(susceptibleRateNational, {tau})")]))),
+                         glue("dplyr::lag(activeInfectivesNational{undoc_type}, {tau}):",
+                              "dplyr::lag(susceptibleRateNational{undoc_type}, {tau})")]))),
             by="variables")
 
 #### Pooled OLS ####
 # Construct formula
 fm_base = glue("{infective_variable} ~ -1 + ",
                "dplyr::lag({infective_variable}, {tau}):",
-               "dplyr::lag(susceptibleRate, {tau})") %>%
+               "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
   as.formula
 
 if (rolling) {
@@ -536,7 +563,7 @@ for (i in 1:length(M_regressors)) {
   for (r in 1:nrow(combos)) {
     model_temp = glue("{infective_variable} ~ -1 + ",
                       "dplyr::lag({infective_variable}, {tau}):",
-                      "dplyr::lag(susceptibleRate, {tau})+",
+                      "dplyr::lag(susceptibleRate{undoc_type}, {tau})+",
                       paste(combos[r, ], collapse="+")) %>%
       as.formula
     
@@ -567,19 +594,19 @@ results_table_bic = results_table_bic %>%
                      c(estimates[M_regressors],
                        estimates[
                          glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")])),
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")])),
                    "National_tvals_POLS" = unname(
                      c(tvals[M_regressors],
                        tvals[
                          glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")]))),
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]))),
             by="variables")
 
 #### Regional models ####
 # Construct formula
 fm = glue("{infective_variable} ~ -1 + ",
           "dplyr::lag({infective_variable}, {tau}):",
-          "dplyr::lag(susceptibleRate, {tau})+",
+          "dplyr::lag(susceptibleRate{undoc_type}, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
@@ -594,7 +621,7 @@ for (region in regions){
                  trace=0, scope=list(
                    "lower" = glue("{infective_variable} ~ -1 + ",
                                   "dplyr::lag({infective_variable}, {tau}):",
-                                  "dplyr::lag(susceptibleRate, {tau})") %>%
+                                  "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
                      as.formula,
                    "upper" = fm))
   } else {
@@ -602,7 +629,7 @@ for (region in regions){
                  scope=list(
                    "lower" = glue("{infective_variable} ~ -1 + ",
                                   "dplyr::lag({infective_variable}, {tau}):",
-                                  "dplyr::lag(susceptibleRate, {tau})") %>%
+                                  "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
                      as.formula,
                    "upper" = fm))
   }
@@ -618,11 +645,11 @@ for (region in regions){
                      !!glue("{region}") := unname(
                        c(estimates[M_regressors],
                          estimates[glue("dplyr::lag({infective_variable}, {tau}):",
-                                        "dplyr::lag(susceptibleRate, {tau})")])),
+                                        "dplyr::lag(susceptibleRate{undoc_type}, {tau})")])),
                      !!glue("{region}_tvals") := unname(
                        c(tvals[M_regressors],
                          tvals[glue("dplyr::lag({infective_variable}, {tau}):",
-                                    "dplyr::lag(susceptibleRate, {tau})")]))),
+                                    "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]))),
               by="variables")
 }
 
@@ -642,24 +669,84 @@ results_table_bic = rbind(
 table_ms_bic = xtable(results_table_bic, math.style.exponents = TRUE)
 print(table_ms_bic,
       file=glue("{output_path}/model_within_table_bic{undoc_flag}",
-                "{rolling_flag}.txt"))
+                "{rolling_flag}{window_flag}.txt"))
 
 #### Plot beta over time ####
-df_meta = readxl::read_xlsx(path_metadata, sheet = "Metadata")
-
 fm = glue("{infective_variable} ~ -1 + ",
           "dplyr::lag({infective_variable}, {tau}):",
-          "dplyr::lag(susceptibleRate, {tau})+",
+          "dplyr::lag(susceptibleRate{undoc_type}, {tau})+",
           paste(M_regressors, collapse="+")) %>%
   as.formula
 
+# Table to shade the lockdown
+lockdown_start = head(df_wide$date[which(df_wide$lockdown == 1)], 1)
+lockdown_end = tail(df_wide$date[which(df_wide$lockdown == 1)], 1)
+
+tbl_rects = tibble(
+  xstart = lockdown_start,
+  xend = lockdown_end
+)
+
 #### Without model selection ####
+#### National (POLS) ####
+# Because we use POLS, we have 19 observations per time period. So, we can afford
+# to use fewer observations per region.
+window_size_pols = 20 + tau
+
+betas = numeric(0)
+
+for (t in window_size_pols:nrow(df_wide)){
+  # Estimate the model by OLS
+  start_date = df_wide$date[(t-window_size_pols+1)]
+  end_date = df_wide$date[t]
+  
+  if (rolling) {
+    data = df_long %>%
+      filter(date >= start_date, date <= end_date)
+  } else {
+    data = df_long %>%
+      filter(date <= end_date)
+  }
+  
+  model = plm(fm, data=data, model="pooling", index = c("code", "date"))
+  
+  # Retrieve the beta estimate and append this to the list of betas
+  beta = coef(model)[[glue("dplyr::lag({infective_variable}, {tau}):",
+                           "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]]
+  betas = c(betas, beta)
+}
+
+sub_tbl = tibble(date = df_wide$date[window_size_pols:nrow(df_wide)], betas=betas)
+
+g = sub_tbl %>% 
+  ggplot() + 
+  geom_point(aes(x=date, y=betas), color="#0072B2") +
+  geom_smooth(aes(x=date, y=betas), method="loess", span=0.3, se=TRUE, color="#0072B2")
+  
+if (lockdown_end >= min(sub_tbl$date)) {
+  g = g +
+    geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                    ymax = Inf), alpha = 0.2)
+}
+
+g = g +
+  xlab("") +
+  ylab(TeX("$\\beta_{within}$")) +
+  theme(
+    axis.title = element_text(size=16),
+    axis.text = element_text(size=14)
+    )
+
+ggsave(glue("model_within_lag{tau}_betawithin_National{undoc_flag}",
+            "{rolling_flag}{window_flag}.pdf"), plot = g,
+       path=output_path, width = 10.8, height = 6.62, units = "in")
+
+#### Regional ####
 tbl_beta = tibble(date = as.Date(NA), betas=numeric(0), code=character(0))
 
 # Find the estimates of beta per region over time
 for (region in regions){
   betas = vector("double")
-  dates = vector("character")
   
   # Select only the data for the relevant region
   data = df_long %>%
@@ -675,7 +762,7 @@ for (region in regions){
     
     # Retrieve the beta estimate and append this to the list of betas
     beta = coef(model)[[glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")]]
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]]
     betas = c(betas, beta)
   }
   
@@ -694,31 +781,80 @@ tbl_beta = tbl_beta %>%
 # Make a plot per direction
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  g = ggplot(sub_tbl, aes(date, betas, colour = regionGH)) + 
-    geom_point() +
-    geom_smooth(method="loess", span=0.3, se=FALSE) +
+  g = sub_tbl %>% 
+    ggplot() + 
+    geom_point(aes(x=date, y=betas, colour = regionGH)) +
+    geom_smooth(aes(x=date, y=betas, colour = regionGH), method="loess", span=0.3, se=TRUE)
+  
+  if (lockdown_end >= min(sub_tbl$date)) {
+    g = g +
+      geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                        ymax = Inf), alpha = 0.2)
+  }
+  
+  g = g +
     xlab("") +
     ylab(TeX("$\\beta_{within}$")) +
     scale_colour_manual(name = "Region",
-                        values=c("#0072B2", # Dark blue
-                                 "#D55E00", # Orange-brown
-                                 "#CC79A7", # Pink
-                                 "#009E73", # Green
-                                 "#56B4E9", # Light blue
-                                 "#E69F00")) + # Yellow
+                        values = c("#0072B2", # Dark blue
+                                   "#D55E00", # Orange-brown
+                                   "#CC79A7", # Pink
+                                   "#009E73", # Green
+                                   "#56B4E9", # Light blue
+                                   "#E69F00")) + # Yellow
     theme(
+      axis.title = element_text(size=16),
+      axis.text = element_text(size=14),
       legend.title = element_text(size = 14),
       legend.text = element_text(size = 12)
-    )
+      )
   
   ggsave(glue("model_within_lag{tau}_betawithin_{direc}{undoc_flag}",
-              "{rolling_flag}.pdf"), plot = g,
+              "{rolling_flag}{window_flag}.pdf"), plot = g,
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
+
+# Make plot for some regions with SE
+sub_tbl = tbl_beta %>%
+  filter(code %in% c("LAZ", "LOM", "MOL"))
+
+g = sub_tbl %>% 
+  ggplot() + 
+  geom_point(aes(x=date, y=betas, colour = regionGH)) +
+  geom_smooth(aes(x=date, y=betas, colour = regionGH), method="loess", span=0.3, se=TRUE)
+
+if (lockdown_end >= min(sub_tbl$date)) {
+  g = g +
+    geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                    ymax = Inf), alpha = 0.2)
+}
+
+g = g +
+  xlab("") +
+  ylab(TeX("$\\beta_{within}$")) +
+  scale_colour_manual(name = "Region",
+                      values=c("#0072B2", # Dark blue
+                               "#D55E00", # Orange-brown
+                               "#CC79A7", # Pink
+                               "#009E73", # Green
+                               "#56B4E9", # Light blue
+                               "#E69F00")) + # Yellow
+  theme(
+    axis.title = element_text(size=16),
+    axis.text = element_text(size=14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+    )
+
+ggsave(glue("model_within_lag{tau}_betawithin_compare{undoc_flag}",
+            "{rolling_flag}{window_flag}.pdf"), plot = g,
+       path=output_path, width = 10.8, height = 6.62, units = "in")
+
 
 #### With model selection (AIC) ####
 tbl_beta = tibble(date = as.Date(NA), betas=numeric(0), code=character(0))
 
+#### Regional ####
 # Find the estimates of beta per region over time
 for (region in regions){
   betas = vector("double")
@@ -736,7 +872,7 @@ for (region in regions){
                    scope=list(
                      "lower" = glue("{infective_variable} ~ -1 + ",
                                     "dplyr::lag({infective_variable}, {tau}):",
-                                    "dplyr::lag(susceptibleRate, {tau})") %>%
+                                    "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
                        as.formula,
                      "upper" = fm))
     } else {
@@ -744,14 +880,14 @@ for (region in regions){
                    scope=list(
                      "lower" = glue("{infective_variable} ~ -1 + ",
                                     "dplyr::lag({infective_variable}, {tau}):",
-                                    "dplyr::lag(susceptibleRate, {tau})") %>%
+                                    "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
                        as.formula,
                      "upper" = fm))
     }
     
     # Retrieve the beta estimate and append this to the list of betas
     beta = coef(model)[[glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")]]
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]]
     betas = c(betas, beta)
   }
   
@@ -770,9 +906,19 @@ tbl_beta = tbl_beta %>%
 # Make a plot per direction
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  g = ggplot(sub_tbl, aes(date, betas, colour = regionGH)) + 
-    geom_point() +
-    geom_smooth(method="loess", span=0.3, se=FALSE) +
+  g = sub_tbl %>% 
+    ggplot() + 
+    geom_point(aes(x=date, y=betas, colour = regionGH)) +
+    geom_smooth(aes(x=date, y=betas, colour = regionGH), method="loess", span=0.3,
+                se=TRUE)
+  
+  if (lockdown_end >= min(sub_tbl$date)) {
+    g = g +
+      geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                      ymax = Inf), alpha = 0.2)
+  }
+  
+  g = g +
     xlab("") +
     ylab(TeX("$\\beta_{within}$")) +
     scale_colour_manual(name = "Region",
@@ -783,14 +929,53 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
                                  "#56B4E9", # Light blue
                                  "#E69F00")) + # Yellow
     theme(
+      axis.title = element_text(size=16),
+      axis.text = element_text(size=14),
       legend.title = element_text(size = 14),
       legend.text = element_text(size = 12)
-    )
+      )
   
   ggsave(glue("model_within_lag{tau}_betawithin_{direc}_aic{undoc_flag}",
-              "{rolling_flag}.pdf"), plot = g,
+              "{rolling_flag}{window_flag}.pdf"), plot = g,
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
+
+# Make plot for some regions with SE
+sub_tbl = tbl_beta %>%
+  filter(code %in% c("LAZ", "LOM", "MOL"))
+
+g = sub_tbl %>% 
+  ggplot() + 
+  geom_point(aes(x=date, y=betas, colour = regionGH)) +
+  geom_smooth(aes(x=date, y=betas, colour = regionGH), method="loess", span=0.3,
+              se=TRUE)
+
+if (lockdown_end >= min(sub_tbl$date)) {
+  g = g +
+    geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                    ymax = Inf), alpha = 0.2)
+}
+
+g = g +
+  xlab("") +
+  ylab(TeX("$\\beta_{within}$")) +
+  scale_colour_manual(name = "Region",
+                      values=c("#0072B2", # Dark blue
+                               "#D55E00", # Orange-brown
+                               "#CC79A7", # Pink
+                               "#009E73", # Green
+                               "#56B4E9", # Light blue
+                               "#E69F00")) + # Yellow
+  theme(
+    axis.title = element_text(size=16),
+    axis.text = element_text(size=14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+    )
+
+ggsave(glue("model_within_lag{tau}_betawithin_compare_aic{undoc_flag}",
+            "{rolling_flag}{window_flag}.pdf"), plot = g,
+       path=output_path, width = 10.8, height = 6.62, units = "in")
 
 #### With model selection (BIC) ####
 tbl_beta = tibble(date = as.Date(NA), betas=numeric(0), code=character(0))
@@ -811,7 +996,7 @@ for (region in regions){
                    trace=0, scope=list(
                      "lower" = glue("{infective_variable} ~ -1 + ",
                                     "dplyr::lag({infective_variable}, {tau}):",
-                                    "dplyr::lag(susceptibleRate, {tau})") %>%
+                                    "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
                        as.formula,
                      "upper" = fm))
     } else {
@@ -819,14 +1004,14 @@ for (region in regions){
                    scope=list(
                      "lower" = glue("{infective_variable} ~ -1 + ",
                                     "dplyr::lag({infective_variable}, {tau}):",
-                                    "dplyr::lag(susceptibleRate, {tau})") %>%
+                                    "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
                        as.formula,
                      "upper" = fm))
       
     }
     # Retrieve the beta estimate and append this to the list of betas
     beta = coef(model)[[glue("dplyr::lag({infective_variable}, {tau}):",
-                              "dplyr::lag(susceptibleRate, {tau})")]]
+                              "dplyr::lag(susceptibleRate{undoc_type}, {tau})")]]
     betas = c(betas, beta)
   }
   
@@ -845,9 +1030,19 @@ tbl_beta = tbl_beta %>%
 # Make a plot per direction
 for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
   direc = sub_tbl$direction[1]
-  g = ggplot(sub_tbl, aes(date, betas, colour = regionGH)) + 
-    geom_point() +
-    geom_smooth(method="loess", span=0.3, se=FALSE) +
+  g = sub_tbl %>% 
+    ggplot() + 
+    geom_point(aes(x=date, y=betas, colour = regionGH)) +
+    geom_smooth(aes(x=date, y=betas, colour = regionGH), method="loess", span=0.3,
+                se=TRUE)
+  
+  if (lockdown_end >= min(sub_tbl$date)) {
+    g = g +
+      geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                      ymax = Inf), alpha = 0.2)
+  }
+  
+  g = g +
     xlab("") +
     ylab(TeX("$\\beta_{within}$")) +
     scale_colour_manual(values=c("#0072B2", # Dark blue
@@ -857,14 +1052,54 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
                                  "#56B4E9", # Light blue
                                  "#E69F00")) + # Yellow
     theme(
+      axis.title = element_text(size=16),
+      axis.text = element_text(size=14),
       legend.title = element_text(size = 14),
       legend.text = element_text(size = 12)
-    )
+      )
   
   ggsave(glue("model_within_lag{tau}_betawithin_{direc}_bic{undoc_flag}",
-              "{rolling_flag}.pdf"), plot = g,
+              "{rolling_flag}{window_flag}.pdf"), plot = g,
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
+
+# Make plot for some regions with SE
+sub_tbl = tbl_beta %>%
+  filter(code %in% c("LAZ", "LOM", "MOL"))
+
+g = sub_tbl %>% 
+  ggplot() + 
+  geom_point(aes(x=date, y=betas, colour = regionGH)) +
+  geom_smooth(aes(x=date, y=betas, colour = regionGH), method="loess", span=0.3,
+              se=TRUE)
+
+if (lockdown_end >= min(sub_tbl$date)) {
+  g = g +
+    geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                    ymax = Inf), alpha = 0.2)
+}
+
+g = g +
+  xlab("") +
+  ylab(TeX("$\\beta_{within}$")) +
+  scale_colour_manual(name = "Region",
+                      values=c("#0072B2", # Dark blue
+                               "#D55E00", # Orange-brown
+                               "#CC79A7", # Pink
+                               "#009E73", # Green
+                               "#56B4E9", # Light blue
+                               "#E69F00")) + # Yellow
+  theme(
+    axis.title = element_text(size=16),
+    axis.text = element_text(size=14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+    )
+
+ggsave(glue("model_within_lag{tau}_betawithin_compare_bic{undoc_flag}",
+            "{rolling_flag}{window_flag}.pdf"), plot = g,
+       path=output_path, width = 10.8, height = 6.62, units = "in")
+
 #### Forecasts ####
 firstColor = "#0072B2" # Dark blue
 secondColor = "#D55E00" # Orange-brown
