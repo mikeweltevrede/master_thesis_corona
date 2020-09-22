@@ -865,3 +865,154 @@ for (sub_tbl in split(tbl_beta, tbl_beta$direction)){
               "{rolling_flag}.pdf"), plot = g,
          path=output_path, width = 10.8, height = 6.62, units = "in")
 }
+#### Forecasts ####
+firstColor = "#0072B2" # Dark blue
+secondColor = "#D55E00" # Orange-brown
+
+start = 20
+window_size = start + tau
+
+fit_my_model = function(time_moment, fm, data, rolling, window_size, tau,
+                        aic=FALSE) {
+  
+  unique_infectives = unique(data[(time_moment-window_size+1+tau):time_moment, ][[infective_variable]])
+  
+  if (length(unique_infectives) == 1) {
+    # Then there is no variation and the model cannot estimate a parameter
+    return(NA)
+  }
+  
+  if (rolling) {
+    if (aic) {
+      model = step(lm(fm, data=data[(time_moment-window_size+1):time_moment, ]),
+                   k=2, trace=0, scope=list(
+                     "lower" = glue("{infective_variable} ~ -1 + ",
+                                    "dplyr::lag({infective_variable}, {tau}):",
+                                    "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
+                       as.formula,
+                     "upper" = fm))
+    } else {
+      model = lm(fm, data=data[(time_moment-window_size+1):time_moment, ])
+    }
+  } else {
+    if (aic) {
+      model = step(lm(fm, data=head(data, time_moment)), k=2, trace=0,
+                   scope=list(
+                     "lower" = glue("{infective_variable} ~ -1 + ",
+                                    "dplyr::lag({infective_variable}, {tau}):",
+                                    "dplyr::lag(susceptibleRate{undoc_type}, {tau})") %>%
+                       as.formula,
+                     "upper" = fm))
+    } else {
+      model = lm(fm, data=head(data, time_moment))
+    }
+  }
+  
+  return(predict(model, newdata=data[1:(time_moment+1), ])[[time_moment+1]])
+}
+
+for (direc in unique(df_meta$direction)){
+  df_temp = df_long %>%
+    filter(direction == !!direc)
+  
+  regions = unique(df_temp$code)
+  plots = vector("list")
+  
+  for (region in regions){
+    # Select only the data for the relevant region
+    data = df_temp %>%
+      filter(code == !!region)
+    
+    region_full = filter(df_meta, code == !!region)$regionGH[1]
+    
+    end = nrow(data)-1
+    
+    pred_infectives = numeric(0)
+    
+    for (time_moment in window_size:end) {
+      pred_infectives = c(pred_infectives,
+                          fit_my_model(time_moment, fm=fm, data=data,
+                                       rolling=rolling, window_size=window_size,
+                                       tau=tau, aic=FALSE))
+    }
+    
+    # pred_infectives = sapply(window_size:end, fit_my_model, fm=fm, data=data,
+    #                          rolling=TRUE, window_size=window_size, tau=tau,
+    #                          aic=TRUE)
+    true_infectives = data[[infective_variable]][window_size:end]
+    
+    tbl_temp = tibble(
+      date = data$date[window_size:end],
+      true = true_infectives,
+      pred = pred_infectives
+    )
+    
+    inds = which(is.na(tbl_temp$pred))
+    starts = c(inds[1], inds[which(diff(inds) != 1)+1])
+    ends = c(inds[which(diff(inds) != 1)], tail(inds, 1))
+    
+    tbl_rects_NA = tibble(
+      xstart = tbl_temp$date[starts-1],
+      xend = tbl_temp$date[ends+1]
+    )
+    
+    g_temp = tbl_temp %>% 
+      ggplot() +
+      geom_line(aes(x=date, y=true, color=firstColor)) +
+      geom_line(aes(x=date, y=pred, color=secondColor, group = 1))
+    
+    if (nrow(tbl_rects_NA) > 0) {
+      g_temp = g_temp +
+        geom_rect(data = tbl_rects_NA, aes(xmin = xstart, xmax = xend,
+                                           ymin = -Inf, ymax = Inf), alpha = 0.2)
+    }
+    
+    if (lockdown_end >= min(tbl_temp$date)) {
+      g_temp = g_temp +
+        geom_rect(data = tbl_rects, aes(xmin = xstart, xmax = xend, ymin = -Inf, # Shadow over plot
+                                        ymax = Inf), alpha = 0.2)
+    }
+    
+    g_temp = g_temp +
+      xlab("") +
+      ylab("Infectives \n") +
+      ggtitle(region_full) +
+      scale_colour_manual(name = "Infectives", 
+                          labels = c("True", "Predicted"),
+                          values = c(firstColor, secondColor)) +
+      theme(
+        axis.title = element_text(size=16),
+        axis.text = element_text(size=14),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 12)
+        )
+    
+    if (region == regions[1]) {
+      # Extract legend
+      # https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
+      g_legend = function(a.gplot){
+        tmp = ggplot_gtable(ggplot_build(a.gplot))
+        leg = which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+        legend = tmp$grobs[[leg]]
+        return(legend)}
+      
+      mylegend = g_legend(g_temp)
+    }
+    
+    g_temp = g_temp +
+      theme(
+        legend.position = "none",
+        axis.title = element_text(size=16),
+        axis.text = element_text(size=14)
+        )
+    
+    plots[[region]] = g_temp
+  }
+  
+  g = do.call("grid.arrange", c(plots, ncol=floor(sqrt(length(plots))))) %>% 
+    plot_grid(mylegend, ncol = 1, rel_heights = c(1, .2))
+    
+  ggsave(glue("model_within_lag{tau}_forecast_start{start}_{direc}{undoc_flag}",
+              "{rolling_flag}{window_flag}.pdf"), plot = g, path = output_path, width = 10.8,
+         height = 6.62, units = "in")
+}
