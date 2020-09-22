@@ -143,8 +143,7 @@ tryCatch(rm(df), warning = function(cond) {})
 
 #### Import the entire data ####
 df_long = read_csv(new_data_path) %>%
-  arrange(code) %>%
-  arrange(date)
+  arrange(date, code)
 
 # On June 12, Campania reported -229 confirmed cases, whereas the number of new
 # cases in the week before that date only ranges from 0 to 5. Similarly, on June
@@ -157,13 +156,33 @@ df_long = read_csv(new_data_path) %>%
 df_long = df_long %>%
   filter(code != "CAM" & code != "SIC" & code != "TN")
 
+# Construct group of removed population
+df_long = df_long %>%
+  mutate(removed = recovered + deaths)
+
 # Take the first difference of the columns except for date
 df_wide = pivot_to_df_wide(df_long) %>%
   mutate_at(vars(!matches("date")), function(x){c(NA,diff(x))}) %>%
   drop_na
 
+# df_long currently contains totals. To keep these, we adapt the names
+colnames(df_long) = c("date", "code", paste0(colnames(df_long %>%
+                                                        select(!c(date, code))),
+                                             "Total"))
+
 df_long = df_wide %>%
-  pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
+  pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_") %>%
+  left_join(df_long, by=c("date", "code")) %>% 
+  group_by(code) %>% 
+  mutate(
+    activeInfectives =
+      infectives - dplyr::lag(recovered, 1) - dplyr::lag(deaths, 1)
+    ) %>%
+  drop_na() %>%
+  mutate(
+    activeInfectives = cumsum(activeInfectives)
+  ) %>%
+  ungroup()
 
 # The number of tests executed cannot be lower than the number of people tested
 # positive. If this is the case, we set the number of tests equal to the number
@@ -246,15 +265,14 @@ for (regio in unique(df_long$code)) {
                      df_region[[glue("{regio}_deaths")]][1])
   total_pop = pop_base
   
+  # The population is constant over time; only deaths by COVID-19 are counted
+  populationN = pop_base
+  
   # The variables below are assumed to happen on day t at 5pm, namely the time
   # at which new data is reported. That is, the new cases, deaths, and
   # recoveries from that day contribute to the calculations rather than those of
   # the day before. This is to be consistent with the definitions from the
   # reports.
-  
-  # TODO: We can just create a column which is entirely equal to pop_base or
-  # total_pop and subtract the lagged pop_base*g_2020^(1/366) or cumsum of
-  # deaths.
   for (t in 2:nrow(df_wide)) {
     
     # This column assumes the growth rates above and no extraordinary deaths due
@@ -262,7 +280,7 @@ for (regio in unique(df_long$code)) {
     # struck?
     pop_base = c(pop_base,
                  round((1+growth_rate_pop_2020)^(1/366)*tail(pop_base, 1)))
-      
+    
     # The total population at time t is defined as the amount of people alive at
     # that time: total_pop(t) = total_pop(t-1) - deaths(t-1). In the code below,
     # because we have no other information, we assume that the deaths are only
@@ -282,67 +300,85 @@ for (regio in unique(df_long$code)) {
   }
 
   df_wide = df_wide %>%
-    add_column(!!glue("{regio}_populationBaseline") := pop_base) %>%
-    add_column(!!glue("{regio}_totalPopulation") := total_pop)
+    mutate(
+      "{regio}_populationN" := populationN,
+      "{regio}_populationBaseline" := pop_base,
+      "{regio}_totalPopulation" := total_pop
+    )
 }
 
 df_long = df_wide %>%
-  pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_")
+  pivot_longer(cols = -date, names_to = c("code", ".value"), names_sep = "_") %>%
+  mutate(populationAlive = populationN - deaths)
 
 #### Add undocumented infections ####
 # We add undocumented infections because the susceptible population depends on
-# the number of total infectives. For this, we need the cumulative number of
-# tested people instead of the daily numbers.
-
-# TODO: There are sudden 0 values in between, which is likely not accurate.
-df_long = df_long %>%
-  group_by(code) %>%
-  mutate(totalTested = cumsum(tested)) %>%
-  ungroup
-
+# the number of total infectives.
 source("undocumented_infections.R")
 
-# We assume some values for fmin and the gammas for the quadratic and cubic form
+# We assume some values for fmin and the gammas for the cubic form. For the
+# quadratic form, we try several values of gamma below.
 fmin = 0.1
-gamma_quadratic = 0.7
 gamma1_cubic = 0.6
 gamma2_cubic = 0.8
 
 df_long = df_long %>% 
+  mutate(Smax = populationN - removedTotal) %>%
   rowwise() %>%
-  
   # Compute f_t
   mutate(proportionDocumentedLinear =
-           undocumented_infections(totalPopulation, totalTested,
+           undocumented_infections(Smax, testedTotal,
                                    form = "Linear", fmin = fmin),
-         proportionDocumentedQuadratic =
-           undocumented_infections(totalPopulation, totalTested,
-                                   form = "Quadratic", gamma = gamma_quadratic,
-                                   fmin = fmin),
          proportionDocumentedDownwardsVertex =
-           undocumented_infections(totalPopulation, totalTested,
+           undocumented_infections(Smax, testedTotal,
                                    form = "DownwardsVertex", fmin = fmin),
          proportionDocumentedUpwardsVertex =
-           undocumented_infections(totalPopulation, totalTested,
+           undocumented_infections(Smax, testedTotal,
                                    form = "UpwardsVertex", fmin = fmin),
          proportionDocumentedCubic =
-           undocumented_infections(totalPopulation, totalTested, form = "Cubic",
+           undocumented_infections(Smax, testedTotal, form = "Cubic",
                                    gamma = gamma1_cubic, gamma2 = gamma2_cubic,
-                                   fmin = fmin),
-  ) %>%
+                                   fmin = fmin)
+         ) %>%
+  
   # Compute I_t = DI_t / f_t
-  mutate(infectivesLinear = round(infectives / proportionDocumentedLinear),
-         infectivesQuadratic =
-           round(infectives / proportionDocumentedQuadratic),
-         infectivesDownwardsVertex =
-           round(infectives / proportionDocumentedDownwardsVertex),
-         infectivesUpwardsVertex =
-           round(infectives / proportionDocumentedUpwardsVertex),
-         infectivesCubic = round(infectives / proportionDocumentedCubic)
-  ) %>%
+  mutate(activeInfectivesLinear =
+           round(activeInfectives / proportionDocumentedLinear),
+         
+         # TODO: For some reason, downwards vertex does not work, but gamma = 0.75 does work for quadratic
+         activeInfectivesDownwardsVertex =
+           round(activeInfectives / proportionDocumentedDownwardsVertex),
+         activeInfectivesUpwardsVertex =
+           round(activeInfectives / proportionDocumentedUpwardsVertex),
+         activeInfectivesCubic =
+           round(activeInfectives / proportionDocumentedCubic)
+         ) %>%
   # NAs are formed when no tests have been executed. Instead of counting these
   # as NAs, TC_t=0 implies f_t=fmin. So, we replace the NAs with fmin.
   replace(is.na(.), fmin)
+
+# For the Quadratic form, we try several values of gamma
+gammas_quadratic = c(0.6, 0.65, 0.7, 0.75)  
+names(gammas_quadratic) = c("Six", "SixtyFive", "", "SeventyFive") # 0.7 is default
+
+for (i in 1:length(gammas_quadratic)) {
+  name_gamma = names(gammas_quadratic)[i]
+  df_long = df_long %>% 
+    rowwise() %>%
+    mutate("proportionDocumentedQuadratic{name_gamma}" :=
+             undocumented_infections(Smax, testedTotal, form = "Quadratic",
+                                     gamma = gammas_quadratic[[i]],
+                                     fmin = fmin)
+           ) %>%
+    # Compute I_t = DI_t / f_t
+    mutate("activeInfectivesQuadratic{name_gamma}" :=
+             round(activeInfectives /
+                     .data[[glue("proportionDocumentedQuadratic{name_gamma}")]])
+    ) %>% 
+    # NAs are formed when no tests have been executed. Instead of counting these
+    # as NAs, TC_t=0 implies f_t=fmin. So, we replace the NAs with fmin.
+    replace(is.na(.), fmin)
+}
 
 #### Compute the susceptible population ####
 # Let:
@@ -355,29 +391,49 @@ df_long = df_long %>%
 # All data is reported at 17:00 (5pm) on day t. The susceptible population
 # at time t (so at 17:00) is then defined as:
 # S(t) = N(t) - D(t) - I(t) - R(t)
-# Note that we have already included deaths when calculating
-# totalPopulation. As such, totalPopulation(t) := N(t) - D(t).
-for (form in c("Linear", "Quadratic", "DownwardsVertex",
-               "UpwardsVertex", "Cubic", "")) {
+for (form in c("Linear", "DownwardsVertex", "UpwardsVertex", "Cubic", "")) {
   
-  infective_variable = glue("infectives{form}")
+  infective_variable = glue("activeInfectives{form}")
   df_long = df_long %>%
     group_by(code) %>%
     mutate(
       "susceptiblePopulation{form}" :=
-        totalPopulation - cumsum(recovered) - cumsum(!!sym(infective_variable)),
+        populationN - removedTotal - .data[[infective_variable]],
       "susceptibleRate{form}" :=
-        .data[[glue("susceptiblePopulation{form}")]] /
-        .data[["totalPopulation"]],
-      "infectivesTotal{form}" :=
-        cumsum(.data[[infective_variable]]),
+        .data[[glue("susceptiblePopulation{form}")]] / .data[["populationAlive"]],
+      "activeInfectivesTotal{form}" := cumsum(.data[[infective_variable]]),
       "infectivesRateTotal{form}" :=
-        cumsum(.data[[infective_variable]]) / .data[["totalPopulation"]],
+        .data[[glue("activeInfectivesTotal{form}")]] / .data[["populationAlive"]],
       "infectivesRate{form}" :=
-        .data[[infective_variable]] / .data[["totalPopulation"]]) %>%
+        .data[[infective_variable]] / .data[["populationAlive"]]
+      ) %>%
     ungroup()
 }
 
+form = "Quadratic"
+for (i in 1:length(gammas_quadratic)) {
+  name_gamma = names(gammas_quadratic)[i]
+  
+  infective_variable = glue("activeInfectives{form}{name_gamma}")
+  df_long = df_long %>%
+    group_by(code) %>%
+    mutate(
+      "susceptiblePopulation{form}{name_gamma}" :=
+        populationN - removedTotal - .data[[infective_variable]],
+      "susceptibleRate{form}{name_gamma}" :=
+        .data[[glue("susceptiblePopulation{form}{name_gamma}")]] /
+        .data[["populationAlive"]],
+      "activeInfectivesTotal{form}{name_gamma}" :=
+        cumsum(.data[[infective_variable]]),
+      "infectivesRateTotal{form}{name_gamma}" :=
+        .data[[glue("activeInfectivesTotal{form}{name_gamma}")]] / 
+        .data[["populationAlive"]],
+      "infectivesRate{form}" :=
+        .data[[infective_variable]] / .data[["populationAlive"]]
+    ) %>%
+    ungroup()
+}
+  
 df_wide = pivot_to_df_wide(df_long)
 
 #### Process Eurostat regressors (import on line 213) ####
@@ -700,17 +756,21 @@ df_wide = pivot_to_df_wide(df_long)
 # Add nationwide variables by summing the individual regions' variables as well
 # as weekend and lockdown dummies
 lockdown_start = "2020-03-10"
-lockdown_end = "2020-06-03"
+lockdown_end = "2020-05-18"
 
 totalPopulationNational = df_wide %>%
   select(ends_with("totalPopulation")) %>%
+  rowSums
+populationAliveNational = df_wide %>%
+  select(ends_with("populationAlive")) %>%
   rowSums
 areaNational = df_wide %>%
   select(ends_with("area")) %>%
   rowSums
 df_wide = df_wide %>%
   mutate(totalPopulationNational = totalPopulationNational,
-         populationDensityNational = totalPopulationNational/areaNational,
+         populationAliveNational = populationAliveNational,
+         populationDensityNational = populationAliveNational/areaNational,
          weekend =
            lubridate::wday(date, label = TRUE) %in% c("Sat", "Sun") %>%
            as.integer %>% as.factor,
@@ -720,31 +780,61 @@ df_wide = df_wide %>%
                   1, 0) %>%
            as.factor)
 
-for (form in c("Linear", "Quadratic", "DownwardsVertex",
-               "UpwardsVertex", "Cubic", "")) {
+for (form in c("Linear", "DownwardsVertex", "UpwardsVertex", "Cubic", "")) {
   
-  infective_variable = glue("infectives{form}")
+  infective_variable = glue("activeInfectives{form}")
   
   susceptiblePopulationNational = df_wide %>%
     select(ends_with(glue("susceptiblePopulation{form}"))) %>%
+    rowSums
+  activeInfectivesNational = df_wide %>% 
+    select(ends_with(glue("_{infective_variable}"))) %>% 
+    rowSums
+  
+  df_wide = df_wide %>%
+    mutate("susceptiblePopulationNational{form}" :=
+             susceptiblePopulationNational,
+           "susceptibleRateNational{form}" :=
+             susceptiblePopulationNational / populationAliveNational,
+           "activeInfectivesNational{form}" := activeInfectivesNational,
+           "activeInfectivesTotalNational{form}" :=
+             cumsum(activeInfectivesNational),
+           "activeInfectivesRateNational{form}" :=
+             !!sym(glue("activeInfectivesNational{form}")) /
+             populationAliveNational,
+           "activeInfectivesRateTotalNational{form}" :=
+             !!sym(glue("activeInfectivesTotalNational{form}")) /
+             populationAliveNational)
+}
+
+form = "Quadratic"
+for (i in 1:length(gammas_quadratic)) {
+  name_gamma = names(gammas_quadratic)[i]
+  
+  infective_variable = glue("activeInfectives{form}{name_gamma}")
+  
+  susceptiblePopulationNational = df_wide %>%
+    select(ends_with(glue("susceptiblePopulation{form}{name_gamma}"))) %>%
     rowSums
   infectivesNational = df_wide %>% 
     select(ends_with(glue("_{infective_variable}"))) %>% 
     rowSums
   
   df_wide = df_wide %>%
-    mutate(totalPopulationNational = totalPopulationNational,
-           "susceptiblePopulationNational{form}" :=
+    mutate("susceptiblePopulationNational{form}{name_gamma}" :=
              susceptiblePopulationNational,
-           "susceptibleRateNational{form}" :=
-             susceptiblePopulationNational/totalPopulationNational,
-           "infectivesNational{form}" := infectivesNational,
-           "infectivesTotalNational{form}" := cumsum(infectivesNational),
-           "infectivesRateNational{form}" :=
-             !!sym(glue("infectivesNational{form}")) / totalPopulationNational,
-           "infectivesRateTotalNational{form}" :=
-             !!sym(glue("infectivesTotalNational{form}")) /
-             totalPopulationNational)
+           "susceptibleRateNational{form}{name_gamma}" :=
+             susceptiblePopulationNational / populationAliveNational,
+           "activeInfectivesNational{form}{name_gamma}" :=
+             infectivesNational,
+           "activeInfectivesTotalNational{form}{name_gamma}" :=
+             cumsum(infectivesNational),
+           "activeInfectivesRateNational{form}{name_gamma}" :=
+             !!sym(glue("activeInfectivesNational{form}{name_gamma}")) /
+             populationAliveNational,
+           "activeInfectivesRateTotalNational{form}{name_gamma}" :=
+             !!sym(glue("activeInfectivesTotalNational{form}{name_gamma}")) /
+             populationAliveNational)
 }
 
 df_long = df_long %>%
