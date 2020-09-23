@@ -55,10 +55,14 @@ g = ggplot(df_long) +
                      sec.axis = sec_axis(
                        ~./coeff, name="Proportion of infectives undocumented\n")) +
   theme(
+    axis.text.x = element_text(angle = 90),
     axis.text.y = element_text(color = testedColor),
     axis.text.y.right = element_text(color = propColor),
     axis.title.y = element_text(color = testedColor, size=12),
     axis.title.y.right = element_text(color = propColor, size=12),
+    axis.title = element_text(size=12),
+    axis.text = element_text(size=11),
+    strip.text.x = element_text(size = 10),
     panel.spacing = unit(0.8, "lines"))
 
 ggsave("tamponi_vs_ft.pdf", plot = g, path=output_path, width = 10.8,
@@ -80,12 +84,14 @@ g = ggplot(df_long) +
                      sec.axis = sec_axis(
                        ~./coeff, name="Proportion of infectives undocumented\n")) +
   theme(
-    axis.title = element_text(size=16),
-    axis.text = element_text(size=14),
+    axis.text.x = element_text(angle = 90),
     axis.text.y = element_text(color = testedColor),
     axis.text.y.right = element_text(color = propColor),
     axis.title.y = element_text(color = testedColor, size=12),
     axis.title.y.right = element_text(color = propColor, size=12),
+    axis.title = element_text(size=12),
+    axis.text = element_text(size=11),
+    strip.text.x = element_text(size = 10),
     panel.spacing = unit(0.8, "lines"))
 
 ggsave("tamponiprop_vs_ft.pdf", plot = g, path=output_path, width = 10.8,
