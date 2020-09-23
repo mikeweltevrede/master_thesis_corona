@@ -140,12 +140,10 @@ for (region in unique(df_long$code)) {
 #### Numbers of documented infections table ####
 data = df_long %>%
   filter(code %in% c("CAL", "LOM", "VEN")) %>%
-  group_by(code) %>%
-  mutate(totalInfectives = cumsum(infectives),
-         totalInfectivesQuadratic = cumsum(infectivesQuadratic)) %>%
-  ungroup() %>%
-  select(date, code, totalInfectives, proportionDocumentedQuadratic,
-         totalInfectivesQuadratic)
+  select(date, code,
+         totalInfectives = activeInfectivesTotal,
+         proportionDocumentedQuadratic,
+         totalInfectivesQuadratic = activeInfectivesTotalQuadratic)
 
 for (date in c("2020-04-01", "2020-06-01", "2020-08-01")) {
   data %>%
@@ -167,7 +165,7 @@ g = df_long %>%
   arrange(direction, regionGH) %>%
   ggplot(aes(x=regionGH, y=mean, group=direction)) +
   xlab("Regions (grouped by NUTS 1 region)") +
-  ylab(TeX("Mean incidence rate ($\\pm 2 \\times$ standard error)")) +
+  ylab("Mean incidence rate\n") +
   geom_point(aes(colour = factor(direction)), stat = "identity",
              position = position_dodge(width = 1), size=3) +
   geom_path(aes(colour = factor(direction)), alpha=0.3) +
@@ -178,6 +176,7 @@ g = df_long %>%
     axis.title = element_text(size=16),
     axis.text = element_text(size=14),
     axis.text.x = element_text(angle = 90, hjust = 1),
+    strip.text.x = element_text(size = 10),
     strip.placement = "outside", legend.position = "none") +
   scale_colour_manual(values=c("#0072B2", # Dark blue
                                "#D55E00", # Orange-brown
@@ -210,6 +209,7 @@ g = df_long %>%
   theme(
     axis.title = element_text(size=16),
     axis.text = element_text(size=14),
+    strip.text.x = element_text(size = 10),
     legend.position="none") +
   scale_fill_manual(values=c("#0072B2", # Dark blue
                              "#D55E00", # Orange-brown
@@ -242,6 +242,7 @@ for (direc in unique(df_long$direction)) {
     theme(
       axis.title = element_text(size=16),
       axis.text = element_text(size=14),
+      strip.text.x = element_text(size = 10),
       legend.position="none") +
     scale_fill_manual(values=c("#0072B2", # Dark blue
                                "#D55E00", # Orange-brown
@@ -279,6 +280,7 @@ for (direc in unique(df_long$direction)) {
       axis.title = element_text(size=16),
       axis.text = element_text(size=14),
       axis.text.x = element_text(angle = 90, hjust = 1),
+      strip.text.x = element_text(size = 10),
       strip.placement = "outside", legend.position = "none") +
     scale_colour_manual(values=c("#0072B2")) # Dark Blue
   
