@@ -691,7 +691,7 @@ tbl_rects = tibble(
 #### National (POLS) ####
 # Because we use POLS, we have 19 observations per time period. So, we can afford
 # to use fewer observations per region.
-window_size_pols = 20 + tau
+window_size_pols = 30 + tau
 
 betas = numeric(0)
 
