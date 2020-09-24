@@ -132,9 +132,10 @@
 			Tilburg University\\
 			\vskip1.5cm
 			Supervised by:\\
-			dr. Otilia Boldea \\
+			Dr. Otilia Boldea \\
 			\vskip0.5cm
 			Second reader:\\
+			Dr. Pavel Cizek
 			%\todo[inline]{Insert second reader}
 			\vfill
 			Date:\\
@@ -264,11 +265,11 @@
 % 	It is immediately clear that the variation in the transmission rate is minimal and even slightly increasing. This not intuitive for the reason that a decrease in infectives over time would lead to a lower estimated transmission parameter. 
 % 	\\
 	
-	In this thesis, we present several models based on specifications presented by \textcite{adda2016economic}. In the paper, \textcite{adda2016economic} investigates the spread of several viral diseases in the past. The models used are inspired by the Standard Inflammatory Response (SIR) model but deviate from it in the sense that the covariates are constructed with the number of new cases rather than the absolute number of cases. The key additions made by \textcite{adda2016economic} are, firstly, that a spatial spillover effect is considered and, secondly, that some sort of weighting on the parameters is allowed on the basis of region-specific variables. With this motivation, \textcite{adda2016economic} defines three models comprising of a model ignoring interaction between regions, a model taking interaction between regions into account, and a model that expands on the latter by introducing the weights. Unfortunately, good weighting variables, such as the movement between regions and economic indices, are not available. \textcite{adda2016economic} looks at viruses that have been appearing in society for several years and can, therefore, use weekly information and relevant instruments to quantify the infection rates. Due to the limited temporal scope of SARS-CoV-2, this information is not available. Consequently, this thesis only discusses the non-weighted models by \textcite{adda2016economic}. To our knowledge, these models have not previously been applied to SARS-CoV-2 and can possibly show interesting insights compared to other models.
+	In this thesis, we present several models based on specifications presented by \textcite{adda2016economic}. In the paper, \textcite{adda2016economic} investigates the spread of several viral diseases in the past. The models used are inspired by the Standard Inflammatory Response (SIR) model but deviate from it in the sense that the regressors are constructed with the number of new cases rather than the absolute number of cases. The key additions made by \textcite{adda2016economic} are, firstly, that a spatial spillover effect is considered and, secondly, that some sort of weighting on the parameters is allowed on the basis of region-specific variables. With this motivation, \textcite{adda2016economic} defines three models comprising of a model ignoring interaction between regions, a model taking interaction between regions into account, and a model that expands on the latter by introducing the weights. Unfortunately, good weighting variables, such as the movement between regions and economic indices, are not available. \textcite{adda2016economic} looks at viruses that have been appearing in society for several years and can, therefore, use weekly information and relevant instruments to quantify the infection rates. Due to the limited temporal scope of SARS-CoV-2, this information is not available. Consequently, this thesis only discusses the non-weighted models by \textcite{adda2016economic}. To our knowledge, these models have not previously been applied to SARS-CoV-2 and can possibly show interesting insights compared to other models.
 	
 	\section{Dataset} \label{sec:dataset}
 	% Dataset and explanations
-	In this section, we outline the structure of the data that is used and how it was retrieved. Firstly, we discuss the structure of Italian regions in Section \ref{subsec:italy_geography}. Subsequently, we look at the data on COVID-19 such as the incidence rate, reported deaths, and number of recoveries in Section \ref{subsec:coronavirus_data}. Here, we also discuss how possible errors and missing values in the data are handled. Lastly, Section \ref{subsec:regressor_data} discusses the independent variables that are included in the models presented by \textcite{adda2016economic}.
+	In this section, we outline the structure of the data that is used and how it was retrieved. Firstly, we discuss the structure of Italian regions in Section \ref{subsec:italy_geography}. Subsequently, we look at the data on COVID-19 such as the incidence rate, reported deaths, and number of recoveries in Section \ref{subsec:coronavirus_data}. Here, we also discuss how possible errors and missing values in the data are handled. Lastly, Section \ref{subsec:regressor_data} discusses the regressors that are included in the models presented by \textcite{adda2016economic}.
 	
 	\newpage
 	\subsection{Geographical Structure of Italy} \label{subsec:italy_geography}
@@ -340,11 +341,11 @@
 	\newpage
 	Regarding missing values, there are none. We suspect that the Department of Civil Protection imputed the missing values with a value of zero. For instance, on July 5, it was reported that zero tests were executed in the region of Basilicata. On the dates surrounding July 5, however, around 250 tests were executed each day. On July 9, a higher value of 426 was reported. We suspect that this is to correct for the reported value of zero of July 5. We could, for instance, distribute the 426 among July 5 and 9. However, in this thesis, we do not deal with these outliers and leave them as is. The reason for this is twofold. Firstly, we do not know if it is actually true that a zero is being used as a filler for a missing value. It may be the case that a value of zero was actually reported. That relates to the second reason, namely that unexpectedly low values unequal to zero are also reported (such as a value of three tests being executed on July 19 for Basilicata among a usual value of around 300). As such, we cannot reasonably assume that these zeros (and which ones) pertain to missing values.
 	
-	\subsection{Independent Variables} \label{subsec:regressor_data}
-	In this section, we describe the independent variables that are included in the models by \textcite{adda2016economic}. Both models include covariates that may not directly have an effect on the transmission rate. We cannot include many of these covariates because, as we explained in Section \ref{sec:problem_description}, %there is a difference between the case of SARS-CoV-2 and the viruses investigated by \textcite{adda2016economic} because
+	\subsection{Regressors} \label{subsec:regressor_data}
+	In this section, we describe the regressors that are included in the models by \textcite{adda2016economic}. Both models include regressors that may not directly have an effect on the transmission rate. We cannot include many of these regressors because, as we explained in Section \ref{sec:problem_description}, %there is a difference between the case of SARS-CoV-2 and the viruses investigated by \textcite{adda2016economic} because
 	we only have access to relevant data since December 2019. This means that we do not have access to %Therefore, SARS-CoV-2 has only been appearing in society since December 2019 and, hence, 
     %Therefore, we do not have
-    much time-varying information, for instance on seasonality of the virus as well as economic indicators. %for the Italian regions and we cannot include these covariates. 
+    much time-varying information, for instance on seasonality of the virus as well as economic indicators. %for the Italian regions and we cannot include these regressors. 
 	The only variable that is included is a dummy variable that indicates if the day is on the weekend (Saturday or Sunday). We do not include an intercept because this would be in stark violation of epidemiological models; there is not some nonzero mean number of new cases that is persistent throughout time for a certain region. \\
 	
 	The reason behind including the weekend dummy variable is that we suspect that less people may be detected on the weekend due to some general practitioner practices or testing locations being closed on the weekend, meaning that people who are not willing or able to travel far will not get tested. These people will then get tested during the week, meaning that we expect that the number of infectives during weekends will be lower. On the other hand, it is unknown whether the reported number of positive tests on a certain day is the amount of people that got tested on that day or the amount of tests that were processed on that day that turned out to be positive. The difference is that there is a time lag between people being tested and the results of that test being processed and announced. Therefore, there could be a delay of one or multiple days.
@@ -669,7 +670,8 @@
 	    \label{fig:tamponiprop_versus_ft}
 	\end{figure}
 	
-	In Figure \ref{fig:tamponiprop_versus_ft}, we can see that the profile of the relationship between the two variables is similar over time for different groups of regions; the testing capacity increases over time, while the proportion of infectives that go undocumented decreases. There are also clear differences. Regions such as Friuli Venezia Giulia and Veneto have been testing a higher proportion of their population over time and see a steeper decrease in the proportion of undocumented infectives. On the other hand, regions that do not test a large proportion of the population, such as Calabria and Apulia, see a less strong decrease over time. \\
+	In Figure \ref{fig:tamponiprop_versus_ft}, we can see that the profile of the relationship between the two variables is similar over time for different groups of regions; the testing capacity increases over time, while the proportion of infectives that go undocumented decreases. There are also clear differences. Regions such as Friuli Venezia Giulia and Veneto have been testing a higher proportion of their population over time and see a steeper decrease in the proportion of undocumented infectives. On the other hand, regions that do not test a large proportion of the population, such as Calabria and Apulia, see a less strong decrease over time.
+	\\
 	
 	For three regions, namely Calabria, Lombardy, and Veneto, we illustrate the impact of this modelling method by comparing the documented number of infectives (baseline) with several functional forms of $f_{p,t}$ in Figure \ref{fig:undoc_absolute}. We choose Calabria, Lombardy, and Veneto because these vary in the proportional amount of tests executed, leading to different profiles in $f_t$, as can be seen in Figure \ref{fig:tamponiprop_versus_ft}.
 	
@@ -765,7 +767,7 @@
 	For our application, the data does not span multiple years. Therefore, we do not add year and week effects as they are trends that do not match the SIR model description over a shorter period of time. We also do not include region fixed effects because these act as a region-specific intercept, which was explained in Section \ref{subsec:regressor_data} to be in stark violation of epidemiological models.
 	\\
 	
-	There are three other key differences in the model specification by \textcite{adda2016economic} compared to equation \eqref{eq:discretized_sir_regressors}. First of all, \textcite{adda2016economic} uses the number of new cases $\Delta I_{p,t-\tau} \coloneqq I_{p,t-\tau} - I_{p,t-\tau-1}$ instead of the total amount of cases $I_{p,t-\tau}$. This is done on both sides of the equation. Second of all, the susceptible rate $s_{p,t}$ is used instead of the total susceptible population $S_{p,t}$. Lastly, \textcite{adda2016economic} does not include the term $\gamma I_{p,t-1}$ in the model. There are likely two reasons for this. Firstly, the total number of cases are increasing exponentially and are much larger than the number of new cases, by a factor of 1,000 throughout parts of the dataset. Therefore, classical regression methods would fail to identify meaningful recovery parameters. Secondly, the term $\beta s_{p,t-\tau} I_{p,t-\tau-1}$, arising from first differencing $I_{p,t-tau}$ on the right-hand side, seems to serve as a proxy for the removed cases, which explains the omission of the removed individuals from the right-hand side of the equation. In this section and Section \ref{subsec:model_between_methodology}, we continue with this model to see how it performs in the case of COVID-19.
+	There are three other key differences in the model specification by \textcite{adda2016economic} compared to equation \eqref{eq:discretized_sir_regressors}. First of all, \textcite{adda2016economic} uses the number of new cases $\Delta I_{p,t-\tau} \coloneqq I_{p,t-\tau} - I_{p,t-\tau-1}$ instead of the total amount of cases $I_{p,t-\tau}$. This is done on both sides of the equation. Second of all, the susceptible rate $s_{p,t}$ is used instead of the total susceptible population $S_{p,t}$. Lastly, \textcite{adda2016economic} does not include the term $\gamma I_{p,t-1}$ in the model. There are likely two reasons for this. Firstly, the total number of cases are increasing exponentially and are much larger than the number of new cases, by a factor of 1,000 throughout parts of the dataset. Therefore, classical regression methods would fail to identify meaningful recovery parameters. Secondly, the term $\beta s_{p,t-\tau} I_{p,t-\tau-1}$, arising from first differencing $I_{p,t-\tau}$ on the right-hand side, seems to serve as a proxy for the removed cases, which explains the omission of the removed individuals from the right-hand side of the equation. In this section and Section \ref{subsec:model_between_methodology}, we continue with this model to see how it performs in the case of COVID-19.
 	\\
 	
 	Now we present the within-region spread model, ignoring effects across regions, as presented by \textcite{adda2016economic}:
@@ -781,7 +783,8 @@
 	The models in equations \eqref{eq:model_within} and \eqref{eq:model_within_undocumented} are estimated by ordinary least squares (OLS). For the version including undocumented infections, the moment conditions that need to be satisfied due to the strict exogeneity assumption are:
 	    \[E\left[ \eta_{p,t} \left( \beta_{within}s_{p,t-\tau}\left(\frac{D_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{D_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right) + \delta X_{p,t} \right) \right] = 0.\]
 	
-	We assume that the idiosyncratic error $\eta_{p,t}$ is uncorrelated with the regressors in the tensor $X_{p,t}$. The reason why we assume that $E\left[\eta_{p,t} \,\middle|\, s_{p,t-\tau}\left(\frac{D_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{D_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right)\right] = 0$ is that, for a large enough lag $\tau$, the error is not correlated with past data at that lag. By that, we mean that the people that are classified as infectives at time $t-\tau$ do not have an effect on the error that we make when considering the infectives at time $t$ under a correct model specification. This is independent of the scaling functions $f_{p,t-\tau}(\gamma)$ and $f_{p,t-\tau-1}(\gamma)$ as these are constructed without the past infectives in mind. Because we chose $\tau$ to exceed the maximum estimated incubation period, we assume that this holds. \\
+	We assume that the idiosyncratic error $\eta_{p,t}$ is uncorrelated with the regressors in the tensor $X_{p,t}$. The reason why we assume that $E\left[\eta_{p,t} \,\middle|\, s_{p,t-\tau}\left(\frac{D_{p,t-\tau}}{f_{p,t-\tau}(\gamma)} - \frac{D_{p,t-\tau-1}}{f_{p,t-\tau-1}(\gamma)}\right)\right] = 0$ is that, for a large enough lag $\tau$, the error is not correlated with past data at that lag. By that, we mean that the people that are classified as infectives at time $t-\tau$ do not have an effect on the error that we make when considering the infectives at time $t$ under a correct model specification. This is independent of the scaling functions $f_{p,t-\tau}(\gamma)$ and $f_{p,t-\tau-1}(\gamma)$ as these are constructed without the past infectives in mind. Because we chose $\tau$ to exceed the maximum estimated incubation period, we assume that this holds.
+	\\
 
 	    
 % 	\noindent We can rewrite equation \eqref{eq:model_within_undocumented} as follows
@@ -829,16 +832,17 @@
 	    \[H_0:~ \beta_{within, OLS} - \beta_{within,POLS} = 0.\]
 	The test statistic is constructed as follows:
 	    \[t = \left\lvert \frac{\widehat{\beta}_{within, OLS} - \widehat{\beta}_{within, POLS}}{\sqrt{s.e.^2_{within, OLS} - s.e.^2_{within, POLS}}} \right\rvert ,\]
-	where $s.e.$ represents the standard error. If we fill out the needed values, we find that $t = 2.910$. Since this exceeds the critical value $t_{T; 0.95} = 1.96$, we find statistical evidence in favour of the null hypothesis, at a significance level of 0.05. Therefore, we can conclude that the methods lead to different results. \\
+	where $s.e.$ represents the standard error. If we fill out the needed values, we find that $t = 2.910$. Since this exceeds the critical value $t_{T; 0.95} = 1.96$, we find statistical evidence in favour of the null hypothesis, at a significance level of 0.05. Therefore, we can conclude that the methods lead to different results. 
+	\\
 	
-	We are interested in looking at the national transmission rate over time. Because we are able to take into account all regions when using POLS, we need fewer time periods to estimate a model consistently. Therefore, the data used to plot the transmission rate over time in Figure \ref{fig:beta_within_over_time_national}, uses the thirty latest time observations for each region.
+	We are interested in looking at the national transmission rate over time. Because we are able to take into account all regions when using POLS, we need fewer time periods to estimate a model consistently. Therefore, the data used to plot the transmission rate over time in Figure \ref{fig:beta_within_over_time_national}, uses the thirty latest time observations for each region. In addition, a LOESS (locally estimated scatter plot smoothing) curve with span parameter 0.3 is fit to the data points. We also add a dark grey ribbon around the LOESS curve, representing the 95\% confidence interval; the fact that this area is very narrow and almost not visible indicates a high precision.
 	
 	\begin{figure}[H]
 	    \centering
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_National_rolling.pdf}
-	      \caption{Excluding undocumented infectives}
+	      \caption{Infectives exclude undocumented cases}
 	      \label{fig:beta_within_over_time_national_regular}
 	    \end{subfigure}\newline
     \end{figure}
@@ -846,7 +850,7 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_National_UndocQuadratic_rolling.pdf}
-	      \caption{Including undocumented infectives}
+	      \caption{Infectives include undocumented cases}
 	      \label{fig:beta_within_over_time_national_regular_undoc}
 	    \end{subfigure}
 	    \caption{Progression of $\beta_{within}$ over time for the national model (POLS). Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -974,14 +978,14 @@
 	
 	Although the estimates in Table \ref{tab:results_functional_forms} do not differ much for different specifications, the difference for some specifications may be statistically significant. Consider the linear and quadratic specifications for Lombardy. Comparing the linear and quadratic ($\gamma = 0.6$) specifications, we find a $t$-statistic of 0.977, resulting in a non-significant difference. The difference between the estimates using the linear and quadratic ($\gamma = 0.7$) specifications, however, does yield a significant difference, with $t=6.127$. Therefore, there is indeed an impact of the specific functional form and one should choose the one that they deem to be fitting. \\
 	
-	We are mainly interested in looking at the estimate of $\beta_{within}$ over time. We expect that it decreases over time, implying that SARS-CoV-2 is transmitted less. In Figure \ref{fig:beta_within_over_time_nordest}, we present plots for the regions in the Nord-Est NUTS 1 region. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:figures_model_within}, which generally show similar results. Each point in the graphs in Figure \ref{fig:beta_within_over_time_nordest} is the estimate of $\beta_{within}$ when only the latest 100 data points before that date are used. In addition, a LOESS (locally estimated scatter plot smoothing) curve with span parameter 0.3 is fit to the data points. We also add a dark grey ribbon around the LOESS curve, representing the 95\% confidence interval; the fact that this area is very narrow and almost not visible indicates a high precision. \\
+	We are mainly interested in looking at the estimate of $\beta_{within}$ over time. We expect that it decreases over time, implying that SARS-CoV-2 is transmitted less. In Figure \ref{fig:beta_within_over_time_nordest}, we present plots for the regions in the Nord-Est NUTS 1 region. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:figures_model_within}, which generally show similar results. Each point in the graphs in Figure \ref{fig:beta_within_over_time_nordest} is the estimate of $\beta_{within}$ when only the latest 100 data points before that date are used. In addition, a LOESS curve with span parameter 0.3 is fit to the data points. \\
 	
 	\begin{figure}[H]
 	    \centering
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Nord-Est_rolling.pdf}
-	      \caption{Excluding undocumented infectives}
+	      \caption{Infectives exclude undocumented cases}
 	      \label{fig:beta_within_over_time_nordest_regular}
 	    \end{subfigure}
     \end{figure}
@@ -989,7 +993,7 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Nord-Est_UndocQuadratic_rolling.pdf}
-	      \caption{Including undocumented infectives}
+	      \caption{Infectives include undocumented cases}
 	      \label{fig:beta_within_over_time_nordest_regular_undoc}
 	    \end{subfigure}
 	    \caption{Progression of $\widehat{\beta}_{within}$ over time for the Nord-Est NUTS 1 region. The last 100 days are used for estimation. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -998,14 +1002,14 @@
 	
 	Considering the progression of $\widehat{\beta}_{within}$ over time, we indeed see that it decreases over time, as we expected. We do see a slight increase or slanting in some estimates of $\beta_{within}$ towards the end of the timespan. This is likely because of the arising second wave, as discussed earlier in this section. We also notice that the profile of $\widehat{\beta}_{within}$ over time is similar when comparing the models excluding and including undocumented infectives; the difference can be found in the level of $\widehat{\beta}_{within}$ which, as explained earlier in this section, tends to be lower when modelling undocumented infectives. \\
 	
-	Lastly, we are interested in comparing the transmission rates over time across the three regions with the highest transmission rate in Table \ref{tab:results_within_no_ms}. The reason for this is that we expected the estimated transmission rate for Lombardy to have been the highest but we saw a higher value for Molise. However, this does not mean that Molise has always had the highest estimated transmission rate. In Figure \ref{fig:model_within_compare_highest}, we compare Lazio, Lombardy, and Molise.
+	Lastly, we are interested in comparing the transmission rates over time across the three regions with the highest transmission rate in Table \ref{tab:results_within_no_ms}. The reason for this is that we expected the estimated transmission rate for Lombardy to have been the highest but we saw a higher value for Molise. However, this does not mean that Molise has always had the highest estimated transmission rate. Moreover, the number of cases in Molise is actually not that high; on September 24, it only saw a total number of 623 cases while Lazio and Lombardy saw 14,975 and 105,226 total infectives, respectively. In Figure \ref{fig:model_within_compare_highest}, we compare Lazio, Lombardy, and Molise.
 	
 	\begin{figure}[H]
 	    \centering
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_compare_rolling.pdf}
-	      \caption{Excluding undocumented infectives}
+	      \caption{Infectives exclude undocumented cases}
 	      \label{fig:model_within_compare_highest_regular}
 	    \end{subfigure}
     \end{figure}
@@ -1013,23 +1017,24 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_compare_UndocQuadratic_rolling.pdf}
-	      \caption{Including undocumented infectives}
+	      \caption{Infectives include undocumented cases}
 	      \label{fig:model_within_compare_highest_undoc}
 	    \end{subfigure}
 	    \caption{Progression of $\widehat{\beta}_{within}$ over time for Lazio, Lombardy, and Molise. The last 100 days are used for estimation. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
 	    \label{fig:model_within_compare_highest}
     \end{figure}
 	
-	Firstly, notice that there is a difference in the ranking over time depending on whether undocumented infectives are modelled or not; if they are, then Lombardy is passed by Lazio in the middle of July, although Lazio never exceeds Lombardy for the regular model. Secondly, focusing on the regular model, we indeed see that Lombardy reported the highest transmission rate until a steep decrease was seen and Molise passed it in the middle of August. This is likely because Lombardy did not see an increase indicating a second wave, as can be seen in Figure \ref{fig:incidence_nordovest}, while Molise did, as can be seen in Figure \ref{fig:incidence_sud}. \\
+	Firstly, notice that there is a difference in the ranking over time depending on whether undocumented infectives are modelled or not; if they are, then Lombardy is passed by Lazio in the middle of July, although Lazio never exceeds Lombardy for the regular model. Secondly, focusing on the regular model, we indeed see that Lombardy reported the highest transmission rate until a steep decrease was seen and Molise passed it in the middle of August. This is likely because Lombardy did not see an increase indicating a second wave, as can be seen in Figure \ref{fig:incidence_nordovest}, while Molise did, as can be seen in Figure \ref{fig:incidence_sud}.
+	\\
 	
-	To conclude the discussion of the within-region spread model, we investigate the progression of the estimated transmission rate over time when using a smaller sample size for our models, so that we can look at the events during the national lockdown. Because we use a smaller sample size, the power of our estimation decreases, meaning that we can expect a higher false negative rate. In Figure \ref{fig:model_within_nordest_lowsample}, we plot this progression for the Nord-Est NUTS 1 region. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:figures_model_within}.
+	To conclude the discussion of the within-region spread model, we investigate the progression of the estimated transmission rate over time when using a smaller sample size for our models, so that we can look at the events during the national lockdown. Because we use a smaller sample size, the Type II error probability of our estimation decreases, meaning that we can expect wider confidence intervals. In Figure \ref{fig:model_within_nordest_lowsample}, we plot this progression for the Nord-Est NUTS 1 region. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:figures_model_within}.
 	
 	\begin{figure}[H]
 	    \centering
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_betawithin_Nord-Est_rollingwindow30.pdf}
-	      \caption{Excluding undocumented infectives}
+	      \caption{Infectives exclude undocumented cases}
 	      \label{fig:model_within_nordest_lowsample_regular}
 	    \end{subfigure}
     \end{figure}
@@ -1037,14 +1042,14 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_betawithin_Nord-Est_UndocQuadratic_rollingwindow30.pdf}
-	      \caption{Including undocumented infectives}
+	      \caption{Infectives include undocumented cases}
 	      \label{fig:model_within_nordest_lowsample_undoc}
 	    \end{subfigure}
 	    \caption{Progression of $\widehat{\beta}_{within}$ over time for the Nord-Est NUTS 1 region. The last 30 days are used for estimation. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
 	    \label{fig:model_within_nordest_lowsample}
     \end{figure}
 	
-	Figure \ref{fig:model_within_nordest_lowsample} shows, as expected, quite different results compared to Figure \ref{fig:beta_within_over_time_nordest}. Considering the period during the national lockdown, indicated by the grey area, we see that the estimated transmission rates for all regions has decreased substantially, suggesting that the lockdown has been effective in driving the transmission of the virus back. After the lockdown ended on May 10, the degree of the decline slanted and towards the beginning of July we saw an increase in the transmission rate again. Because we have more data on the long term, however, the inference executed should only be considered for the early stages of the pandemic when there was a lack of information.
+	Figure \ref{fig:model_within_nordest_lowsample} shows, as expected, quite different results compared to Figure \ref{fig:beta_within_over_time_nordest}. Considering the period during the national lockdown, indicated by the grey area, we see that the estimated transmission rates for all regions has decreased substantially, suggesting that the lockdown has been effective in driving the transmission of the virus back. After the lockdown ended on May 10, the degree of the decline slanted and towards the beginning of July we saw an increase in the transmission rate again.
 	
 	\section{Within and Between-Region Spread Model} \label{sec:model_between}
 	In this section, we present the model by \textcite{adda2016economic} that takes effects across regions into account. Section \ref{subsec:model_between_methodology} discusses the methodology, including the model formulation, estimation method, moment conditions, and the inclusion of undocumented infectives. The results are presented in \ref{subsec:model_between_results}, where we discuss the statistical evidence, the magnitude of the estimates, and how they compare across the regions. Moreover, we investigate the progression of the estimates over time.
@@ -1055,11 +1060,13 @@
 	    \Delta I_{p,t} = \beta_{within}s_{p,t-\tau}\Delta I_{p,t-\tau} + \beta_{between}s_{p,t-\tau} \sum_{c \in R \setminus r} \Delta I_{c, t-\tau} + \delta X_{p,t} + \eta_{p,t}.
 	\end{equation}
 	
-	It should be noted that the specification in equation \eqref{eq:model_between} assumes that individuals from all regions are able to meet one another at the same rate. Of course, this assumption is likely not satisfied. Consider, for example, inhabitants of Lombardy, which lies in north-west Italy, are much more likely to travel to bordering regions, such as Piedmont or Veneto, than to regions in the far south, such as Campania or Apulia, or to the islands. As such, it would be better to consider introducing a method by which we only take a certain number of regions that are the closest to another region into account. Another criterion could be to look at economic ties, since SARS-CoV-2 can not only be transmitted by regular civilians meeting each other but also by the exchange of goods, for example. Spatiotemporal models exist that could be applied when a suitable matrix of weighting measures is available. Nonetheless, in this section, we follow the specification that \textcite{adda2016economic} provides as in equation \eqref{eq:model_between} and explain the other criteria as possible future research in Section \ref{sec:future_research}. \\
+	It should be noted that the specification in equation \eqref{eq:model_between} assumes that individuals from all regions are able to meet one another at the same rate. Of course, this assumption is likely not satisfied. Consider, for example, inhabitants of Lombardy, which lies in north-west Italy, are much more likely to travel to bordering regions, such as Piedmont or Veneto, than to regions in the far south, such as Campania or Apulia, or to the islands. As such, it would be better to consider introducing a method by which we only take a certain number of regions that are the closest to another region into account. Another criterion could be to look at economic ties, since SARS-CoV-2 can not only be transmitted by regular civilians meeting each other but also by the exchange of goods, for example. Spatiotemporal models exist that could be applied when a suitable matrix of weighting measures is available. Nonetheless, in this section, we follow the specification that \textcite{adda2016economic} provides as in equation \eqref{eq:model_between} and explain the other criteria as possible future research in Section \ref{sec:future_research}. 
+	\\
 	
 % 	Notice, moreover, that it does not make sense to consider a national model. Because we do not consider countries outside of Italy, the set $R \setminus r$ is empty if we consider $r$ to be the entire country of Italy. This would mean that the national model for the within and between-region spread model is equivalent to the national model for the within-region spread model. As such, in this section, we only consider the model applied to the regions. \\
 	
-	In equation \eqref{eq:model_between}, the transmission parameter $\beta$ is now allowed to be different within and between regions. \textcite{adda2016economic} estimates equation \eqref{eq:model_between} by OLS and by instrumental variable estimation (IV). Weather episodes, such as the amount of rain and temperature-related instruments, are used as instruments. There is a biological reasoning behind choosing these instruments, for instance that warmer temperatures tend to have a negative effect on the proliferation of some viruses. A social reason is also given, namely that adverse weather conditions impact the amount of social interaction between people. It is unlikely that these are valid instruments for SARS-CoV-2. Unfortunately, we do not have sufficient information on the effect of the weather on the virus; SARS-CoV-2 has only been quite apparent since December 2019 and there has not been enough fluctuation over time in temperatures to show a necessary effect that can be disentangled from, for example, policies being effective in driving the virus back. Using a spatiotemporal analysis, \textcite{briz2020temperature} even show that no evidence of a relationship between COVID-19 cases and temperature was found, although these results should be interpreted carefully due to data uncertainty and confounders. For these reasons, we only consider OLS for this model. \\
+	In equation \eqref{eq:model_between}, the transmission parameter $\beta$ is now allowed to be different within and between regions. \textcite{adda2016economic} estimates equation \eqref{eq:model_between} by OLS and by instrumental variable estimation (IV). Weather episodes, such as the amount of rain and temperature-related instruments, are used as instruments. There is a biological reasoning behind choosing these instruments, for instance that warmer temperatures tend to have a negative effect on the proliferation of some viruses. A social reason is also given, namely that adverse weather conditions impact the amount of social interaction between people. It is unlikely that these are valid instruments for SARS-CoV-2. Unfortunately, we do not have sufficient information on the effect of the weather on the virus; SARS-CoV-2 has only been quite apparent since December 2019 and there has not been enough fluctuation over time in temperatures to show a necessary effect that can be disentangled from, for example, policies being effective in driving the virus back. Using a spatiotemporal analysis, \textcite{briz2020temperature} even show that no evidence of a relationship between COVID-19 cases and temperature was found, although these results should be interpreted carefully due to data uncertainty and confounders. For these reasons, we only consider OLS for this model. 
+	\\
 	
 	Using the specification of undocumented infectives, we can adapt the within and between-region spread model to include these undocumented infectives as well. Using that $\Delta I_{p,t} = \frac{D_{p,t}}{f_{p,t}(\gamma)} - \frac{D_{p,t-1}}{f_{p,t-1}(\gamma)}$, the model in equation \eqref{eq:model_between} becomes:
 	
@@ -1178,7 +1185,7 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_between_lag14_betas_Nord-Ovest_rolling.pdf}
-	      \caption{Excluding undocumented infectives}
+	      \caption{Infectives exclude undocumented cases}
 	      \label{fig:beta_between_over_time_nordovest_regular}
 	    \end{subfigure}
     \end{figure}
@@ -1186,7 +1193,7 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_between_lag14_betas_Nord-Ovest_UndocQuadratic_rolling.pdf}
-	      \caption{Including undocumented infectives}
+	      \caption{Infectives include undocumented cases}
 	      \label{fig:beta_between_over_time_nordovest_regular_undoc}
 	    \end{subfigure}
 	    \caption{Progression of $\beta_{within}$ and $\beta_{between}$ over time for the Nord-Ovest NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -1256,7 +1263,7 @@
 % 	    \begin{equation}\label{eq:cross-section}
 %     	    y_i = x_i'\theta + \epsilon_i, \quad\forall i=1,\dotsc,P
 % 	    \end{equation}
-% 	where $y$ denotes the dependent variable, $x$ denotes the independent variables, $\theta$ is the vector of parameters to be estimated, and $\epsilon$ is an idiosyncratic error term. \\
+% 	where $y$ denotes the dependent variable, $x$ denotes the regressors, $\theta$ is the vector of parameters to be estimated, and $\epsilon$ is an idiosyncratic error term. \\
 	
 % 	A panel data model is usually described in a very similar way:
 % 	    \begin{equation}\label{eq:paneldata}
@@ -1275,7 +1282,7 @@
 %             u_{i,t} = \eta_{p,t}
 % 	    \end{equation*}
 	    
-% 	Looking at this notation, we can see that it is safe to impose the assumption that the individual effect and the independent variables are orthogonal: it seems odd to assume that the individual regional effect, which is time-invariant, is correlated with the time-varying incidence rate or susceptible rate of this one specific disease. In the rest of this section, we will follow the notation as in equation \eqref{eq:paneldata} but one can follow the example to formulate these in terms of the SIR equations. \\
+% 	Looking at this notation, we can see that it is safe to impose the assumption that the individual effect and the regressors are orthogonal: it seems odd to assume that the individual regional effect, which is time-invariant, is correlated with the time-varying incidence rate or susceptible rate of this one specific disease. In the rest of this section, we will follow the notation as in equation \eqref{eq:paneldata} but one can follow the example to formulate these in terms of the SIR equations. \\
 
 % 	There are three main panel data models that are usually applied: the pooled OLS (POLS), fixed effects (FE), and random effects (RE) models. The choice between these models depends on the assumptions that are placed on the individual effect $\alpha_i$. For each of these three methods, we define them and discuss the required exogeneity assumption(s) and possible other interesting features. We will start with the fixed effects model because the way it is defined is inconsistent with the epidemiological literature on the SIR model. Next, we will consider the random effects model, after which we discuss the pooled OLS model. \\
 	
@@ -1467,7 +1474,8 @@
 % 	\todo[inline, backgroundcolor=green!40]{TODO: Compare estimates with those by Adda?}
 
     \section{Forecasts} \label{sec:forecasts}
-	In this section, we will provide forecasts for the models to investigate the applicability of our models in addition to the estimation of the transmission rates. Firstly, we will consider one-period ahead forecasts, after which we will consider multi-period ahead forecasts. \\
+	In this section, we will provide forecasts for the models to investigate the applicability of our models in addition to the estimation of the transmission rates. Firstly, we will consider one-period ahead forecasts, after which we will consider multi-period ahead forecasts.
+	\\
 	
 	Consider Figure \ref{fig:forecast_within_nordovest}, where we plot one-period ahead forecasts for the Nord-Ovest NUTS 1 region for the within-region spread model. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:figures_forecasts}.
 	
@@ -1476,7 +1484,7 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_forecast_start20_Nord-Ovest_rolling.pdf}
-	      \caption{Excluding undocumented infectives}
+	      \caption{Infectives and forecasts exclude undocumented cases}
 	      \label{fig:forecast_within_nordovest_regular}
 	    \end{subfigure}
     \end{figure}
@@ -1484,14 +1492,14 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_forecast_start20_Nord-Ovest_UndocQuadratic_rolling.pdf}
-	      \caption{Including undocumented infectives}
+	      \caption{Infectives and forecasts include undocumented cases}
 	      \label{fig:forecast_within_nordovest_undoc}
 	    \end{subfigure}
 	    \caption{One-period ahead forecasts for the within-region spread model for the Nord-Ovest NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
 	    \label{fig:forecast_within_nordovest}
     \end{figure}
 	
-	Figure \ref{fig:forecast_within_nordovest} shows that our one-period ahead forecasts are able to emulate the profile of the infectives but that almost all predictions exceed the true number of infectives. The gap between the true and forecasted values decreases over time, as the number of active infectives decreases.
+	Figure \ref{fig:forecast_within_nordovest} shows that our one-period ahead forecasts are able to emulate the profile of the infectives but that almost all predictions exceed the true number of infectives. The gap between the true and forecasted values decreases over time, as the number of (documented) infectives decreases.
 	\\
 	
     Consider Figure \ref{fig:forecast_between_nordovest}, where we plot the forecasts for the Nord-Ovest NUTS 1 region for the within and between-region spread model instead.
@@ -1501,7 +1509,7 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_between_lag14_forecast_start20_Nord-Ovest_rolling.pdf}
-	      \caption{Excluding undocumented infectives}
+	      \caption{Infectives and forecasts exclude undocumented cases}
 	      \label{fig:forecast_between_nordovest_regular}
 	    \end{subfigure}
     \end{figure}
@@ -1509,7 +1517,7 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.94\linewidth]{output/model_between_lag14_forecast_start20_Nord-Ovest_UndocQuadratic_rolling.pdf}
-	      \caption{Including undocumented infectives}
+	      \caption{Infectives and forecasts include undocumented cases}
 	      \label{fig:forecast_between_nordovest_undoc}
 	    \end{subfigure}
 	    \caption{One-period ahead forecasts for the within and between-region spread model for the Nord-Ovest NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -1519,10 +1527,10 @@
 	In Figure \ref{fig:forecast_between_nordovest}, we see that the predicted values are generally closer to the true values compared to the within-region spread model. There are two important notes to make. Note that negative estimated values of the number of infectives occur for Liguria and Aosta Valley, among other regions, which is not possible. This is likely the case due to a steeper decrease in the number of infectives $\tau = 14$ days prior.
 	\\
 	
-	We now consider forecasts for more than one period ahead for the within-region spread model. Because the right-hand side of our model formulation in equation \eqref{eq:model_within} depends on data with a time lag of $\tau$ and that only a weekend effect is included in the covariates, which is readily available, we can predict $\tau$ periods ahead. When we have estimated our model with data up to period $t$, we obtain estimates $\widehat{\beta}_{within}$ and $\widehat{\delta}$ that can be used to estimate the future number of infectives:
+	We now consider forecasts for more than one period ahead for the within-region spread model. Firstly, we will discuss a method by which we can forecast up to $\tau$ periods ahead, after which we talk about an iterative method to forecast more than $\tau$ periods ahead. Because the right-hand side of our model formulation in equation \eqref{eq:model_within} depends on data with a time lag of $\tau$ and that only a weekend effect is included in the regressors, which is readily available, we can directly forecast $\tau$ periods ahead. When we have estimated our model with data up to period $t$, we obtain estimates $\widehat{\beta}_{within}$ and $\widehat{\delta}$ that can be used to estimate the future number of infectives:
 	    \[\widehat{\Delta I_{p,t}} = \widehat{\beta}_{within} s_{p,t-\tau} \Delta I_{p,t-\tau} + \widehat{\delta} X_{p,t}.\]
 	    
-	The results from applying this method are labelled with \textit{Forecast} in the plots below. We also provide $\tau$ more forecasts by using the estimated number of infectives as the true data and assuming that the susceptible population changed only by the number of removed infectives, i.e. deaths and recoveries are ignored:
+	The results from applying this method are labelled with \textit{Forecast} in the plots below. We can also iteratively forecast more than $\tau$ periods ahead by using the estimated number of infectives as the true data and assuming that the susceptible population changed only by the number of removed infectives, i.e. deaths and recoveries are ignored:
 	    \[S_{p, t+1} = S_{p,t} - \widehat{\Delta I_{p,t}}.\]
 	    
 	Then, we can again use the estimated values $\widehat{\beta}_{within}$ and $\widehat{\delta}$ to compute the number of infectives. The results from applying this method are labelled with \textit{Two-step} in the plots below. In Figure \ref{fig:forecast_full_within_nordovest}, we present the results for the Nord-Ovest NUTS 1 region for the within-region spread model. Plots for the other NUTS 1 regions can be found in Appendix \ref{sapp:figures_forecasts}.
@@ -1532,7 +1540,7 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.92\linewidth]{output/model_within_lag14_forecast_full_Nord-Ovest.pdf}
-	      \caption{Excluding undocumented infectives}
+	      \caption{Infectives and forecasts exclude undocumented cases}
 	      \label{fig:forecast_full_within_nordovest_regular}
 	    \end{subfigure}
     \end{figure}
@@ -1540,14 +1548,14 @@
 	    \begin{subfigure}{\textwidth}
 	      \centering
 	      \includegraphics[width=0.92\linewidth]{output/model_within_lag14_forecast_full_Nord-Ovest_UndocQuadratic.pdf}
-	      \caption{Including undocumented infectives}
+	      \caption{Infectives and forecasts include undocumented cases}
 	      \label{fig:forecast_full_within_nordovest_undoc}
 	    \end{subfigure}
-	    \caption{Multi-period ahead forecasts for the within-region spread model for the Nord-Ovest NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
+	    \caption{Iterated forecasts for the within-region spread model for the Nord-Ovest NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
 	    \label{fig:forecast_full_within_nordovest}
     \end{figure}
     
-    Figure \ref{fig:forecast_full_within_nordovest} shows that the multi-period ahead forecasts are grossly overestimating the number of infectives. This is because the estimates were retreived using data when the number of infectives was increasing steeply, although it has since been decreasing. Using a linear regression model, therefore, interpolates the data in such a way that the estimated number of infectives is much higher. Conclusively, this method of forecasting is not to be preferred.
+    Figure \ref{fig:forecast_full_within_nordovest} shows that the multi-period ahead forecasts are grossly overestimating the number of infectives. This is because the estimates were retreived using data when the number of infectives was increasing steeply, although it has since been decreasing. We conclude that this method of forecasting is not to be preferred.
 
 	\section{Conclusion} \label{sec:conclusion}
 	% Conclusions
@@ -1555,9 +1563,11 @@
 	% 2. Highlight the big accomplishments. Spend another paragraph explaining the highlights of your results. These are the main results you want the reader to remember after they put down the paper, so ignore any small details.
 	% 3. Conclude. Finally, finish off with a sentence or two that wraps up your paper. I find this can often be the hardest part to write. You want the paper to feel finished after they read these. One way to do this, is to try and tie your research to the “real world.” Can you somehow relate how your research is important outside of academia? Or, if your results leave you with a big question, finish with that. Put it out there for the reader to think about to.
 	
-	In this thesis, we have explored methods to model the transmission rate of coronavirus disease 2019 (COVID-19), caused by severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2), in Italy. This deadly viral disease has had a hold on the entire globe since December 2019. In its raze, it has infected around 31 million people worldwide and caused almost a million deaths so far. The goal of this thesis was to apply models which recognize that the Italian regions are not homogeneous such that regional variation and spatial spillover effects need to be taken into account. This was done through the models presented by \textcite{adda2016economic}. We also aimed to come up with a modelling method to include undocumented infectives. This was done by constructing a functional form for the proportion of total infectives that are documented. \\
+	In this thesis, we have explored methods to model the transmission rate of coronavirus disease 2019 (COVID-19), caused by severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2), in Italy. This deadly viral disease has had a hold on the entire globe since December 2019. In its raze, it has infected around 31 million people worldwide and caused almost a million deaths so far. The goal of this thesis was to apply models which recognize that the Italian regions are not homogeneous such that regional variation and spatial spillover effects need to be taken into account. This was done through the models presented by \textcite{adda2016economic}. We also aimed to come up with a modelling method to include undocumented infectives. This was done by constructing a functional form for the proportion of total infectives that are documented. 
+	\\
 	
-	This thesis has shown that there is a vast difference between the transmission rates across regions in both models presented by \textcite{adda2016economic}. When not taking spatial spillover into account, it became clear that the regions of Lazio, Lombardy, and Molise sported the highest within-region transmission rate. The results that do consider a possible spatial spillover indicated that the within-region transmission rate for Lazio and Molise is not significant but that both have a significant between-region transmission rate. For Lombardy, a significant within-region and between-region transmission rate was found. For the other regions, the between-region transmission was generally shown to have been less strong. Lastly, this thesis has indicated that the within-region spread model can be used to obtain an upper bound for the number of infectives and that the within and between-region spread model can be used to forecast the number of infectives more accurately. A multi-period ahead forecast with a limited number of data points is not suitable. \\
+	This thesis has shown that there is a vast difference between the transmission rates across regions in both models presented by \textcite{adda2016economic}. When not taking spatial spillover into account, it became clear that the regions of Lazio, Lombardy, and Molise sported the highest within-region transmission rate. However, Molise did not see a high number of cases. The results that do consider a possible spatial spillover indicated that the within-region transmission rate for Lazio and Molise is not significant but that both have a significant between-region transmission rate. For Lombardy, a significant within-region and between-region transmission rate was found. For the other regions, the between-region transmission was generally shown to have been less strong. Lastly, the models can be used to forecast the number of infectives. A multi-period ahead forecast extrapolating data from during the national lockdown to forecast infections after the lockdown is not suitable.
+	\\
 	
 	Conclusively, this thesis has exposed differences in the transmission rates across the Italian regions by applying models by \textcite{adda2016economic} and by modelling undocumented infectives. Those involved with processing the results from models for the COVID-19 pandemic, such as policy makers, should not only trust models that focus on a nationwide level when thinking about actions to tackle the pandemic. There are consistent regional effects that models should take into account, The results from those models also differ vastly across regions. Consequently, regional effects should be kept in mind when interpreting and acting upon model results.
 	
@@ -1589,10 +1599,10 @@
 	One major limitation of the models by \textcite{adda2016economic} is that they do not allow for the estimation of the recovery rate in addition to the transmission rate. Therefore, we tried to develop our own model as well, derived by discretizing the SIR model. A two-step approach was developed to estimate both the transmission rate $\beta$ and the recovery rate $\gamma$, with the intention to also make conclusions about the effective reproduction number $R_{eff}$. In Appendix \ref{app:discrete_SIR}, we present a short explanation on the methodology that was tried and some results. Unfortunately, the resulting estimates are too low to be interpreted. This problem is likely the result of nonstationarity in the data. Indeed, \textcite{castle2020nonstationarity} state that nonstationarity is often a problem when modelling pandemics, both in the data and due to the reporting process. The underlying data is often nonstationary because of a slow start, after which there is an exponential increase in the number of cases. %The problem is especially pernicious due to the stacking of the nonstationarity of the data with the nonstationarity of the reporting process. 
 	If one is able to take the nonstationarity into account, this may be a promising field of research. \\
 	
-	Lastly, this thesis did not discuss the full weighted model presented by \textcite{adda2016economic} due to a lack of data. As more data becomes available, it may be worth estimating this model. One data source that could be useful are the Community Mobility Reports by Google, which use anonymized data of users to investigated changes in movements in the population compared to a median baseline \parencite{google_mobility_report}. For instance, the reports include data on the change in the number of people that have visited public transport hubs, parks, and supermarkets. If this source can be included, the results can show the effects that policy has had on the spread of the virus. \\
+	Lastly, this thesis did not discuss the full weighted model presented by \textcite{adda2016economic} due to a lack of data. As more data becomes available, it may be worth estimating this model. One data source that could be useful are the Community Mobility Reports by Google, which use anonymized data of users to investigated changes in movements in the population compared to a median baseline \parencite{google_mobility_report}. For instance, the reports include data on the change in the number of people that have visited public transport hubs, parks, and supermarkets. If this source can be included, the results can show the effects that policy has had on the spread of the virus.
 	
 	% The third assumption that the SIR model makes is that there is a constant rate of change at which infectives recover or decease. =>  The fuller hospitals are, the more people will likely decease.
-	%  For simplicity’s sake, we assume that lambda = 0. => Look into cases where lambda is not equal to 0.
+	%  For simplicity’s sake, we assume that w = 0. => Look into cases where w is not equal to 0.
 	
 	% GMR: If more daily travel data is known with absolute numbers, this could be incorporated more easily.
 
@@ -2144,7 +2154,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.85\linewidth]{output/model_within_lag14_betawithin_Nord-Ovest_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_within_over_time_northwest_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2152,7 +2162,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.85\linewidth]{output/model_within_lag14_betawithin_Nord-Ovest_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_within_over_time_northwest_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ over time for the Nord-Ovest NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -2164,7 +2174,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Centro (IT)_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_within_over_time_centro_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2172,7 +2182,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Centro (IT)_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_within_over_time_centro_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ over time for the Centro (IT) NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -2184,7 +2194,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Sud_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_within_over_time_sud_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2192,7 +2202,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Sud_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_within_over_time_sud_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ over time for the Sud NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -2204,7 +2214,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Isole_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_within_over_time_isole_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2212,7 +2222,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Isole_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_within_over_time_isole_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ over time for the Isole NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -2224,7 +2234,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Nord-Ovest_rollingwindow30.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_within_over_time_northwest_lowsample_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2232,7 +2242,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Nord-Ovest_UndocQuadratic_rollingwindow30.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_within_over_time_northwest_lowsample_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ over time for the Nord-Ovest NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2244,7 +2254,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Centro (IT)_rollingwindow30.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_within_over_time_centro_lowsample_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2252,7 +2262,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Centro (IT)_UndocQuadratic_rollingwindow30.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_within_over_time_centro_lowsample_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ over time for the Centro (IT) NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2264,7 +2274,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Sud_rollingwindow30.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_within_over_time_sud_lowsample_regular}
     	    \end{subfigure}\newline
         \end{figure}
@@ -2272,7 +2282,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Sud_UndocQuadratic_rollingwindow30.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_within_over_time_sud_lowsample_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ over time for the Sud NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2284,7 +2294,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Isole_rollingwindow30.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_within_over_time_isole_lowsample_regular}
     	    \end{subfigure}\newline
         \end{figure}
@@ -2292,7 +2302,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_betawithin_Isole_UndocQuadratic_rollingwindow30.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_within_over_time_isole_lowsample_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ over time for the Isole NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2636,7 +2646,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.85\linewidth]{output/model_between_lag14_betas_Nord-Est_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_between_over_time_nordest_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2644,7 +2654,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.85\linewidth]{output/model_between_lag14_betas_Nord-Est_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_between_over_time_nordest_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ and $\beta_{between}$ over time for the Nord-Est NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -2656,7 +2666,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_between_lag14_betas_Centro (IT)_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_between_over_time_centro_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2664,7 +2674,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_between_lag14_betas_Centro (IT)_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_between_over_time_centro_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ and $\beta_{between}$ over time for the Centro (IT) NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -2676,7 +2686,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_between_lag14_betas_Sud_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_between_over_time_sud_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2684,7 +2694,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_between_lag14_betas_Sud_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_between_over_time_sud_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ and $\beta_{between}$ over time for the Sud NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -2696,7 +2706,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.8\linewidth]{output/model_between_lag14_betas_Isole_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_between_over_time_isole_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2704,7 +2714,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.8\linewidth]{output/model_between_lag14_betas_Isole_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_between_over_time_isole_regular_undoc}
     	    \end{subfigure}
     	    \caption{Progression of $\beta_{within}$ and $\beta_{between}$ over time for the Isole NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -2720,7 +2730,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.85\linewidth]{output/model_within_lag14_forecast_start20_Nord-Est_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_within_nordest_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2728,7 +2738,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.85\linewidth]{output/model_within_lag14_forecast_start20_Nord-Est_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_within_nordest_undoc}
     	    \end{subfigure}
     	    \caption{One-period ahead forecasts for the within-region spread model for the Nord-Est NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the lockdown.}
@@ -2740,7 +2750,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.92\linewidth]{output/model_within_lag14_forecast_start20_Centro (IT)_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_within_centro_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2748,7 +2758,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.92\linewidth]{output/model_within_lag14_forecast_start20_Centro (IT)_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_within_centro_undoc}
     	    \end{subfigure}
     	    \caption{One-period ahead forecasts for the within-region spread model for the Centro (IT) NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the lockdown.}
@@ -2760,7 +2770,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_forecast_start20_Sud_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_within_sud_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2768,7 +2778,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_forecast_start20_Sud_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_within_sud_undoc}
     	    \end{subfigure}
     	    \caption{One-period ahead forecasts for the within-region spread model for the Sud NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the lockdown.}
@@ -2780,7 +2790,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_forecast_start20_Isole_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_within_isole_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2788,7 +2798,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.94\linewidth]{output/model_within_lag14_forecast_start20_Isole_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_within_isole_undoc}
     	    \end{subfigure}
     	    \caption{One-period ahead forecasts for the within-region spread model for the Isole NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the lockdown.}
@@ -2800,7 +2810,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_between_lag14_forecast_start20_Nord-Est_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_between_nordest_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2808,7 +2818,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_between_lag14_forecast_start20_Nord-Est_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_between_nordest_undoc}
     	    \end{subfigure}
     	    \caption{One-period ahead forecasts for the within and between-region spread model for the Nord-Est NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2820,7 +2830,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_between_lag14_forecast_start20_Centro (IT)_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_between_centro_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2828,7 +2838,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_between_lag14_forecast_start20_Centro (IT)_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_between_centro_undoc}
     	    \end{subfigure}
     	    \caption{One-period ahead forecasts for the within and between-region spread model for the Centro (IT) NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2840,7 +2850,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_between_lag14_forecast_start20_Sud_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_between_sud_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2848,7 +2858,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_between_lag14_forecast_start20_Sud_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_between_sud_undoc}
     	    \end{subfigure}
     	    \caption{One-period ahead forecasts for the within and between-region spread model for the Sud NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2860,7 +2870,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_between_lag14_forecast_start20_Isole_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_between_isole_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2868,7 +2878,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_between_lag14_forecast_start20_Isole_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_between_isole_undoc}
     	    \end{subfigure}
     	    \caption{One-period ahead forecasts for the within and between-region spread model for the Isole NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2880,7 +2890,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_forecast_full_Nord-Est.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_full_within_nordest_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2888,7 +2898,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_forecast_full_Nord-Est_UndocQuadratic.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_full_within_nordest_undoc}
     	    \end{subfigure}
     	    \caption{Multi-period ahead forecasts for the within-region spread model for the Nord-Est NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2900,7 +2910,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_forecast_full_Centro (IT).pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_full_within_centro_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2908,7 +2918,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_forecast_full_Centro (IT)_UndocQuadratic.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_full_within_centro_undoc}
     	    \end{subfigure}
     	    \caption{Multi-period ahead forecasts for the within-region spread model for the Centro (IT) NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2920,7 +2930,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_forecast_full_Sud.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_full_within_sud_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2928,7 +2938,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_forecast_full_Sud_UndocQuadratic.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_full_within_sud_undoc}
     	    \end{subfigure}
     	    \caption{Multi-period ahead forecasts for the within-region spread model for the Sud NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -2940,7 +2950,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_forecast_full_Isole.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:forecast_full_within_isole_regular}
     	    \end{subfigure}
         \end{figure}
@@ -2948,7 +2958,7 @@
     	    \begin{subfigure}{\textwidth}
     	      \centering
     	      \includegraphics[width=0.91\linewidth]{output/model_within_lag14_forecast_full_Isole_UndocQuadratic.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:forecast_full_within_isole_undoc}
     	    \end{subfigure}
     	    \caption{Multi-period ahead forecasts for the within-region spread model for the Isole NUTS 1 region. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$. The grey area indicates the national lockdown.}
@@ -3042,13 +3052,13 @@
     	    \begin{subfigure}{0.495\textwidth}
     	      \centering
     	      \includegraphics[width=\linewidth]{output/panel_data_lag14_betas_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:beta_over_time_panel_data_rolling}
     	    \end{subfigure}
     	    \begin{subfigure}{0.495\textwidth}
     	      \centering
     	      \includegraphics[width=\linewidth]{output/panel_data_lag14_betas_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:beta_over_time_panel_data_undoc_rolling}
     	    \end{subfigure}
     	    \caption{Progression of the transmission rate $\beta$ over time. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -3060,13 +3070,13 @@
     	    \begin{subfigure}{0.495\textwidth}
     	      \centering
     	      \includegraphics[width=\linewidth]{output/panel_data_lag14_gammas_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:gamma_over_time_panel_data}
     	    \end{subfigure}
     	    \begin{subfigure}{0.495\textwidth}
     	      \centering
     	      \includegraphics[width=\linewidth]{output/panel_data_lag14_gammas_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:gamma_over_time_panel_data_undoc_rolling}
     	    \end{subfigure}
     	    \caption{Progression of the recovery rate $\gamma$ over time. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
@@ -3078,13 +3088,13 @@
     	    \begin{subfigure}{0.495\textwidth}
     	      \centering
     	      \includegraphics[width=\linewidth]{output/panel_data_lag14_Reff_rolling.pdf}
-    	      \caption{Excluding undocumented infectives}
+    	      \caption{Infectives exclude undocumented cases}
     	      \label{fig:Reff_over_time_panel_data}
     	    \end{subfigure}
     	    \begin{subfigure}{0.495\textwidth}
     	      \centering
     	      \includegraphics[width=\linewidth]{output/panel_data_lag14_Reff_UndocQuadratic_rolling.pdf}
-    	      \caption{Including undocumented infectives}
+    	      \caption{Infectives include undocumented cases}
     	      \label{fig:Reff_over_time_panel_data_undoc_rolling}
     	    \end{subfigure}
     	    \caption{Progression of the effective reproduction number $R_{eff}$ over time. Undocumented infectives are modelled using the quadratic specification with $\gamma = 0.7$ and $f^{min}=0.1$.}
